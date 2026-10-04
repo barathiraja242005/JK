@@ -7,11 +7,13 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.SlowMotionVideo
 import androidx.compose.material.icons.outlined.Share
 import com.barathiraja.jk.ui.components.shareText
 import com.barathiraja.jk.ui.theme.Aqua
 import com.barathiraja.jk.ui.theme.Ember
 import com.barathiraja.jk.ui.theme.Leaf
+import com.barathiraja.jk.ui.theme.Violet
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -54,7 +56,7 @@ import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.SectionTitle
 
 @Composable
-fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
+fun ProfileScreen(vm: JkViewModel, nav: NavHostController, gvm: com.barathiraja.jk.ui.GymViewModel? = null) {
     val p by vm.profile.collectAsStateWithLifecycle()
     val s by vm.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -79,6 +81,9 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
         }
     }
 
+    // The gym owner only needs their gym, appearance and help; body stats and goals are for people who train.
+    val owner = gvm?.me?.collectAsStateWithLifecycle()?.value?.role == com.barathiraja.jk.gym.Role.OWNER
+
     BackScreen("Me", onBack = { nav.popBackStack() }) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -93,7 +98,7 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
                 }
             }
         }
-        item {
+        if (!owner) item {
             JkCard(Modifier.fillMaxWidth()) {
                 val bmi = Health.bmi(p.weightKg, p.heightCm)
                 KeyValue("Goal", p.goal.label)
@@ -109,6 +114,8 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
             }
         }
 
+        if (gvm != null) item { com.barathiraja.jk.ui.gym.GymAccountCard(gvm) }
+
         item { SectionTitle("Appearance") }
         item {
             Choice(ThemeMode.entries, s.theme, { it.name.lowercase().replaceFirstChar(Char::uppercase) }) {
@@ -116,8 +123,8 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
             }
         }
 
-        item { SectionTitle("Goals") }
-        item {
+        if (!owner) item { SectionTitle("Goals") }
+        if (!owner) item {
             JkCard(Modifier.fillMaxWidth()) {
                 Stepper("Daily steps", "%,d".format(s.stepGoal),
                     onMinus = { vm.saveSettings(s.copy(stepGoal = (s.stepGoal - 1000).coerceAtLeast(2000))) },
@@ -129,8 +136,8 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
             }
         }
 
-        item { SectionTitle("Workout & reminders") }
-        item {
+        if (!owner) item { SectionTitle("Workout & reminders") }
+        if (!owner) item {
             JkCard(Modifier.fillMaxWidth()) {
                 Toggle("Voice coach", "Spoken cues during workouts", s.voiceCues) { vm.saveSettings(s.copy(voiceCues = it)) }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
@@ -150,6 +157,7 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
         }
 
         item { SectionTitle("More") }
+        if (gvm?.me?.value != null) item { NavRow(Icons.Outlined.SlowMotionVideo, "Shorts", "Swipe through exercise demos", Violet) { nav.navigate(Routes.SHORTS) } }
         item { NavRow(Icons.Outlined.PhotoCamera, "Transformation photos", "Before/after progress pictures", Ember) { nav.navigate(Routes.PHOTOS) } }
         item { NavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & about", "User guide, FAQ, credits", Aqua) { nav.navigate(Routes.HELP) } }
         item {
@@ -158,7 +166,7 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController) {
             }
         }
         item {
-            Text("JK v2.0 · Your data stays on this device.", style = MaterialTheme.typography.bodySmall,
+            Text(if (gvm?.me?.value != null) "JK v3.0 · Gym data syncs with your gym; personal data stays on this device." else "JK v3.0 · Your data stays on this device.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 16.dp))
         }
     }

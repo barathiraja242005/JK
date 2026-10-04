@@ -116,6 +116,55 @@ class UserPrefs(context: Context) {
         )
     }
 
+    /** True when the user chose to use JK on their own instead of signing in to a gym. */
+    var gymSkipped: Boolean
+        get() = sp.getBoolean("gymSkipped", false)
+        set(v) = sp.edit().putBoolean("gymSkipped", v).apply()
+
+    /**
+     * Profile, settings and training preferences as typed strings ("i:25"), for the signed-in account's private
+     * cloud backup. Phone-specific keys (step counter baselines, photo URI, popups) stay on the phone.
+     */
+    fun exportBackup(): Map<String, String> = sp.all.filterKeys { it !in deviceKeys }.mapNotNull { (k, v) ->
+        when (v) {
+            is Boolean -> k to "b:$v"
+            is Int -> k to "i:$v"
+            is Long -> k to "l:$v"
+            is Float -> k to "f:$v"
+            is String -> k to "s:$v"
+            else -> null
+        }
+    }.toMap()
+
+    fun importBackup(backup: Map<String, String>) {
+        val e = sp.edit()
+        backup.forEach { (k, raw) ->
+            if (k in deviceKeys) return@forEach
+            val v = raw.drop(2)
+            when (raw.take(2)) {
+                "b:" -> e.putBoolean(k, v == "true")
+                "i:" -> v.toIntOrNull()?.let { e.putInt(k, it) }
+                "l:" -> v.toLongOrNull()?.let { e.putLong(k, it) }
+                "f:" -> v.toFloatOrNull()?.let { e.putFloat(k, it) }
+                "s:" -> e.putString(k, v)
+            }
+        }
+        e.commit()
+        _profile.value = readProfile()
+        _settings.value = readSettings()
+        _training.value = readTraining()
+    }
+
+    private val deviceKeys = setOf("stepBaselineDay", "stepBaseline", "avatarUri", "planDialogDay", "gymSkipped")
+
+    /** Wipes everything stored on this phone (used when a gym account signs out). */
+    fun clearAll() {
+        sp.edit().clear().commit()
+        _profile.value = readProfile()
+        _settings.value = readSettings()
+        _training.value = readTraining()
+    }
+
     /** Last day the "Today's plan" popup was shown. */
     var planDialogDay: Long
         get() = sp.getLong("planDialogDay", -1)

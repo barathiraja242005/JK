@@ -22,6 +22,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.barathiraja.jk.data.ExerciseRepo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.JkRoot
 import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.TrainingViewModel
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private val container get() = (application as JkApp).container
     private val vm: JkViewModel by viewModels { JkViewModel.factory(container, application) }
     private val tvm: TrainingViewModel by viewModels { TrainingViewModel.factory(container) }
+    private val gvm: GymViewModel by viewModels { GymViewModel.factory(container) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { !ExerciseRepo.ready }
@@ -51,7 +53,7 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
             JkTheme(settings.theme) {
-                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { JkRoot(vm, tvm) }
+                Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { JkRoot(vm, tvm, gvm) }
             }
         }
     }

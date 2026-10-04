@@ -6,6 +6,9 @@ import com.barathiraja.jk.data.ExerciseRepo
 import com.barathiraja.jk.data.JkDatabase
 import com.barathiraja.jk.data.TrainingRepo
 import com.barathiraja.jk.data.UserPrefs
+import com.barathiraja.jk.gym.AuthRepo
+import com.barathiraja.jk.gym.GymRepo
+import com.google.firebase.FirebaseApp
 import com.barathiraja.jk.reminders.Reminders
 import com.barathiraja.jk.steps.StepTracker
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +23,11 @@ class AppContainer(context: Context) {
     val dao = db.dao()
     val steps = StepTracker(context, prefs, dao, appScope)
     val training = TrainingRepo(dao, prefs)
+
+    /** Gym features need google-services.json; without it JK runs as a personal app. */
+    val gymEnabled = FirebaseApp.getApps(context).isNotEmpty()
+    val auth by lazy { AuthRepo(context.applicationContext) }
+    val gym by lazy { GymRepo() }
 }
 
 class JkApp : Application() {

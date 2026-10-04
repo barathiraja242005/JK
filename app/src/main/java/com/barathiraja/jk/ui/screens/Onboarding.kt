@@ -44,7 +44,7 @@ import com.barathiraja.jk.data.Sex
 import com.barathiraja.jk.ui.components.SectionTitle
 
 @Composable
-fun OnboardingScreen(onDone: (Profile) -> Unit) {
+fun OnboardingScreen(initial: Profile = Profile(), onDone: (Profile) -> Unit) {
     Column(
         Modifier
             .fillMaxSize()
@@ -67,7 +67,7 @@ fun OnboardingScreen(onDone: (Profile) -> Unit) {
         Text("Tell us about you so JK can personalise your plan, calorie target and hydration goal.",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(8.dp))
-        ProfileForm(initial = Profile(), cta = "Start training", onSubmit = onDone)
+        ProfileForm(initial = initial, cta = "Start training", onSubmit = onDone)
     }
 }
 

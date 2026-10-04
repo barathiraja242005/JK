@@ -292,7 +292,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
 }
 
 @Composable
-private fun SetRow(i: Int, s: SetSpec, editing: Boolean, onToggle: () -> Unit, onChange: (SetSpec) -> Unit, onDelete: () -> Unit, step: Float) {
+internal fun SetRow(i: Int, s: SetSpec, editing: Boolean, onToggle: () -> Unit, onChange: (SetSpec) -> Unit, onDelete: () -> Unit, step: Float) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(enabled = !editing, onClick = onToggle), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = if (s.done) Leaf.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainer),
@@ -319,7 +319,7 @@ private fun SetRow(i: Int, s: SetSpec, editing: Boolean, onToggle: () -> Unit, o
 }
 
 @Composable
-private fun Value(value: String, label: String, modifier: Modifier, editing: Boolean, minus: () -> Unit, plus: () -> Unit) {
+internal fun Value(value: String, label: String, modifier: Modifier, editing: Boolean, minus: () -> Unit, plus: () -> Unit) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
         if (editing) FilledTonalIconButton(onClick = minus, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.Remove, "Less", Modifier.size(16.dp)) }
         Column(Modifier.padding(horizontal = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {

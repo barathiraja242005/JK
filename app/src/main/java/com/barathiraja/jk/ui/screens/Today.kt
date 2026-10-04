@@ -69,7 +69,9 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController) {
+fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController, gvm: com.barathiraja.jk.ui.GymViewModel? = null) {
+    // A workout from the member's coach replaces the auto-generated plan for that day.
+    val assigned = gvm?.myToday?.collectAsStateWithLifecycle()?.value
     val profile by vm.profile.collectAsStateWithLifecycle()
     val settings by vm.settings.collectAsStateWithLifecycle()
     val steps by vm.stepsToday.collectAsStateWithLifecycle()
@@ -97,7 +99,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController)
 
     // "Today's plan" popup once per day, like a coach greeting you.
     LaunchedEffect(planItems.isNotEmpty()) {
-        if (planItems.isNotEmpty() && planDone < planItems.size && tvm.planDialogDay != todayDay) {
+        if (assigned == null && planItems.isNotEmpty() && planDone < planItems.size && tvm.planDialogDay != todayDay) {
             tvm.planDialogDay = todayDay
             showPlanDialog = true
         }
@@ -114,7 +116,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController)
     val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMM"))
 
     TabScreen(
-        title = "$greeting, ${profile.name.substringBefore(' ')}", subtitle = date,
+        title = "$greeting, ${profile.name.split(' ').firstOrNull { it.trimEnd('.').length > 1 } ?: profile.name}", subtitle = date,
         action = { Avatar(avatar, profile.name, 44.dp) { nav.navigate(Routes.PROFILE) } },
     ) {
         item {
@@ -128,8 +130,10 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController)
             }
         }
 
+        if (gvm != null) item { com.barathiraja.jk.ui.gym.AssignedTodayCard(gvm, nav) }
+
         // Daily fitness report: this week's training days with completion rings.
-        if (tPrefs.setupDone) {
+        if (tPrefs.setupDone && assigned == null) {
             item {
                 JkCard(Modifier.fillMaxWidth(), onClick = { nav.navigate(Routes.WORKOUTS) }) {
                     Text("Daily Fitness Report", style = MaterialTheme.typography.titleMedium)
@@ -156,7 +160,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController)
             }
         }
 
-        item {
+        if (assigned == null) item {
             Box(
                 Modifier
                     .fillMaxWidth()

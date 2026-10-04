@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// JK Gym security rules. Paste into Firebase console → Firestore → Rules.
+// Layout is documented in app/src/main/java/com/barathiraja/jk/gym/GymRepo.kt.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function gymPath(gymId) { return /databases/$(database)/documents/gyms/$(gymId); }
+    function personPath(gymId, uid) { return /databases/$(database)/documents/gyms/$(gymId)/people/$(uid); }
+
+    function isOwner(gymId) { return signedIn() && get(gymPath(gymId)).data.ownerUid == me(); }
+    function activeIn(gymId) {
+      return signedIn() && exists(personPath(gymId, me())) && get(personPath(gymId, me())).data.status == 'active';
+    }
+    function isTrainer(gymId) { return activeIn(gymId) && get(personPath(gymId, me())).data.role == 'trainer'; }
+    function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
+
+    // Which gym this account belongs to.
+    match /users/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+    }
+
+    // Join codes: anyone signed in can look one up; only the gym owner / the trainer it belongs to can create it.
+    match /codes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn() && (
+        (request.resource.data.type == 'gym' && getAfter(gymPath(request.resource.data.gymId)).data.ownerUid == me()) ||
+        (request.resource.data.type == 'trainer' && request.resource.data.trainerUid == me())
+      );
+      allow update, delete: if false;
+    }
+
+    match /gyms/{gymId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.ownerUid == me();
+      allow update: if isOwner(gymId) && onlyChanged(['name']);
+      allow delete: if false;
+
+      match /people/{uid} {
+        allow read: if activeIn(gymId) || me() == uid || isOwner(gymId);
+        allow create: if signedIn() && me() == uid && (
+          (request.resource.data.role == 'owner' && request.resource.data.status == 'active' &&
+             getAfter(gymPath(gymId)).data.ownerUid == me()) ||
+          (request.resource.data.role == 'trainer' && request.resource.data.status == 'pending') ||
+          (request.resource.data.role == 'member' && request.resource.data.status == 'active' &&
+             get(personPath(gymId, request.resource.data.trainerUid)).data.role == 'trainer' &&
+             get(personPath(gymId, request.resource.data.trainerUid)).data.status == 'active')
+        );
+        allow update: if
+          // Owner approves / removes anyone.
+          (isOwner(gymId) && onlyChanged(['status', 'trainerUid'])) ||
+          // Trainers can remove their own members.
+          (isTrainer(gymId) && resource.data.trainerUid == me() && onlyChanged(['status'])) ||
+          // Everyone can update their own name and photo.
+          (me() == uid && onlyChanged(['name', 'photoUrl']));
+        allow delete: if false;
+      }
+
+      match /assignments/{id} {
+        allow read: if activeIn(gymId) || isOwner(gymId);
+        allow create: if isTrainer(gymId) && request.resource.data.trainerUid == me() &&
+          get(personPath(gymId, request.resource.data.memberUid)).data.trainerUid == me() &&
+          request.resource.data.verified == false;
+        allow update: if
+          (isTrainer(gymId) && resource.data.trainerUid == me() && request.resource.data.trainerUid == me() &&
+             request.resource.data.memberUid == resource.data.memberUid) ||
+          (activeIn(gymId) && resource.data.memberUid == me() &&
+             onlyChanged(['exercises', 'status', 'startedAt', 'completedAt', 'memberNote']));
+        allow delete: if isTrainer(gymId) && resource.data.trainerUid == me();
+      }
+
+      match /templates/{id} {
+        allow read: if activeIn(gymId);
+        allow create: if isTrainer(gymId) && request.resource.data.trainerUid == me();
+        allow update, delete: if isTrainer(gymId) && resource.data.trainerUid == me();
+      }
+
+      // Monthly awards are written once and never changed.
+      match /awards/{month} {
+        allow read: if activeIn(gymId) || isOwner(gymId);
+        allow create: if activeIn(gymId) || isOwner(gymId);
+        allow update, delete: if false;
+      }
+    }
+  }
+}

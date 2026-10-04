@@ -4,6 +4,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Firebase config is downloaded from the Firebase console and kept out of git.
+// Without it the app still builds; gym features show a "not set up" message.
+if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+
 android {
     namespace = "com.barathiraja.jk"
     compileSdk {
@@ -62,6 +66,14 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.firestore)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play)
+    implementation(libs.googleid)
+    implementation(libs.coroutines.play.services)
 
     testImplementation(libs.junit)
     testImplementation("org.json:json:20240303")

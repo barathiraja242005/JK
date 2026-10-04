@@ -7,6 +7,28 @@ import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.SlowMotionVideo
 import androidx.compose.material.icons.outlined.WbSunny
+import androidx.compose.material.icons.outlined.AddTask
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
+import com.barathiraja.jk.gym.Role
+import com.barathiraja.jk.ui.gym.AssignScreen
+import com.barathiraja.jk.ui.gym.AssignedSessionScreen
+import com.barathiraja.jk.ui.gym.ChooseRoleScreen
+import com.barathiraja.jk.ui.gym.GymLoading
+import com.barathiraja.jk.ui.gym.MemberDetailScreen
+import com.barathiraja.jk.ui.gym.MemberGymScreen
+import com.barathiraja.jk.ui.gym.OwnerHomeScreen
+import com.barathiraja.jk.ui.gym.RanksScreen
+import com.barathiraja.jk.ui.gym.SignInScreen
+import com.barathiraja.jk.ui.gym.TrainerDetailScreen
+import com.barathiraja.jk.ui.gym.TrainerMembersScreen
+import com.barathiraja.jk.ui.gym.WaitingScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -86,6 +108,19 @@ object Routes {
     const val EDIT_DAYS = "editDays"
     const val TRAIN_SETUP = "trainSetup"
     const val TRAIN_HISTORY = "trainHistory"
+    // Gym
+    const val GYM = "gym"
+    const val MEMBERS = "members"
+    const val RANKS = "ranks"
+    const val ASSIGN_TAB = "assignTab"
+    const val ASSIGN = "assign/{id}"
+    const val GYM_MEMBER = "gymMember/{id}"
+    const val GYM_TRAINER = "gymTrainer/{id}"
+    const val ASSIGNED = "assigned/{id}"
+    fun assign(memberUid: String) = "assign/${memberUid.ifBlank { "-" }}"
+    fun gymMember(uid: String) = "gymMember/$uid"
+    fun gymTrainer(uid: String) = "gymTrainer/$uid"
+    fun assigned(id: String) = "assigned/$id"
     fun session(id: Long) = "session/$id"
     fun workout(id: String) = "workout/$id"
     fun player(id: String) = "player/$id"
@@ -98,25 +133,70 @@ object Routes {
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
-private val tabs = listOf(
+private val soloTabs = listOf(
     Tab(Routes.TODAY, "Today", Icons.Outlined.WbSunny),
     Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
     Tab(Routes.SHORTS, "Shorts", Icons.Outlined.SlowMotionVideo),
     Tab(Routes.TRACK, "Health", Icons.Outlined.FavoriteBorder),
     Tab(Routes.PROGRESS, "Progress", Icons.Outlined.Insights),
 )
+private val memberTabs = listOf(
+    Tab(Routes.TODAY, "Today", Icons.Outlined.WbSunny),
+    Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
+    Tab(Routes.GYM, "Gym", Icons.Outlined.Groups),
+    Tab(Routes.TRACK, "Health", Icons.Outlined.FavoriteBorder),
+    Tab(Routes.PROGRESS, "Progress", Icons.Outlined.Insights),
+)
+private val trainerTabs = listOf(
+    Tab(Routes.MEMBERS, "Members", Icons.Outlined.Groups),
+    Tab(Routes.ASSIGN_TAB, "Assign", Icons.Outlined.AddTask),
+    Tab(Routes.RANKS, "Ranks", Icons.Outlined.EmojiEvents),
+    Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
+    Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
+)
+private val ownerTabs = listOf(
+    Tab(Routes.GYM, "Gym", Icons.Outlined.Storefront),
+    Tab(Routes.RANKS, "Ranks", Icons.Outlined.EmojiEvents),
+    Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
+)
 
 private fun NavBackStackEntry.arg(name: String) = arguments?.getString(name).orEmpty()
 
 @Composable
-fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel) {
+fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     val training by tvm.prefs.collectAsStateWithLifecycle()
+    val gymState by gvm.state.collectAsStateWithLifecycle()
+    val skipped by gvm.skippedFlow.collectAsStateWithLifecycle()
     var pendingProfile by remember { mutableStateOf<com.barathiraja.jk.data.Profile?>(null) }
+
+    // Gym gate: sign in and join a gym first, unless JK is used on its own.
+    val solo = gymState == GymState.Disabled || (gymState == GymState.SignedOut && skipped)
+    if (!solo) when (val s = gymState) {
+        GymState.Loading -> { GymLoading(); return }
+        GymState.SignedOut -> { SignInScreen(gvm); return }
+        is GymState.NoGym -> { ChooseRoleScreen(gvm, s.user.displayName.orEmpty()); return }
+        is GymState.Pending -> { WaitingScreen(gvm, s.gym, removed = false); return }
+        is GymState.Removed -> { WaitingScreen(gvm, s.gym, removed = true); return }
+        else -> {}
+    }
+    val me = (gymState as? GymState.Ready)?.me
+    val role = me?.role
+    val restoring by gvm.restoring.collectAsStateWithLifecycle()
+    if (restoring && !profile.onboarded) { GymLoading(); return }
+    // Owners and trainers skip the body-stats onboarding; their name comes from Google.
+    if (me != null && role != Role.MEMBER && !profile.onboarded) {
+        LaunchedEffect(me.uid) { vm.saveProfile(profile.copy(onboarded = true, name = me.name), logWeight = false) }
+        GymLoading()
+        return
+    }
     if (!profile.onboarded) {
         val p = pendingProfile
         if (p == null) {
-            OnboardingScreen(onDone = { pendingProfile = it })
+            // Gym members start with their Google name and "Gym" picked.
+            val initial = if (me != null) com.barathiraja.jk.data.Profile(name = me.name, place = com.barathiraja.jk.data.Place.GYM)
+                else com.barathiraja.jk.data.Profile()
+            OnboardingScreen(initial, onDone = { pendingProfile = it })
         } else {
             // Step 2 of onboarding: training preferences, then the plan is generated.
             TrainingSetupScreen(training, p.place, p.goal, onFinish = { t, place, goal ->
@@ -127,12 +207,21 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel) {
         return
     }
 
+    val tabs = when (role) { Role.OWNER -> ownerTabs; Role.TRAINER -> trainerTabs; Role.MEMBER -> memberTabs; null -> soloTabs }
+    val gymVm = gvm.takeIf { gymState != GymState.Disabled }
+    key(role) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     val route = backStack?.destination?.route
     val showBar = tabs.any { it.route == route }
+    val snackbar = remember { SnackbarHostState() }
+    val message by gvm.message.collectAsStateWithLifecycle()
+    LaunchedEffect(message) {
+        message?.let { snackbar.showSnackbar(it); gvm.message.value = null }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
             if (showBar) {
                 NavigationBar {
@@ -148,8 +237,16 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel) {
             }
         },
     ) { padding ->
-        NavHost(nav, startDestination = Routes.TODAY, modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
-            composable(Routes.TODAY) { TodayScreen(vm, tvm, nav) }
+        NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+            composable(Routes.TODAY) { TodayScreen(vm, tvm, nav, gvm.takeIf { role == Role.MEMBER }) }
+            composable(Routes.GYM) { if (role == Role.OWNER) OwnerHomeScreen(gvm, nav) else MemberGymScreen(gvm, nav) }
+            composable(Routes.MEMBERS) { TrainerMembersScreen(gvm, nav) }
+            composable(Routes.RANKS) { RanksScreen(gvm, nav) }
+            composable(Routes.ASSIGN_TAB) { AssignScreen("", gvm, nav) }
+            composable(Routes.ASSIGN) { AssignScreen(it.arg("id").takeIf { a -> a != "-" }.orEmpty(), gvm, nav) }
+            composable(Routes.GYM_MEMBER) { MemberDetailScreen(it.arg("id"), gvm, nav) }
+            composable(Routes.GYM_TRAINER) { TrainerDetailScreen(it.arg("id"), gvm, nav) }
+            composable(Routes.ASSIGNED) { AssignedSessionScreen(it.arg("id"), gvm, nav) }
             composable(Routes.WORKOUTS) { WorkoutsScreen(vm, tvm, nav) }
             composable(Routes.SESSION) { ExerciseSessionScreen(it.arg("id").toLongOrNull() ?: 0L, tvm, nav) }
             composable(Routes.EDIT_DAYS) { EditDaysScreen(tvm, nav) }
@@ -164,7 +261,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel) {
             composable(Routes.SHORTS) { ShortsScreen(vm, nav) }
             composable(Routes.TRACK) { TrackScreen(vm, nav) }
             composable(Routes.PROGRESS) { ProgressScreen(vm, nav) }
-            composable(Routes.PROFILE) { ProfileScreen(vm, nav) }
+            composable(Routes.PROFILE) { ProfileScreen(vm, nav, gymVm) }
             composable(Routes.WORKOUT) { WorkoutDetailScreen(it.arg("id"), vm, nav) }
             composable(Routes.PLAYER) { WorkoutPlayerScreen(it.arg("id"), vm, nav) }
             composable(Routes.EXERCISE) { ExerciseDetailScreen(it.arg("id"), vm, nav) }
@@ -187,10 +284,19 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel) {
             }
         }
     }
+    }
 }
 
-fun NavHostController.switchTab(route: String) = navigate(route) {
-    popUpTo(graph.findStartDestination().id) { saveState = true }
-    launchSingleTop = true
-    restoreState = true
+fun NavHostController.switchTab(route: String) {
+    val start = graph.findStartDestination()
+    // Going "home": pop back to it. Navigating to it with restoreState would bring back the tab we just saved.
+    if (start.route == route) {
+        popBackStack(start.id, inclusive = false)
+        return
+    }
+    navigate(route) {
+        popUpTo(start.id) { saveState = true }
+        launchSingleTop = true
+        restoreState = true
+    }
 }

@@ -23,9 +23,27 @@ Modelled on GymFaction's flow, but generated on-device (`domain/TrainingEngine.k
 - **Progressive overload**: weights carry over from your last session and go up when every set hit its reps.
 - Curated pool of 175 exercises across 8 body parts with injury filters; photos bundled offline.
 
+## Gym mode (single gym)
+Trainers assign workouts, members complete them, the owner watches live reports, and everyone competes on a leaderboard.
+Uses Firebase (free Spark plan): Google sign-in + Firestore. Code in `gym/` and `ui/gym/`; rules in `firestore.rules`.
+
+| Role | Tabs | Can do |
+|---|---|---|
+| **Owner** | Gym · Ranks · Me | Create the gym (gets a gym code), approve trainers, see today's totals and every trainer's completion rate |
+| **Trainer** | Members · Assign · Ranks · Train · Me | Join with the gym code (owner approves), invite members with their own code, assign workouts (many members/days, weekly repeat, templates), verify sessions, notes |
+| **Member** | Today · Train · Gym · Health · Progress | Join with the trainer's code, do the assigned workout (pinned on Today), log sets, see points/rank/awards; all personal JK features stay |
+
+**Points** (`gym/Scoring.kt`, unit-tested): workout done +10, done on the day +5, each set +1 (max 30/day), coach verified +5, every workout in a week +20.
+Trainers are scored on their members' completion rate, not on how much they assign.
+**Monthly awards** on the 1st: Best Member, Best Trainer, Most Consistent, Most Improved, Iron Lifter.
+
+**Set up Firebase once:** create a project, add Android app `com.barathiraja.jk` with the debug key's SHA-1, enable
+Authentication → Google and Firestore, put `google-services.json` in `app/` (git-ignored), and paste `firestore.rules`.
+Without `google-services.json` the app builds and runs as a personal app.
+
 ## Builds
 - `./gradlew assembleRelease` — fast build for the phone (signed with the local debug key; replace with an upload key for Play Store).
-- `./gradlew testDebugUnitTest` — 25 unit tests (health maths, catalog, training engine).
+- `./gradlew testDebugUnitTest` — 34 unit tests (health maths, catalog, training engine, gym scoring).
 
 ## Assets & licences
 - Exercises + photos: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain).
@@ -54,4 +72,4 @@ app/src/main/java/com/barathiraja/jk/
 ```
 
 ## Roadmap
-Accounts + cloud sync, community feed, premium/payments, multi-language (GymFaction ships 8), background step counting via a foreground service, home-screen widget.
+Push notifications for new workouts (needs Cloud Functions / Blaze plan), cloud backup of personal data, community feed, premium/payments, multi-language (GymFaction ships 8), background step counting via a foreground service, home-screen widget.
