@@ -1,4 +1,4 @@
-package com.barathiraja.jk.ui.screens
+package com.barathiraja.jk.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -101,14 +101,14 @@ fun formatDuration(totalSec: Long): String {
 @Composable
 fun Avatar(uri: String?, name: String, size: androidx.compose.ui.unit.Dp, onClick: (() -> Unit)? = null) {
     val m = Modifier.size(size).clip(androidx.compose.foundation.shape.CircleShape)
-        .background(MaterialTheme.colorScheme.primaryContainer)
+        .background(MaterialTheme.colorScheme.surfaceVariant)
         .let { if (onClick != null) it.clickable(onClick = onClick) else it }
     androidx.compose.foundation.layout.Box(m, contentAlignment = androidx.compose.ui.Alignment.Center) {
         if (uri != null) {
             coil3.compose.AsyncImage(uri, "Profile photo", Modifier.matchParentSize(),
                 contentScale = androidx.compose.ui.layout.ContentScale.Crop)
         } else {
-            Text(name.take(1).uppercase().ifBlank { "J" }, color = MaterialTheme.colorScheme.onPrimaryContainer,
+            Text(name.take(1).uppercase().ifBlank { "J" }, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = if (size > 60.dp) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleMedium)
         }
     }

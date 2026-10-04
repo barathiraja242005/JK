@@ -23,7 +23,9 @@ import com.barathiraja.jk.ui.gym.ChooseRoleScreen
 import com.barathiraja.jk.ui.gym.GymLoading
 import com.barathiraja.jk.ui.gym.MemberDetailScreen
 import com.barathiraja.jk.ui.gym.MemberGymScreen
+import com.barathiraja.jk.ui.gym.GiveAwardScreen
 import com.barathiraja.jk.ui.gym.OwnerHomeScreen
+import com.barathiraja.jk.ui.gym.OwnerMeScreen
 import com.barathiraja.jk.ui.gym.RanksScreen
 import com.barathiraja.jk.ui.gym.SignInScreen
 import com.barathiraja.jk.ui.gym.TrainerDetailScreen
@@ -32,6 +34,9 @@ import com.barathiraja.jk.ui.gym.WaitingScreen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.border
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -116,6 +121,7 @@ object Routes {
     const val ASSIGN = "assign/{id}"
     const val GYM_MEMBER = "gymMember/{id}"
     const val GYM_TRAINER = "gymTrainer/{id}"
+    const val GIVE_AWARD = "giveAward"
     const val ASSIGNED = "assigned/{id}"
     fun assign(memberUid: String) = "assign/${memberUid.ifBlank { "-" }}"
     fun gymMember(uid: String) = "gymMember/$uid"
@@ -159,6 +165,31 @@ private val ownerTabs = listOf(
     Tab(Routes.RANKS, "Ranks", Icons.Outlined.EmojiEvents),
     Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
 )
+
+/** Plain bottom bar with a fine top border; the selected tab is shown in the accent colour. */
+@Composable
+private fun BottomBar(tabs: List<Tab>, route: String?, onSelect: (String) -> Unit) {
+    androidx.compose.foundation.layout.Column {
+        androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 0.dp) {
+            tabs.forEach { tab ->
+                NavigationBarItem(
+                    selected = route == tab.route,
+                    onClick = { onSelect(tab.route) },
+                    icon = { Icon(tab.icon, contentDescription = null) },
+                    label = { Text(tab.label, maxLines = 1) },
+                    colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
+                        selectedIconColor = com.barathiraja.jk.ui.theme.Ember,
+                        selectedTextColor = com.barathiraja.jk.ui.theme.Ember,
+                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    ),
+                )
+            }
+        }
+    }
+}
 
 private fun NavBackStackEntry.arg(name: String) = arguments?.getString(name).orEmpty()
 
@@ -223,18 +254,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = {
-            if (showBar) {
-                NavigationBar {
-                    tabs.forEach { tab ->
-                        NavigationBarItem(
-                            selected = route == tab.route,
-                            onClick = { nav.switchTab(tab.route) },
-                            icon = { Icon(tab.icon, contentDescription = null) },
-                            label = { Text(tab.label, maxLines = 1) },
-                        )
-                    }
-                }
-            }
+            if (showBar) BottomBar(tabs, route) { nav.switchTab(it) }
         },
     ) { padding ->
         NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
@@ -246,6 +266,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             composable(Routes.ASSIGN) { AssignScreen(it.arg("id").takeIf { a -> a != "-" }.orEmpty(), gvm, nav) }
             composable(Routes.GYM_MEMBER) { MemberDetailScreen(it.arg("id"), gvm, nav) }
             composable(Routes.GYM_TRAINER) { TrainerDetailScreen(it.arg("id"), gvm, nav) }
+            composable(Routes.GIVE_AWARD) { GiveAwardScreen(gvm, nav) }
             composable(Routes.ASSIGNED) { AssignedSessionScreen(it.arg("id"), gvm, nav) }
             composable(Routes.WORKOUTS) { WorkoutsScreen(vm, tvm, nav) }
             composable(Routes.SESSION) { ExerciseSessionScreen(it.arg("id").toLongOrNull() ?: 0L, tvm, nav) }
@@ -261,7 +282,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             composable(Routes.SHORTS) { ShortsScreen(vm, nav) }
             composable(Routes.TRACK) { TrackScreen(vm, nav) }
             composable(Routes.PROGRESS) { ProgressScreen(vm, nav) }
-            composable(Routes.PROFILE) { ProfileScreen(vm, nav, gymVm) }
+            composable(Routes.PROFILE) { if (role == Role.OWNER) OwnerMeScreen(vm, gvm, nav) else ProfileScreen(vm, nav, gymVm) }
             composable(Routes.WORKOUT) { WorkoutDetailScreen(it.arg("id"), vm, nav) }
             composable(Routes.PLAYER) { WorkoutPlayerScreen(it.arg("id"), vm, nav) }
             composable(Routes.EXERCISE) { ExerciseDetailScreen(it.arg("id"), vm, nav) }

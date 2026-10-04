@@ -66,3 +66,14 @@ enum class Award(val emoji: String, val label: String, val trainer: Boolean = fa
     MOST_IMPROVED("📈", "Most Improved"),
     IRON_LIFTER("💪", "Iron Lifter"),
 }
+
+/** An award the owner hands out by hand, to a member or a trainer, with an optional prize. */
+data class GivenAward(
+    val id: String,
+    val title: String,
+    val emoji: String,
+    val uid: String,
+    val note: String,
+    val month: String,
+    val givenAt: Long,
+)

@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.BackScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth

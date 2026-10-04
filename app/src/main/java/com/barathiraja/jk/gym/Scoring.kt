@@ -83,10 +83,13 @@ object Scoring {
     fun memberRanking(scores: Map<String, MemberScore>): List<MemberScore> =
         scores.values.sortedWith(compareByDescending<MemberScore> { it.points }.thenByDescending { it.completed }.thenBy { it.uid })
 
-    /** Winners for [month]; categories nobody qualifies for are left out. */
-    fun awards(people: List<Person>, assignments: List<Assignment>, month: YearMonth): Map<Award, String> {
+    /**
+     * Winners for [month]; categories nobody qualifies for are left out. [asOf] defaults to the month's last
+     * day; pass today to get the current leaders of a month still in progress.
+     */
+    fun awards(people: List<Person>, assignments: List<Assignment>, month: YearMonth, asOf: Long = monthRange(month).last): Map<Award, String> {
         val range = monthRange(month)
-        val end = range.last
+        val end = asOf
         val activeMembers = people.filter { it.role == Role.MEMBER && it.active }.map { it.uid }.toSet()
         val scores = memberScores(assignments, range, end).filterKeys { it in activeMembers }
         val prev = memberScores(assignments, monthRange(month.minusMonths(1)), end)

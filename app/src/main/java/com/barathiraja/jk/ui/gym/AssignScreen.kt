@@ -52,7 +52,7 @@ import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.screens.BackScreen
+import com.barathiraja.jk.ui.components.BackScreen
 import com.barathiraja.jk.ui.screens.ExercisePicker
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

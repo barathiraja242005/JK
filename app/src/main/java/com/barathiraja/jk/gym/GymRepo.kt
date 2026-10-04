@@ -26,6 +26,7 @@ import kotlinx.coroutines.tasks.await
  *   gyms/{gymId}/assignments/{id}  Assignment
  *   gyms/{gymId}/templates/{id}    Template
  *   gyms/{gymId}/awards/{yyyy-MM}  { winners: {AWARD: uid} }
+ *   gyms/{gymId}/given/{id}        GivenAward (owner hands these out)
  */
 class GymRepo {
     private val db = FirebaseFirestore.getInstance()
@@ -34,6 +35,7 @@ class GymRepo {
     private fun assignmentsCol(gymId: String) = gymDoc(gymId).collection("assignments")
     private fun templatesCol(gymId: String) = gymDoc(gymId).collection("templates")
     private fun awardsCol(gymId: String) = gymDoc(gymId).collection("awards")
+    private fun givenCol(gymId: String) = gymDoc(gymId).collection("given")
 
     // ---------- live reads ----------
 
@@ -61,6 +63,11 @@ class GymRepo {
         @Suppress("UNCHECKED_CAST")
         val w = (d.get("winners") as? Map<String, String>).orEmpty()
         MonthAwards(d.id, w.mapNotNull { (k, v) -> Award.entries.firstOrNull { it.name == k }?.let { it to v } }.toMap())
+    }
+
+    fun givenAwards(gymId: String): Flow<List<GivenAward>> = givenCol(gymId).listenAll { d ->
+        GivenAward(d.id, d.getString("title").orEmpty(), d.getString("emoji").orEmpty(), d.getString("uid").orEmpty(),
+            d.getString("note").orEmpty(), d.getString("month").orEmpty(), d.getLong("givenAt") ?: 0)
     }
 
     // ---------- joining ----------
@@ -176,6 +183,19 @@ class GymRepo {
                 if (!tx.get(ref).exists()) tx.set(ref, mapOf("winners" to winners.mapKeys { it.key.name }, "savedAt" to System.currentTimeMillis()))
             }.await()
         }
+    }
+
+    suspend fun giveAward(gymId: String, a: GivenAward) {
+        givenCol(gymId).add(mapOf("title" to a.title, "emoji" to a.emoji, "uid" to a.uid, "note" to a.note,
+            "month" to a.month, "givenAt" to a.givenAt)).await()
+    }
+
+    suspend fun deleteGivenAward(gymId: String, id: String) {
+        givenCol(gymId).document(id).delete().await()
+    }
+
+    suspend fun renameGym(gymId: String, name: String) {
+        gymDoc(gymId).update("name", name).await()
     }
 
     // ---------- helpers ----------

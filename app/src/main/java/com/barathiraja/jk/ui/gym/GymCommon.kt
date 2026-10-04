@@ -31,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,9 +41,10 @@ import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.Pill
 import com.barathiraja.jk.ui.components.shareText
-import com.barathiraja.jk.ui.screens.Avatar
+import com.barathiraja.jk.ui.components.Avatar
 import com.barathiraja.jk.ui.screens.trimZero
-import com.barathiraja.jk.ui.theme.Ember
+import com.barathiraja.jk.ui.theme.CodeFont
+import com.barathiraja.jk.ui.theme.Alert
 import com.barathiraja.jk.ui.theme.Leaf
 import com.barathiraja.jk.ui.theme.Sun
 import java.time.LocalDate
@@ -66,7 +66,7 @@ fun StatusPill(a: Assignment?, today: Long, modifier: Modifier = Modifier) {
         a == null -> "Nothing assigned" to MaterialTheme.colorScheme.outline
         a.status == AssignStatus.DONE -> (if (a.verified) "✓ Done · verified" else "✓ Done") to Leaf
         a.status == AssignStatus.IN_PROGRESS -> "● ${a.exercisesDone}/${a.exercises.size} in progress" to Sun
-        a.epochDay < today -> "✗ Missed" to Ember
+        a.epochDay < today -> "✗ Missed" to Alert
         else -> "Not started" to MaterialTheme.colorScheme.outline
     }
     Pill(text, color, modifier)
@@ -94,7 +94,7 @@ fun CodeCard(title: String, code: String, shareText: String) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(vertical = 8.dp)) {
                 Text(code, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontSize = 32.sp, fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace, letterSpacing = 4.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    fontFamily = CodeFont, letterSpacing = 4.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
             }
             Spacer(Modifier.weight(1f))
             FilledTonalButton(onClick = { context.shareText(shareText) }) {
@@ -111,7 +111,7 @@ fun rateColor(rate: Float, due: Int): Color = when {
     due == 0 -> Color.Gray
     rate >= 0.8f -> Leaf
     rate >= 0.5f -> Sun
-    else -> Ember
+    else -> Alert
 }
 
 /** Gym section on the Me screen: who you are in the gym, leave, sign out; or join a gym if using JK alone. */
@@ -156,7 +156,7 @@ fun SetEditorRow(index: Int, s: com.barathiraja.jk.data.SetSpec, step: Float, on
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("${index + 1}", Modifier.width(22.dp), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
         if (s.timed) {
-            MiniStepper(com.barathiraja.jk.ui.screens.formatDuration(s.seconds.toLong()), "time", Modifier.weight(1f),
+            MiniStepper(com.barathiraja.jk.ui.components.formatDuration(s.seconds.toLong()), "time", Modifier.weight(1f),
                 { onChange(s.copy(seconds = (s.seconds - 15).coerceAtLeast(10))) }, { onChange(s.copy(seconds = s.seconds + 15)) })
         } else {
             MiniStepper("${s.reps}", "reps", Modifier.weight(1f),

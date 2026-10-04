@@ -106,9 +106,6 @@ interface JkDao {
     @Query("SELECT * FROM food_entries WHERE epochDay = :day ORDER BY id")
     fun foodOn(day: Long): Flow<List<FoodEntry>>
 
-    @Query("SELECT * FROM food_entries WHERE epochDay >= :fromDay")
-    fun foodSince(fromDay: Long): Flow<List<FoodEntry>>
-
     // Body photos
     @Insert
     suspend fun insertPhoto(p: BodyPhoto)

@@ -48,7 +48,7 @@ Without `google-services.json` the app builds and runs as a personal app.
 ## Assets & licences
 - Exercises + photos: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain).
   Photos for the 68 exercises used by built-in programs are bundled in `assets/exercise_images`; the rest load online and are cached by Coil.
-- Font: Inter (SIL OFL 1.1). Icons: Material Symbols (Apache 2.0).
+- Font: IBM Plex Sans & Mono (SIL OFL 1.1, licence in `third_party/ibm-plex/`). Icons: Material Symbols (Apache 2.0).
 - Animations (confetti, water wave, breathing) are Compose code; meditation soundscapes are synthesised at runtime (`audio/Ambient.kt`).
 - Food values are typical-serving estimates; articles and meditation scripts are original.
 

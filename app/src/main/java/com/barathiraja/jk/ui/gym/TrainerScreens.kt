@@ -40,10 +40,10 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.shareText
-import com.barathiraja.jk.ui.screens.Avatar
-import com.barathiraja.jk.ui.screens.BackScreen
-import com.barathiraja.jk.ui.screens.TabScreen
-import com.barathiraja.jk.ui.screens.formatDuration
+import com.barathiraja.jk.ui.components.Avatar
+import com.barathiraja.jk.ui.components.BackScreen
+import com.barathiraja.jk.ui.components.TabScreen
+import com.barathiraja.jk.ui.components.formatDuration
 import com.barathiraja.jk.ui.screens.trimZero
 
 /** Trainer's home: every member and whether they've done today's workout. */

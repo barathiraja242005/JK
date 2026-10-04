@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.BackScreen
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -59,7 +60,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -163,7 +163,7 @@ private fun ChallengesTab(vm: JkViewModel, nav: NavHostController) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         Modifier.size(56.dp).clip(RoundedCornerShape(16.dp))
-                            .background(Brush.linearGradient(listOf(c.level.color(), c.level.color().copy(alpha = 0.5f)))),
+                            .background(c.level.color()),
                         contentAlignment = Alignment.Center,
                     ) { Icon(Icons.Filled.EmojiEvents, null, tint = Color.White) }
                     Spacer(Modifier.width(14.dp))

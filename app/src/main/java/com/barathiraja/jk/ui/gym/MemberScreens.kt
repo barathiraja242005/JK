@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.gym
 
+import com.barathiraja.jk.ui.theme.HeroBlue
 import android.media.AudioManager
 import android.media.ToneGenerator
 import androidx.compose.animation.AnimatedVisibility
@@ -41,7 +42,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
@@ -57,13 +57,11 @@ import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.screens.Avatar
-import com.barathiraja.jk.ui.screens.BackScreen
+import com.barathiraja.jk.ui.components.Avatar
+import com.barathiraja.jk.ui.components.BackScreen
 import com.barathiraja.jk.ui.screens.SetRow
-import com.barathiraja.jk.ui.screens.TabScreen
-import com.barathiraja.jk.ui.theme.Aqua
+import com.barathiraja.jk.ui.components.TabScreen
 import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Violet
 import kotlinx.coroutines.delay
 
 /** Top of a member's Today screen: the workout their coach assigned plus their rank. */
@@ -79,7 +77,7 @@ fun AssignedTodayCard(gvm: GymViewModel, nav: NavHostController) {
     Column {
         a?.let { w ->
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-                .background(Brush.linearGradient(listOf(Violet, Aqua))).padding(20.dp)) {
+                .background(HeroBlue).padding(20.dp)) {
                 Column {
                     Text(if (w.done) "DONE ✓ · FROM COACH ${coach?.firstName?.uppercase() ?: ""}" else "🏋 FROM COACH ${coach?.firstName?.uppercase() ?: ""}",
                         style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.85f))
@@ -92,7 +90,7 @@ fun AssignedTodayCard(gvm: GymViewModel, nav: NavHostController) {
                     if (w.trainerNote.isNotBlank()) Text("💬 ${w.trainerNote}", Modifier.padding(top = 6.dp), color = Color.White)
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = { nav.navigate(Routes.assigned(w.id)) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Violet)) {
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue)) {
                         Icon(Icons.Filled.PlayArrow, null); Spacer(Modifier.width(4.dp))
                         Text(when { w.done -> "View workout"; w.setsDone > 0 -> "Continue workout"; else -> "Start workout" })
                     }

@@ -1,6 +1,16 @@
 package com.barathiraja.jk.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
+import com.barathiraja.jk.ui.theme.Ember
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.clip
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
+import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -15,8 +25,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,32 +42,78 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
 
+/** Plain card: white (dark grey in dark mode) with a fine border. [black] is kept for callers and looks the same. */
 @Composable
 fun JkCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    @Suppress("UNUSED_PARAMETER") black: Boolean = false,
+    padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
-    val shape = RoundedCornerShape(20.dp)
-    if (onClick != null) {
-        Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors) {
-            Column(Modifier.padding(16.dp), content = content)
-        }
-    } else {
-        Card(modifier = modifier, shape = shape, colors = colors) {
-            Column(Modifier.padding(16.dp), content = content)
-        }
+    val shape = RoundedCornerShape(16.dp)
+    Surface(
+        onClick = onClick ?: {}, enabled = onClick != null, modifier = modifier, shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Column(Modifier.padding(padding), content = content)
     }
 }
 
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = modifier.padding(top = 8.dp, bottom = 8.dp),
-    )
+    Text(text, style = MaterialTheme.typography.titleMedium, modifier = modifier.padding(top = 10.dp, bottom = 4.dp))
+}
+
+/** Small muted line above a heading (date, gym name). */
+@Composable
+fun Eyebrow(text: String, modifier: Modifier = Modifier) {
+    Text(text, modifier, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/** Compact button: filled (primary) or outlined ([ghost]); [icon] sits after the text. */
+@Composable
+fun SmallButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ghost: Boolean = false) {
+    val shape = RoundedCornerShape(10.dp)
+    Surface(
+        onClick = onClick, modifier = modifier.heightIn(min = 40.dp), shape = shape,
+        color = if (ghost) Color.Transparent else MaterialTheme.colorScheme.primary,
+        contentColor = if (ghost) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+        border = if (ghost) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
+    ) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center) {
+            Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            if (icon != null) {
+                Spacer(Modifier.width(6.dp))
+                Icon(icon, null, Modifier.size(16.dp))
+            }
+        }
+    }
+}
+
+/** Thin progress ring in the accent colour. */
+@Composable
+fun ProgressRing(fraction: Float, modifier: Modifier = Modifier) {
+    val value by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(700), label = "ring")
+    val track = MaterialTheme.colorScheme.outlineVariant
+    val accent = Ember
+    Canvas(modifier) {
+        val w = 8.dp.toPx()
+        val inset = w / 2
+        val arcSize = Size(size.width - w, size.height - w)
+        drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(w))
+        drawArc(accent, -90f, 360f * value, false, Offset(inset, inset), arcSize, style = Stroke(w, cap = StrokeCap.Round))
+    }
+}
+
+/** Thin horizontal progress bar. */
+@Composable
+fun ProgressLine(fraction: Float, color: Color, modifier: Modifier = Modifier) {
+    Box(modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.outlineVariant)) {
+        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(4.dp).clip(RoundedCornerShape(2.dp)).background(color))
+    }
 }
 
 /** Circular progress ring with centered content. */

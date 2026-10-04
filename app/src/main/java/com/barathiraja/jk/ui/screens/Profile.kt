@@ -1,5 +1,7 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.Avatar
+import com.barathiraja.jk.ui.components.BackScreen
 import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Intent
@@ -22,7 +24,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -81,9 +82,6 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController, gvm: com.barathiraja.
         }
     }
 
-    // The gym owner only needs their gym, appearance and help; body stats and goals are for people who train.
-    val owner = gvm?.me?.collectAsStateWithLifecycle()?.value?.role == com.barathiraja.jk.gym.Role.OWNER
-
     BackScreen("Me", onBack = { nav.popBackStack() }) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -98,7 +96,7 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController, gvm: com.barathiraja.
                 }
             }
         }
-        if (!owner) item {
+        item {
             JkCard(Modifier.fillMaxWidth()) {
                 val bmi = Health.bmi(p.weightKg, p.heightCm)
                 KeyValue("Goal", p.goal.label)
@@ -123,8 +121,8 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController, gvm: com.barathiraja.
             }
         }
 
-        if (!owner) item { SectionTitle("Goals") }
-        if (!owner) item {
+        item { SectionTitle("Goals") }
+        item {
             JkCard(Modifier.fillMaxWidth()) {
                 Stepper("Daily steps", "%,d".format(s.stepGoal),
                     onMinus = { vm.saveSettings(s.copy(stepGoal = (s.stepGoal - 1000).coerceAtLeast(2000))) },
@@ -136,8 +134,8 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController, gvm: com.barathiraja.
             }
         }
 
-        if (!owner) item { SectionTitle("Workout & reminders") }
-        if (!owner) item {
+        item { SectionTitle("Workout & reminders") }
+        item {
             JkCard(Modifier.fillMaxWidth()) {
                 Toggle("Voice coach", "Spoken cues during workouts", s.voiceCues) { vm.saveSettings(s.copy(voiceCues = it)) }
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))

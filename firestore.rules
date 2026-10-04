@@ -83,6 +83,13 @@ service cloud.firestore {
         allow create: if activeIn(gymId) || isOwner(gymId);
         allow update, delete: if false;
       }
+
+      // Awards the owner gives by hand; only the owner can give or take them back.
+      match /given/{id} {
+        allow read: if activeIn(gymId) || isOwner(gymId);
+        allow create, delete: if isOwner(gymId);
+        allow update: if false;
+      }
     }
   }
 }

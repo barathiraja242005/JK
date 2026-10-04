@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.BackScreen
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween

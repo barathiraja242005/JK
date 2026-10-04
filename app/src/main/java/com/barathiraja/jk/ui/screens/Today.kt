@@ -1,5 +1,8 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.Avatar
+import com.barathiraja.jk.ui.components.TabScreen
+import com.barathiraja.jk.ui.theme.HeroBlue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,7 +35,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -50,8 +52,6 @@ import com.barathiraja.jk.ui.TrainingViewModel
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.data.Articles
 import com.barathiraja.jk.data.Catalog
-import com.barathiraja.jk.data.Goal
-import com.barathiraja.jk.data.Level
 import com.barathiraja.jk.domain.Health
 import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.Routes
@@ -60,7 +60,6 @@ import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.StatRing
 import com.barathiraja.jk.ui.theme.Aqua
 import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.EmberDeep
 import com.barathiraja.jk.ui.theme.Leaf
 import com.barathiraja.jk.ui.theme.Sun
 import com.barathiraja.jk.ui.theme.Violet
@@ -165,7 +164,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Brush.linearGradient(listOf(Ember, EmberDeep, Color(0xFF8A2300))))
+                    .background(HeroBlue)
                     .padding(20.dp),
             ) {
                 Column {
@@ -176,7 +175,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                             Text("Answer 7 quick questions and JK builds your weekly split.", color = Color.White.copy(alpha = 0.85f))
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = { nav.navigate(Routes.TRAIN_SETUP) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = EmberDeep)) { Text("Create My Plan") }
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue)) { Text("Create My Plan") }
                         }
                         planParts.isEmpty() -> {
                             Text("TODAY", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
@@ -184,7 +183,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                             Text("Recovery is part of the plan. Try a light stretch or a walk.", color = Color.White.copy(alpha = 0.85f))
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = { nav.navigate(Routes.workout("home_mobility")) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = EmberDeep)) { Text("Recovery stretch") }
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue)) { Text("Recovery stretch") }
                         }
                         else -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -199,7 +198,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                             Spacer(Modifier.height(16.dp))
                             Button(
                                 onClick = { tvm.select(todayDay); nav.navigate(Routes.WORKOUTS) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = EmberDeep),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue),
                             ) {
                                 Icon(Icons.Filled.PlayArrow, null)
                                 Spacer(Modifier.width(4.dp))

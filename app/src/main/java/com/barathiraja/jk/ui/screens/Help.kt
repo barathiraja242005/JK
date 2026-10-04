@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.BackScreen
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -76,7 +77,7 @@ fun HelpScreen(nav: NavHostController) {
                 Text("github.com/yuhonas/free-exercise-db", color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable { context.openUrl("https://github.com/yuhonas/free-exercise-db") })
                 Text("Typeface", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
-                Text("Inter by Rasmus Andersson — SIL Open Font License 1.1.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("IBM Plex Sans & Mono by IBM — SIL Open Font License 1.1.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Icons", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))
                 Text("Material Symbols by Google — Apache License 2.0.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Sounds & animations", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 8.dp))

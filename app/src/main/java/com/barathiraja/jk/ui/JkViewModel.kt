@@ -92,7 +92,6 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
         c.dao.activeFast().first()?.let { c.dao.updateFast(it.copy(endedAt = System.currentTimeMillis())) }
     }
 
-    fun saveSession(s: WorkoutSession) = viewModelScope.launch { c.dao.insertSession(s) }
 
     fun startSteps() = c.steps.start()
 
@@ -150,7 +149,6 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
 
     // ---- Food ----
     val foodToday = c.dao.foodOn(today).state(emptyList())
-    val weekFood = c.dao.foodSince(weekStart).state(emptyList())
 
     fun logFood(food: Food, meal: Meal, servings: Float) = viewModelScope.launch {
         c.dao.insertFood(

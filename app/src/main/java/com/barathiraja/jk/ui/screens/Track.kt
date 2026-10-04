@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.TabScreen
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build

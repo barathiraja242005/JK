@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.BackScreenBar
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -55,7 +56,7 @@ import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
+import com.barathiraja.jk.ui.theme.Alert
 import com.barathiraja.jk.ui.theme.Leaf
 import com.barathiraja.jk.ui.theme.Sun
 import com.barathiraja.jk.ui.theme.Violet
@@ -88,7 +89,7 @@ private fun FoodLog(vm: JkViewModel) {
         item {
             JkCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Ring(eaten / target.toFloat(), if (eaten > target) Ember else Leaf, size = 110.dp, stroke = 11.dp) {
+                    Ring(eaten / target.toFloat(), if (eaten > target) Alert else Leaf, size = 110.dp, stroke = 11.dp) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${(target - eaten)}", style = MaterialTheme.typography.titleLarge)
                             Text(if (eaten > target) "over" else "kcal left", style = MaterialTheme.typography.labelSmall,

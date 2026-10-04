@@ -1,5 +1,8 @@
 package com.barathiraja.jk.ui.screens
 
+import com.barathiraja.jk.ui.components.Avatar
+import com.barathiraja.jk.ui.components.formatDuration
+import com.barathiraja.jk.ui.components.TabScreen
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row

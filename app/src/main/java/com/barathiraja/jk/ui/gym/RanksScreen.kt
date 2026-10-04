@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -29,8 +30,8 @@ import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.screens.Avatar
-import com.barathiraja.jk.ui.screens.TabScreen
+import com.barathiraja.jk.ui.components.Avatar
+import com.barathiraja.jk.ui.components.TabScreen
 import com.barathiraja.jk.ui.theme.Sun
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -44,6 +45,7 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
     val members by gvm.memberRanking.collectAsStateWithLifecycle()
     val trainers by gvm.trainerRanking.collectAsStateWithLifecycle()
     val awards by gvm.awards.collectAsStateWithLifecycle()
+    val given by gvm.givenAwards.collectAsStateWithLifecycle()
     val me by gvm.me.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     val month = YearMonth.now()
@@ -78,7 +80,12 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
                 }
             }
             else -> {
-                if (awards.isEmpty()) item {
+                if (given.isNotEmpty()) {
+                    item { SectionTitle("From the owner") }
+                    items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid)) }
+                    if (awards.isNotEmpty()) item { SectionTitle("Monthly awards") }
+                }
+                if (awards.isEmpty() && given.isEmpty()) item {
                     JkCard(Modifier.fillMaxWidth()) {
                         Text("🏆 The first awards are announced on the 1st of next month.", style = MaterialTheme.typography.titleMedium)
                         Text("Best Member, Best Trainer, Most Consistent, Most Improved and Iron Lifter.", color = MaterialTheme.colorScheme.onSurfaceVariant)
