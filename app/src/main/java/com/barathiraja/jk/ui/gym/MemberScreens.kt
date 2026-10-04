@@ -150,7 +150,13 @@ fun MemberGymScreen(gvm: GymViewModel, nav: NavHostController) {
         if (myAwards.isNotEmpty()) item {
             JkCard(Modifier.fillMaxWidth()) {
                 Text("My awards", style = MaterialTheme.typography.titleMedium)
-                myAwards.forEach { (month, award) -> Text("${award.emoji} ${award.label} · ${monthLabel(month)}", Modifier.padding(top = 4.dp)) }
+                myAwards.forEach { (month, award) ->
+                    Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        AwardBadge(award.look(), 36.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text("${award.label} · ${monthLabel(month)}", style = MaterialTheme.typography.titleSmall)
+                    }
+                }
             }
         }
         item { SectionTitle("Coming up") }

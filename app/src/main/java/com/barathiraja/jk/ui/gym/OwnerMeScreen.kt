@@ -39,6 +39,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.HourglassEmpty
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.outlined.ArrowForward
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import com.barathiraja.jk.ui.switchTab
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,34 +105,26 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         }
 
         item {
-            OwnerCard(gym?.name.orEmpty(), explain = "Waiting: trainers who asked to join and need your approval on the Gym tab.") {
-                Row(Modifier.padding(vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Count("$trainers", "Trainers", Modifier.weight(1f))
-                    Count("$members", "Members", Modifier.weight(1f))
-                    Count("$pending", "Waiting", Modifier.weight(1f))
-                }
-                gym?.let { g ->
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    Text("Code for new trainers", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(g.gymCode, Modifier.weight(1f), style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold, fontFamily = CodeFont, letterSpacing = 3.sp)
-                        FilledTonalButton(onClick = {
-                            context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}")
-                        }) { Icon(Icons.Filled.Share, null); Spacer(Modifier.width(6.dp)); Text("Share") }
-                    }
-                    TextButton(onClick = { renaming = true }, contentPadding = PaddingValues(0.dp)) {
-                        Icon(Icons.Outlined.Edit, null); Spacer(Modifier.width(6.dp)); Text("Rename gym")
-                    }
-                }
-            }
+            MeBento(
+                gymName = gym?.name ?: "Your gym", code = gym?.gymCode,
+                trainers = people.filter { it.role == Role.TRAINER && it.active },
+                members = people.filter { it.role == Role.MEMBER && it.active },
+                pending = pending, awards = given.size,
+                onShare = gym?.let { g -> { context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}") } },
+                onTrainers = { nav.navigate(Routes.people(PEOPLE_TRAINERS)) },
+                onMembers = { nav.navigate(Routes.people(PEOPLE_MEMBERS)) },
+                onWaiting = { nav.switchTab(Routes.GYM) },
+                onAwards = { gvm.ranksTab.value = RANKS_AWARDS; nav.switchTab(Routes.RANKS) },
+                onRename = { renaming = true },
+            )
         }
 
         item {
             OwnerCard("Awards", explain = "Reward your best members and trainers. Everyone in the gym sees them on the Ranks tab.") {
                 Spacer(Modifier.height(8.dp))
                 Button(onClick = { nav.navigate(Routes.GIVE_AWARD) }, Modifier.fillMaxWidth().height(56.dp)) {
-                    Text("🏆  Give an award", style = MaterialTheme.typography.titleMedium)
+                    Icon(Icons.Outlined.EmojiEvents, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp))
+                    Text("Give an award", style = MaterialTheme.typography.titleMedium)
                 }
                 (if (showAll) given else given.take(AWARDS_PREVIEW)).forEach { a ->
                     HorizontalDivider(Modifier.padding(top = 12.dp))
@@ -183,18 +188,114 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
     removing?.let { a ->
         AlertDialog(onDismissRequest = { removing = null },
             title = { Text("Take back this award?") },
-            text = { Text("${a.emoji} ${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.") },
+            text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.") },
             confirmButton = { TextButton(onClick = { removing = null; gvm.removeGivenAward(a) }) { Text("Remove") } },
             dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep") } })
     }
 }
 
+/**
+ * The gym at a glance as a bento grid: an ink card with the gym's name and join code, two pastel tiles that show
+ * the trainers' and members' faces and open their lists, and two short tiles for who is waiting and awards.
+ * Every tile is a button and says in words what it is.
+ */
 @Composable
-private fun Count(value: String, label: String, modifier: Modifier) {
-    Surface(modifier, color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(12.dp)) {
-        Column(Modifier.padding(vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun MeBento(
+    gymName: String, code: String?, trainers: List<Person>, members: List<Person>, pending: Int, awards: Int,
+    onShare: (() -> Unit)?, onTrainers: () -> Unit, onMembers: () -> Unit, onWaiting: () -> Unit, onAwards: () -> Unit, onRename: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Gym card
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(com.barathiraja.jk.ui.theme.HeroBlue).padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f).padding(start = 2.dp)) {
+                    Text("Your gym", style = plex(14.sp), color = Owner.OnDarkMuted)
+                    Text(gymName, style = plex(24.sp, FontWeight.SemiBold, line = 28.sp), color = Color.White, maxLines = 2)
+                }
+                Surface(onClick = onRename, shape = CircleShape, color = Owner.DarkStrip, contentColor = Color.White, modifier = Modifier.size(48.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Edit, "Rename gym", Modifier.size(20.dp)) }
+                }
+            }
+            if (code != null) Row(
+                Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.DarkStrip)
+                    .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Code for new trainers", style = plex(13.sp), color = Owner.OnDarkMuted)
+                    Text(code, style = plex(24.sp, FontWeight.SemiBold, tracking = 4.sp).copy(fontFamily = CodeFont), color = Color.White, maxLines = 1)
+                }
+                if (onShare != null) Surface(onClick = onShare, shape = RoundedCornerShape(50), color = com.barathiraja.jk.ui.theme.Mustard,
+                    contentColor = Color.Black, modifier = Modifier.heightIn(min = 48.dp)) {
+                    Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Share, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Share", style = plex(15.sp, FontWeight.SemiBold))
+                    }
+                }
+            }
+        }
+        // People tiles
+        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PeopleTile(trainers, if (trainers.size == 1) "Trainer" else "Trainers", Owner.Mint, onTrainers, Modifier.weight(1f).fillMaxHeight())
+            PeopleTile(members, if (members.size == 1) "Member" else "Members", Owner.Lavender, onMembers, Modifier.weight(1f).fillMaxHeight())
+        }
+        // Small tiles
+        Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            LineTile(Icons.Outlined.HourglassEmpty, if (pending == 0) "No one" else "$pending", "waiting to join",
+                if (pending > 0) Owner.Butter else cs.surfaceContainer, onWaiting, Modifier.weight(1f).fillMaxHeight())
+            LineTile(Icons.Outlined.EmojiEvents, "$awards", if (awards == 1) "award given" else "awards given",
+                cs.surfaceContainer, onAwards, Modifier.weight(1f).fillMaxHeight())
+        }
+    }
+}
+
+/** Faces of the first few people (initials on pastels), the count in words, and a round arrow to open the list. */
+@Composable
+private fun PeopleTile(people: List<Person>, label: String, fill: Color, onClick: () -> Unit, modifier: Modifier) {
+    Surface(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(26.dp), color = fill, contentColor = Color.Black) {
+        Column(Modifier.padding(16.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.weight(1f)) {
+                    people.take(3).forEachIndexed { i, p ->
+                        Box(Modifier.padding(start = if (i == 0) 0.dp else 0.dp).offset(x = (-10 * i).dp)) {
+                            OwnerAvatar(p.photoUrl, p.name, p.uid, 34.dp)
+                        }
+                    }
+                    if (people.size > 3) Box(
+                        Modifier.offset(x = (-30).dp).size(34.dp).clip(CircleShape).background(Color.Black),
+                        contentAlignment = Alignment.Center,
+                    ) { Text("+${people.size - 3}", style = plex(12.sp, FontWeight.SemiBold), color = Color.White) }
+                    if (people.isEmpty()) Text("None yet", style = plex(14.sp), color = Owner.Warm)
+                }
+                Box(Modifier.size(34.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                    Icon(Icons.AutoMirrored.Outlined.ArrowForward, null, Modifier.size(17.dp), tint = Color.Black)
+                }
+            }
+            Spacer(Modifier.height(22.dp))
+            Text("${people.size}", style = plex(34.sp, FontWeight.SemiBold, tracking = (-1).sp, line = 38.sp), color = Color.Black)
+            Text(label, style = plex(15.sp, FontWeight.SemiBold), color = Color.Black)
+        }
+    }
+}
+
+/** A short tile: icon disc, then a bold value with a few words after it. */
+@Composable
+private fun LineTile(icon: androidx.compose.ui.graphics.vector.ImageVector, value: String, words: String, fill: Color, onClick: () -> Unit, modifier: Modifier) {
+    val cs = MaterialTheme.colorScheme
+    val pastel = fill != cs.surfaceContainer
+    val ink = if (pastel) Color.Black else cs.onSurface
+    Surface(onClick = onClick, modifier = modifier.heightIn(min = 76.dp), shape = RoundedCornerShape(24.dp), color = fill, contentColor = ink) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).clip(CircleShape).background(if (pastel) Color.White else cs.surfaceContainerHigh), contentAlignment = Alignment.Center) {
+                Icon(icon, null, Modifier.size(20.dp), tint = if (pastel) Color.Black else cs.onSurface)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text(value, style = plex(18.sp, FontWeight.SemiBold), color = ink, maxLines = 1)
+                Text(words, style = plex(13.sp, line = 17.sp), color = if (pastel) Owner.Warm else cs.onSurfaceVariant)
+            }
         }
     }
 }
@@ -203,7 +304,8 @@ private fun Count(value: String, label: String, modifier: Modifier) {
 @Composable
 private fun AwardLine(a: GivenAward, person: Person?, onRemove: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(a.emoji, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.width(40.dp))
+        AwardBadge(awardLook(a.emoji, a.title), 42.dp)
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(person?.name ?: "Former member", style = MaterialTheme.typography.titleMedium, maxLines = 1)
             Text(a.title + if (a.note.isNotBlank()) " · ${a.note}" else "", style = MaterialTheme.typography.bodyMedium,
@@ -216,17 +318,19 @@ private fun AwardLine(a: GivenAward, person: Person?, onRemove: () -> Unit) {
 /** One hand-given award; [onRemove] shows a remove button (owner only). */
 @Composable
 fun GivenAwardRow(a: GivenAward, person: Person?, onRemove: (() -> Unit)? = null) {
+    val cs = MaterialTheme.colorScheme
     JkCard(Modifier.fillMaxWidth()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(a.emoji, style = MaterialTheme.typography.headlineMedium)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(a.title, style = MaterialTheme.typography.labelLarge, color = Sun)
-                Text(person?.name ?: "Former member", style = MaterialTheme.typography.titleMedium)
-                if (a.note.isNotBlank()) Text("🎁 ${a.note}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(monthLabel(a.month), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            AwardBadge(awardLook(a.emoji, a.title), 58.dp)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(a.title, style = plex(14.sp), color = cs.onSurfaceVariant)
+                Text(person?.name ?: "Former member", style = plex(18.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (a.note.isNotBlank()) OwnerChip("Gift · ${a.note}", Owner.Cream)
+                    Text(monthLabel(a.month), style = plex(13.sp), color = cs.onSurfaceVariant, maxLines = 1)
+                }
             }
-            if (person != null) Avatar(person.photoUrl, person.name, 40.dp)
             if (onRemove != null) IconButton(onClick = onRemove) { Icon(Icons.Outlined.Close, "Remove award") }
         }
     }

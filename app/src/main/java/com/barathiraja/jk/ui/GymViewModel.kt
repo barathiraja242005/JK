@@ -178,6 +178,9 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
 
     fun person(uid: String?): Person? = people.value.firstOrNull { it.uid == uid }
 
+    /** Which section the Ranks tab shows (0 members, 1 trainers, 2 awards); kept here so other screens can open it. */
+    val ranksTab = MutableStateFlow(0)
+
     init {
         // After sign-in: bring back this account's profile and settings if the phone doesn't have them.
         viewModelScope.launch {

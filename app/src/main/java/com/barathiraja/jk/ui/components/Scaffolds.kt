@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.components
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -27,6 +28,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 
+/**
+ * Space the floating bottom bar covers at the bottom of the screen. Set while the bar is showing (0 otherwise);
+ * scrolling screens add it to their bottom padding so their last item can scroll clear of the bar.
+ */
+val LocalNavBarInset = androidx.compose.runtime.compositionLocalOf { 0.dp }
+
 /** Tab-level screen: large title then lazy content, padded below the status bar. */
 @Composable
 fun TabScreen(
@@ -36,8 +43,8 @@ fun TabScreen(
     content: LazyListScope.() -> Unit,
 ) {
     LazyColumn(
-        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars).imePadding(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp + LocalNavBarInset.current),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -62,9 +69,10 @@ fun TabScreen(
 @Composable
 fun BackScreenBar(title: String, onBack: () -> Unit) {
     TopAppBar(
-        title = { Text(title) },
+        title = { Text(title, style = MaterialTheme.typography.headlineSmall, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
         navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+            RoundBack(onBack)
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
     )
@@ -75,18 +83,33 @@ fun BackScreenBar(title: String, onBack: () -> Unit) {
 fun BackScreen(title: String, onBack: () -> Unit, content: LazyListScope.() -> Unit) {
     Column(Modifier.fillMaxSize()) {
         TopAppBar(
-            title = { Text(title) },
+            title = { Text(title, style = MaterialTheme.typography.headlineSmall, maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
             navigationIcon = {
-                IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                RoundBack(onBack)
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
         )
         LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.fillMaxSize().imePadding(),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 8.dp + LocalNavBarInset.current),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             content = content,
         )
+    }
+}
+
+/** Round white back button, the same one the owner's pages use. */
+@Composable
+fun RoundBack(onBack: () -> Unit) {
+    androidx.compose.material3.Surface(
+        onClick = onBack, shape = androidx.compose.foundation.shape.CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface,
+        modifier = Modifier.padding(start = 8.dp, end = 4.dp).size(44.dp),
+    ) {
+        androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
+        }
     }
 }
 

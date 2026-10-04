@@ -21,6 +21,8 @@ object OwnerStats {
     data class Digest(
         val members: Int,
         val trainedToday: Int,
+        /** Members who finished a workout yesterday, for the "vs yesterday" line. */
+        val trainedYesterday: Int,
         val assignedToday: Int,
         /** Members part-way through today's workout. */
         val inProgressToday: Int,
@@ -61,6 +63,7 @@ object OwnerStats {
         return Digest(
             members = members.size,
             trainedToday = mine.filter { it.epochDay == today && it.done }.map { it.memberUid }.distinct().size,
+            trainedYesterday = mine.filter { it.epochDay == today - 1 && it.done }.map { it.memberUid }.distinct().size,
             assignedToday = mine.filter { it.epochDay == today }.map { it.memberUid }.distinct().size,
             inProgressToday = mine.filter { it.epochDay == today && it.status == AssignStatus.IN_PROGRESS }.map { it.memberUid }
                 .distinct().count { uid -> mine.none { it.memberUid == uid && it.epochDay == today && it.done } },

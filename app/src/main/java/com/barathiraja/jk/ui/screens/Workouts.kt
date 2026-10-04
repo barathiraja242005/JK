@@ -122,7 +122,7 @@ private fun ProgramsTab(vm: JkViewModel, nav: NavHostController) {
     var place by rememberSaveable { mutableStateOf(profile.place) }
     var level by rememberSaveable { mutableStateOf<Level?>(null) }
     val list = Catalog.workouts.filter { it.place == place && (level == null || it.level == level) }
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Choice(Place.entries, place, { it.label }) { place = it } }
         item { Choice(listOf<Level?>(null) + Level.entries, level, { it?.label ?: "All levels" }) { level = it } }
         items(list, key = { it.id }) { w -> WorkoutCard(w) { nav.navigate(Routes.workout(w.id)) } }
@@ -155,7 +155,7 @@ fun WorkoutCard(w: Workout, onClick: () -> Unit) {
 @Composable
 private fun ChallengesTab(vm: JkViewModel, nav: NavHostController) {
     val done by vm.challengeDays.collectAsStateWithLifecycle()
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         items(Catalog.challenges, key = { it.id }) { c ->
             val count = done[c.id]?.size ?: 0
             val workDays = (1..c.days).count { c.plan(it) != null }
@@ -278,7 +278,7 @@ private fun LibraryTab(vm: JkViewModel, nav: NavHostController) {
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

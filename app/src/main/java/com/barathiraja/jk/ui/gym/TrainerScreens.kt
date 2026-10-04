@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
@@ -111,6 +112,8 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
     val assignments by gvm.assignments.collectAsStateWithLifecycle()
     val scores by gvm.monthScores.collectAsStateWithLifecycle()
     val ranking by gvm.memberRanking.collectAsStateWithLifecycle()
+    val digest by gvm.ownerDigest.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
     val member = people.firstOrNull { it.uid == uid }
     val isTrainer = me?.role == Role.TRAINER && member?.trainerUid == me?.uid
     val today = gvm.today
@@ -125,22 +128,18 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
     val s = scores[uid]
     val rank = ranking.indexOfFirst { it.uid == uid } + 1
 
-    BackScreen(member.name, onBack = { nav.popBackStack() }) {
-        item {
-            JkCard(Modifier.fillMaxWidth()) {
-                PersonRow(member, size = 56.dp, sub = { Text("Coach: ${gvm.person(member.trainerUid)?.name ?: "–"}", color = MaterialTheme.colorScheme.onSurfaceVariant) })
-                Spacer(Modifier.height(8.dp))
-                KeyValue("This month", "${s?.completed ?: 0} of ${s?.due ?: 0} done (${pct(s?.completed ?: 0, s?.due ?: 0)})")
-                KeyValue("Points", "${s?.points ?: 0}${if (rank > 0 && (s?.points ?: 0) > 0) " · #$rank in gym" else ""}")
-                KeyValue("Kg lifted this month", "%,d".format((s?.volumeKg ?: 0.0).toLong()))
-            }
+    PersonPage("Back", onBack = { nav.popBackStack() }) {
+        memberOverview(member, s, rank, digest?.idle?.firstOrNull { it.member.uid == uid }, gvm.person(member.trainerUid), list, today)
+        if (me?.role == Role.OWNER) item {
+            Spacer(Modifier.height(4.dp))
+            WideAction("Message ${member.firstName}", Icons.AutoMirrored.Outlined.Send) { context.whatsApp("Hi ${member.firstName}, ") }
         }
         if (isTrainer) item {
             Button(onClick = { nav.navigate(Routes.assign(uid)) }, Modifier.fillMaxWidth().height(52.dp)) {
                 Icon(Icons.Filled.Add, null); Spacer(Modifier.width(6.dp)); Text("Assign workout to ${member.firstName}")
             }
         }
-        item { SectionTitle("Workouts") }
+        item { PageHeading("Workouts", "Every workout ${member.firstName} was given, newest first.") }
         if (list.isEmpty()) item { Text("No workouts assigned yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(list, key = { it.id }) { a ->
             AssignmentCard(a, today, expandedByDefault = a.epochDay == today) {

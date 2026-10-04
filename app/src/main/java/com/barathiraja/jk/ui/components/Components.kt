@@ -51,11 +51,10 @@ fun JkCard(
     padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(24.dp)
     Surface(
         onClick = onClick ?: {}, enabled = onClick != null, modifier = modifier, shape = shape,
         color = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(Modifier.padding(padding), content = content)
     }
@@ -75,14 +74,14 @@ fun Eyebrow(text: String, modifier: Modifier = Modifier) {
 /** Compact button: filled (primary) or outlined ([ghost]); [icon] sits after the text. */
 @Composable
 fun SmallButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ghost: Boolean = false) {
-    val shape = RoundedCornerShape(10.dp)
+    val shape = RoundedCornerShape(50)
     Surface(
-        onClick = onClick, modifier = modifier.heightIn(min = 40.dp), shape = shape,
+        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), shape = shape,
         color = if (ghost) Color.Transparent else MaterialTheme.colorScheme.primary,
         contentColor = if (ghost) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
         border = if (ghost) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
     ) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 9.dp), verticalAlignment = Alignment.CenterVertically,
+        Row(Modifier.padding(horizontal = 18.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center) {
             Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
             if (icon != null) {

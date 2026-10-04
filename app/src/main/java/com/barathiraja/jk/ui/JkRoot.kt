@@ -25,6 +25,26 @@ import com.barathiraja.jk.ui.gym.MemberDetailScreen
 import com.barathiraja.jk.ui.gym.MemberGymScreen
 import com.barathiraja.jk.ui.gym.GiveAwardScreen
 import com.barathiraja.jk.ui.gym.OwnerHomeScreen
+import com.barathiraja.jk.ui.gym.OwnerPeopleScreen
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import com.barathiraja.jk.ui.gym.OwnerMeScreen
 import com.barathiraja.jk.ui.gym.RanksScreen
 import com.barathiraja.jk.ui.gym.SignInScreen
@@ -32,8 +52,6 @@ import com.barathiraja.jk.ui.gym.TrainerDetailScreen
 import com.barathiraja.jk.ui.gym.TrainerMembersScreen
 import com.barathiraja.jk.ui.gym.WaitingScreen
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.border
@@ -123,9 +141,11 @@ object Routes {
     const val GYM_TRAINER = "gymTrainer/{id}"
     const val GIVE_AWARD = "giveAward"
     const val ASSIGNED = "assigned/{id}"
+    const val PEOPLE = "people/{tab}"
     fun assign(memberUid: String) = "assign/${memberUid.ifBlank { "-" }}"
     fun gymMember(uid: String) = "gymMember/$uid"
     fun gymTrainer(uid: String) = "gymTrainer/$uid"
+    fun people(tab: String) = "people/$tab"
     fun assigned(id: String) = "assigned/$id"
     fun session(id: Long) = "session/$id"
     fun workout(id: String) = "workout/$id"
@@ -166,28 +186,126 @@ private val ownerTabs = listOf(
     Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
 )
 
-/** Plain bottom bar with a fine top border; the selected tab is shown in the accent colour. */
+/**
+ * The floating bottom bar: a white rounded bar whose top edge dips smoothly under the open tab, with a raised
+ * black button resting in the dip that shows that tab's icon. Picking another tab slides the dip and the button
+ * across to it; the open tab's label sits in the dip under the button, the others show icon over label in grey.
+ * Nothing is painted behind it, so pages scroll under it.
+ */
 @Composable
-private fun BottomBar(tabs: List<Tab>, route: String?, onSelect: (String) -> Unit) {
-    androidx.compose.foundation.layout.Column {
-        androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer, tonalElevation = 0.dp) {
-            tabs.forEach { tab ->
-                NavigationBarItem(
-                    selected = route == tab.route,
-                    onClick = { onSelect(tab.route) },
-                    icon = { Icon(tab.icon, contentDescription = null) },
-                    label = { Text(tab.label, maxLines = 1) },
-                    colors = androidx.compose.material3.NavigationBarItemDefaults.colors(
-                        selectedIconColor = com.barathiraja.jk.ui.theme.Ember,
-                        selectedTextColor = com.barathiraja.jk.ui.theme.Ember,
-                        indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    ),
-                )
+private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    val dark = cs.background.luminance() < 0.5f
+    val selected = tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
+    val pos by androidx.compose.animation.core.animateFloatAsState(
+        selected.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")
+    // Fewer tabs leave room for a bigger button and a wider, deeper dip.
+    val roomy = tabs.size <= 3
+    val button = if (roomy) 60.dp else 52.dp
+    val hw = if (roomy) 76.dp else 52.dp
+    val depth = if (roomy) 38.dp else 32.dp
+    val rise = if (roomy) 22.dp else 20.dp
+    val inner = 18.dp
+    // Full screen width, flush with the bottom edge: the bar's white runs down behind the system gesture area.
+    val navInset = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    androidx.compose.foundation.layout.BoxWithConstraints(
+        modifier.fillMaxWidth().height(BAR_HEIGHT + rise + navInset),
+    ) {
+        val slot = (maxWidth - inner * 2) / tabs.size
+        val cx = inner + slot * (pos + 0.5f)
+        val barShape = DipShape(radius = 28.dp, center = cx, dipHalfWidth = hw, dipDepth = depth, roundBottom = false)
+        androidx.compose.foundation.layout.Row(
+            Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().height(BAR_HEIGHT + navInset)
+                .shadow(24.dp, barShape, ambientColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
+                    spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.22f))
+                .clip(barShape).background(cs.surfaceContainer).padding(start = inner, end = inner, bottom = navInset),
+        ) {
+            tabs.forEachIndexed { i, tab -> SideTab(tab, i == selected, Modifier.weight(1f).fillMaxHeight(), onSelect) }
+        }
+        val fill = if (dark) com.barathiraja.jk.ui.theme.Mustard else androidx.compose.ui.graphics.Color.Black
+        val ink = if (dark) androidx.compose.ui.graphics.Color.Black else com.barathiraja.jk.ui.theme.Mustard
+        val tab = tabs[selected]
+        androidx.compose.material3.Surface(
+            onClick = { onSelect(tab.route) },
+            shape = androidx.compose.foundation.shape.CircleShape,
+            color = fill, contentColor = ink, shadowElevation = 8.dp,
+            modifier = Modifier.offset(x = cx - button / 2).size(button)
+                .semantics { contentDescription = tab.label },
+        ) {
+            androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+                Icon(tab.icon, null, Modifier.size(if (roomy) 26.dp else 23.dp))
             }
         }
+    }
+}
+
+private val BAR_HEIGHT = 72.dp
+
+/** One slot: icon over label in grey; when open, just its label in black, low in the dip under the button. */
+@Composable
+private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String) -> Unit) {
+    val cs = MaterialTheme.colorScheme
+    androidx.compose.foundation.layout.Column(
+        modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).clickable { onSelect(tab.route) }
+            .semantics { selected = on }.padding(bottom = 10.dp),
+        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Bottom,
+    ) {
+        androidx.compose.animation.AnimatedVisibility(!on,
+            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
+            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()) {
+            Icon(tab.icon, null, tint = cs.onSurfaceVariant, modifier = Modifier.size(24.dp))
+        }
+        Text(tab.label, style = MaterialTheme.typography.labelMedium.copy(
+            fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
+            fontSize = 13.sp), color = if (on) cs.onSurface else cs.onSurfaceVariant, maxLines = 1,
+            modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+/**
+ * Rounded bar with a smooth dip centred in its top edge: two S-curves meeting at the dip's floor, so the
+ * outline reads as one curve around the button that sits in it.
+ */
+private class DipShape(
+    private val radius: androidx.compose.ui.unit.Dp,
+    private val center: androidx.compose.ui.unit.Dp,
+    private val dipHalfWidth: androidx.compose.ui.unit.Dp,
+    private val dipDepth: androidx.compose.ui.unit.Dp,
+    private val roundBottom: Boolean = true,
+) : androidx.compose.ui.graphics.Shape {
+    override fun createOutline(
+        size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection,
+        density: androidx.compose.ui.unit.Density,
+    ): androidx.compose.ui.graphics.Outline = with(density) {
+        val d = dipDepth.toPx()
+        val w = size.width; val h = size.height; val cx = center.toPx()
+        // Near an end the dip narrows and the top corner tightens, so the outline never runs past the bar's edge.
+        val edge = 12.dp.toPx()
+        val hw = dipHalfWidth.toPx().coerceAtMost(cx - edge).coerceAtMost(w - cx - edge)
+        val rl = radius.toPx().coerceAtMost(cx - hw)
+        val rr = radius.toPx().coerceAtMost(w - cx - hw)
+        val r = radius.toPx()
+        androidx.compose.ui.graphics.Outline.Generic(androidx.compose.ui.graphics.Path().apply {
+            moveTo(0f, rl)
+            if (rl > 0f) arcTo(androidx.compose.ui.geometry.Rect(0f, 0f, 2 * rl, 2 * rl), 180f, 90f, false)
+            lineTo(cx - hw, 0f)
+            // Shoulder eases off the top edge, then the wall curves round into a flat floor under the button.
+            cubicTo(cx - hw * 0.5f, 0f, cx - hw * 0.5f, d, cx, d)
+            cubicTo(cx + hw * 0.5f, d, cx + hw * 0.5f, 0f, cx + hw, 0f)
+            lineTo(w - rr, 0f)
+            if (rr > 0f) arcTo(androidx.compose.ui.geometry.Rect(w - 2 * rr, 0f, w, 2 * rr), 270f, 90f, false)
+            if (roundBottom) {
+                lineTo(w, h - r)
+                arcTo(androidx.compose.ui.geometry.Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
+                lineTo(r, h)
+                arcTo(androidx.compose.ui.geometry.Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
+            } else {
+                lineTo(w, h)
+                lineTo(0f, h)
+            }
+            close()
+        })
     }
 }
 
@@ -251,13 +369,16 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
         message?.let { snackbar.showSnackbar(it); gvm.message.value = null }
     }
 
+    // The bar floats over the screens (nothing painted behind it); screens pad their lists by LocalNavBarInset.
+    val barInset = if (showBar) 108.dp + androidx.compose.foundation.layout.WindowInsets.navigationBars
+        .asPaddingValues().calculateBottomPadding() else 0.dp
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
-        bottomBar = {
-            if (showBar) BottomBar(tabs, route) { nav.switchTab(it) }
-        },
-    ) { padding ->
-        NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.padding(bottom = padding.calculateBottomPadding())) {
+        snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = barInset)) },
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+    ) { _ ->
+      androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
+      androidx.compose.runtime.CompositionLocalProvider(com.barathiraja.jk.ui.components.LocalNavBarInset provides barInset) {
+        NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.fillMaxSize()) {
             composable(Routes.TODAY) { TodayScreen(vm, tvm, nav, gvm.takeIf { role == Role.MEMBER }) }
             composable(Routes.GYM) { if (role == Role.OWNER) OwnerHomeScreen(gvm, nav) else MemberGymScreen(gvm, nav) }
             composable(Routes.MEMBERS) { TrainerMembersScreen(gvm, nav) }
@@ -266,6 +387,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             composable(Routes.ASSIGN) { AssignScreen(it.arg("id").takeIf { a -> a != "-" }.orEmpty(), gvm, nav) }
             composable(Routes.GYM_MEMBER) { MemberDetailScreen(it.arg("id"), gvm, nav) }
             composable(Routes.GYM_TRAINER) { TrainerDetailScreen(it.arg("id"), gvm, nav) }
+            composable(Routes.PEOPLE) { OwnerPeopleScreen(it.arg("tab"), gvm, nav) }
             composable(Routes.GIVE_AWARD) { GiveAwardScreen(gvm, nav) }
             composable(Routes.ASSIGNED) { AssignedSessionScreen(it.arg("id"), gvm, nav) }
             composable(Routes.WORKOUTS) { WorkoutsScreen(vm, tvm, nav) }
@@ -304,6 +426,9 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
                 EditProfileScreen(profile, onSave = { vm.saveProfile(it); nav.popBackStack() }, onBack = { nav.popBackStack() })
             }
         }
+      }
+        if (showBar) DipBottomBar(tabs, route, Modifier.align(androidx.compose.ui.Alignment.BottomCenter)) { nav.switchTab(it) }
+      }
     }
     }
 }

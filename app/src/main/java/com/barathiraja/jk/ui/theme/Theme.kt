@@ -21,9 +21,10 @@ import com.barathiraja.jk.R
 import com.barathiraja.jk.data.ThemeMode
 
 /*
- * Minimal and professional: neutral greys, one blue accent, plain white cards with a fine border.
- * Blue is the accent because it is the colour most consistently read as trustworthy and competent.
- * Status colours are only used next to a word, and every text colour is at least 4.5:1 on its surface.
+ * Paper and ink: warm off-white paper, black ink, one mustard accent and soft pastels for people (the look
+ * first built for the owner's home). Cards are plain white with large rounds. Status colours are only used
+ * next to a word, and every text colour is at least 4.5:1 on its surface. Dark mode swaps to near-black paper
+ * with mustard as the accent, since black ink would vanish.
  */
 private object Palette {
     var dark by mutableStateOf(false)
@@ -31,11 +32,13 @@ private object Palette {
 
 private fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else Color(light)
 
-/** Solid blue for hero cards; white text on it is 6.7:1 in both themes. */
-val HeroBlue = Color(0xFF1D4ED8)
+/** Solid fill for hero cards; white text on it is 21:1 (light) and 15:1 (dark). */
+val HeroBlue: Color get() = pick(0xFF000000, 0xFF26251F)
 
-/** The accent: progress, links, highlights. */
-val Ember: Color get() = pick(0xFF2563EB, 0xFF60A5FA)
+/** The accent: progress, links, highlights. Ink on paper; mustard on dark paper. */
+val Ember: Color get() = pick(0xFF000000, 0xFFF0D68C)
+/** Mustard, for fills only (never text on paper: too light). */
+val Mustard: Color = Color(0xFFF0D68C)
 /** Good / done. */
 val Leaf: Color get() = pick(0xFF0F766E, 0xFF2DD4BF)
 /** Watch / in progress. */
@@ -43,56 +46,58 @@ val Sun: Color get() = pick(0xFFB45309, 0xFFFBBF24)
 /** Bad / missed. */
 val Alert: Color get() = pick(0xFFB91C1C, 0xFFF87171)
 /** Information, water: same accent, to keep the palette to one colour. */
-val Aqua: Color get() = pick(0xFF2563EB, 0xFF60A5FA)
+val Aqua: Color get() = pick(0xFF000000, 0xFFF0D68C)
 /** Calm: meditation, sleep. */
 val Violet: Color get() = pick(0xFF6D28D9, 0xFFA78BFA)
 
 private val Light = lightColorScheme(
-    primary = Color(0xFF18181B),
+    primary = Color(0xFF000000),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFF4F4F5),
-    onPrimaryContainer = Color(0xFF18181B),
-    secondary = Color(0xFF2563EB),
+    primaryContainer = Color(0xFFF0D68C),
+    onPrimaryContainer = Color(0xFF000000),
+    secondary = Color(0xFF000000),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFEFF4FF),
-    onSecondaryContainer = Color(0xFF1E3A8A),
+    secondaryContainer = Color(0xFFF8E9C0),
+    onSecondaryContainer = Color(0xFF000000),
     tertiary = Color(0xFF0F766E),
     onTertiary = Color.White,
     error = Color(0xFFB91C1C),
-    background = Color(0xFFFAFAFA),
-    onBackground = Color(0xFF09090B),
-    surface = Color(0xFFFAFAFA),
-    onSurface = Color(0xFF09090B),
-    surfaceVariant = Color(0xFFF4F4F5),
-    onSurfaceVariant = Color(0xFF52525B),
+    background = Color(0xFFEEECE7),
+    onBackground = Color(0xFF000000),
+    surface = Color(0xFFEEECE7),
+    onSurface = Color(0xFF000000),
+    surfaceVariant = Color(0xFFF5F3EE),
+    onSurfaceVariant = Color(0xFF5A5A57),
     surfaceContainer = Color(0xFFFFFFFF),
-    surfaceContainerHigh = Color(0xFFF4F4F5),
-    outline = Color(0xFFA1A1AA),
-    outlineVariant = Color(0xFFE4E4E7),
+    surfaceContainerHigh = Color(0xFFF5F3EE),
+    surfaceContainerHighest = Color(0xFFE7E4DD),
+    outline = Color(0xFF8A8780),
+    outlineVariant = Color(0xFFE5E3DE),
 )
 
 private val Dark = darkColorScheme(
-    primary = Color(0xFFFAFAFA),
-    onPrimary = Color(0xFF09090B),
-    primaryContainer = Color(0xFF27272A),
-    onPrimaryContainer = Color(0xFFFAFAFA),
-    secondary = Color(0xFF60A5FA),
-    onSecondary = Color(0xFF09090B),
-    secondaryContainer = Color(0xFF1E293B),
-    onSecondaryContainer = Color(0xFFDBEAFE),
+    primary = Color(0xFFF0D68C),
+    onPrimary = Color(0xFF000000),
+    primaryContainer = Color(0xFF3A3322),
+    onPrimaryContainer = Color(0xFFF8E9C0),
+    secondary = Color(0xFFF0D68C),
+    onSecondary = Color(0xFF000000),
+    secondaryContainer = Color(0xFF2E2A20),
+    onSecondaryContainer = Color(0xFFF8E9C0),
     tertiary = Color(0xFF2DD4BF),
-    onTertiary = Color(0xFF09090B),
+    onTertiary = Color(0xFF000000),
     error = Color(0xFFF87171),
-    background = Color(0xFF09090B),
-    onBackground = Color(0xFFFAFAFA),
-    surface = Color(0xFF09090B),
-    onSurface = Color(0xFFFAFAFA),
-    surfaceVariant = Color(0xFF27272A),
-    onSurfaceVariant = Color(0xFFA1A1AA),
-    surfaceContainer = Color(0xFF18181B),
-    surfaceContainerHigh = Color(0xFF27272A),
-    outline = Color(0xFF52525B),
-    outlineVariant = Color(0xFF27272A),
+    background = Color(0xFF0F0F0E),
+    onBackground = Color(0xFFF5F3EE),
+    surface = Color(0xFF0F0F0E),
+    onSurface = Color(0xFFF5F3EE),
+    surfaceVariant = Color(0xFF242320),
+    onSurfaceVariant = Color(0xFFABABAB),
+    surfaceContainer = Color(0xFF1C1B19),
+    surfaceContainerHigh = Color(0xFF242320),
+    surfaceContainerHighest = Color(0xFF2E2D29),
+    outline = Color(0xFF6B6A66),
+    outlineVariant = Color(0xFF2A2927),
 )
 
 /*
