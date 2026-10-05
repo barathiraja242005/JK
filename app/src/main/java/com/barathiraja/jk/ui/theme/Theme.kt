@@ -21,23 +21,21 @@ import com.barathiraja.jk.R
 import com.barathiraja.jk.data.ThemeMode
 
 /*
- * Red, black, yellow on white: the "Ignite" palette.
+ * Blue, lime, charcoal on white: the "Electric" palette.
  *
- * Why these four, and how much of each (60-30-10):
- *  - White (60%): page and cards. Space and calm lower the effort of reading, which matters most for an older
- *    owner scanning numbers. The page is a faint grey so white cards stand out without borders.
- *  - Black (30%): text, the bottom bar and the one dark "hero" card per page. Black reads as strength and
- *    authority, the core of gym culture, and black on white is the clearest text there is (19.8:1).
- *  - Red (about 7%): only the main action on a screen and "needs attention". Red raises arousal and draws the eye
- *    first (it is the colour people spot fastest), so it is kept for what the user should do or look at next.
- *    Using it sparingly keeps it meaningful: one red thing per view stands out (the isolation effect).
- *  - Yellow (about 3%): reward and celebration: awards, the top spot, done ticks. Yellow is the brightest hue and
- *    reads as optimism and achievement; black on yellow is the high-visibility pairing of sports kit and signage
- *    (12.6:1). Yellow is never used for text on white (too faint); it is a fill with black on it.
+ *  - White (about 60%): the page. Clean and open, so the saturated blue and lime stay sharp. Cards are a soft
+ *    cool grey, so they separate from the page without borders.
+ *  - Charcoal (about 25%): text, the bottom bar and the one dark hero card per page. Strength and a premium
+ *    athletic feel, grounding the brighter colours (17.7:1 for white on it).
+ *  - Electric blue (about 10%): the main action on a screen and "you are here". Blue reads as confident and
+ *    trustworthy, and suits the stable, focused work of running a gym. White on it is 5.4:1.
+ *  - Lime (about 5%): reward and the top spot: awards, progress, done ticks. Yellow-green is the most eye-catching
+ *    hue and sits opposite blue, so it pops. It is only ever a fill with charcoal text on it (11.8:1), never text.
+ *  - Silver and soft grey: lines, tracks and quiet chips, a cool metallic tone that matches gym equipment.
+ *  - Warm peach: the one warm colour, kept for "needs a look" so it stands apart from the cool palette.
  *
- * Every text colour is at least 4.5:1 on its surface (WCAG AA); white on red is 5.2:1. Status is never shown by
- * colour alone; a word always goes with it. In dark mode red text lightens to coral so it stays readable, and red
- * buttons carry black text there.
+ * Every text colour is at least 4.5:1 on its surface (WCAG AA). Status is never shown by colour alone. In dark
+ * mode blue text lightens so it stays readable; blue buttons keep white text.
  */
 private object Palette {
     var dark by mutableStateOf(false)
@@ -46,77 +44,77 @@ private object Palette {
 /** A colour that follows light/dark mode. */
 internal fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else Color(light)
 
-/** Brand red as a fill (buttons, the open tab). White text on it is 5.2:1. */
-val Red: Color = Color(0xFFD7141E)
-/** Signal yellow, for fills only (awards, top spot, done). Always black text on it. */
-val Yellow: Color = Color(0xFFFFC629)
-/** Near-black ink; also the fill of hero cards and the bottom bar. */
-val Ink: Color = Color(0xFF0A0A0A)
+/** Electric blue as a fill (buttons, the open tab). White text on it is 5.4:1. */
+val Brand: Color = Color(0xFF1565D8)
+/** Lime, for fills only (awards, top spot, progress). Always charcoal text on it. */
+val Lime: Color = Color(0xFFA8E600)
+/** Charcoal ink; also the fill of hero cards and the bottom bar. */
+val Ink: Color = Color(0xFF17181C)
 
 /** Solid fill for hero cards; white text on it in both modes. */
-val HeroBlue: Color get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
+val HeroBlue: Color get() = pick(0xFF17181C, 0xFF1E2026)
 
-/** The accent for text, icons and progress: red on white, coral on black. */
-val Ember: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
+/** The accent for text, icons and progress: blue on white, light blue on black. */
+val Ember: Color get() = pick(0xFF1565D8, 0xFF5B9BFF)
 /** Good / done: ink, with a tick or a word next to it. */
-val Leaf: Color get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
-/** Watch / in progress: dark gold on white, yellow on black. */
-val Sun: Color get() = pick(0xFF8A6100, 0xFFFFC629)
+val Leaf: Color get() = pick(0xFF17181C, 0xFFF2F3F5)
+/** Watch / in progress: warm brown on white, peach on black. */
+val Sun: Color get() = pick(0xFF9A4A1E, 0xFFF4A07C)
 /** Bad / missed. */
-val Alert: Color get() = pick(0xFFB3121B, 0xFFFF8A8E)
+val Alert: Color get() = pick(0xFFB3261E, 0xFFFF8A80)
 /** Information, water: the accent. */
-val Aqua: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
+val Aqua: Color get() = pick(0xFF1565D8, 0xFF5B9BFF)
 /** Calm: meditation, sleep. A quiet grey, so calm screens stay calm. */
-val Violet: Color get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
+val Violet: Color get() = pick(0xFF5E6368, 0xFFA3A8AD)
 
 private val Light = lightColorScheme(
-    primary = Color(0xFFD7141E),
+    primary = Color(0xFF1565D8),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFFDE4E4),
-    onPrimaryContainer = Color(0xFF9E0F16),
-    secondary = Color(0xFF0A0A0A),
+    primaryContainer = Color(0xFFE3EDFB),
+    onPrimaryContainer = Color(0xFF0E4BA6),
+    secondary = Color(0xFF17181C),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFFFF2C7),
-    onSecondaryContainer = Color(0xFF0A0A0A),
-    tertiary = Color(0xFFFFC629),
-    onTertiary = Color(0xFF0A0A0A),
-    error = Color(0xFFB3121B),
-    background = Color(0xFFF6F6F4),
-    onBackground = Color(0xFF0A0A0A),
-    surface = Color(0xFFF6F6F4),
-    onSurface = Color(0xFF0A0A0A),
-    surfaceVariant = Color(0xFFEFEFEC),
-    onSurfaceVariant = Color(0xFF5C5C5C),
-    surfaceContainer = Color(0xFFFFFFFF),
-    surfaceContainerHigh = Color(0xFFF1F1EE),
-    surfaceContainerHighest = Color(0xFFE6E6E3),
-    outline = Color(0xFF8F8F8C),
-    outlineVariant = Color(0xFFE6E6E3),
+    secondaryContainer = Color(0xFFEFF9D2),
+    onSecondaryContainer = Color(0xFF17181C),
+    tertiary = Color(0xFFA8E600),
+    onTertiary = Color(0xFF17181C),
+    error = Color(0xFFB3261E),
+    background = Color(0xFFFFFFFF),
+    onBackground = Color(0xFF17181C),
+    surface = Color(0xFFFFFFFF),
+    onSurface = Color(0xFF17181C),
+    surfaceVariant = Color(0xFFF3F4F6),
+    onSurfaceVariant = Color(0xFF5E6368),
+    surfaceContainer = Color(0xFFF3F4F6),
+    surfaceContainerHigh = Color(0xFFE8EAED),
+    surfaceContainerHighest = Color(0xFFDDE0E4),
+    outline = Color(0xFF8A9096),
+    outlineVariant = Color(0xFFE8EAED),
 )
 
 private val Dark = darkColorScheme(
-    primary = Color(0xFFFF5A5F),
-    onPrimary = Color(0xFF0A0A0A),
-    primaryContainer = Color(0xFF2A1214),
-    onPrimaryContainer = Color(0xFFFFB4B6),
-    secondary = Color(0xFFF2F2F2),
-    onSecondary = Color(0xFF0A0A0A),
-    secondaryContainer = Color(0xFF2A2410),
-    onSecondaryContainer = Color(0xFFFFD966),
-    tertiary = Color(0xFFFFC629),
-    onTertiary = Color(0xFF0A0A0A),
-    error = Color(0xFFFF8A8E),
-    background = Color(0xFF0B0B0B),
-    onBackground = Color(0xFFF2F2F2),
-    surface = Color(0xFF0B0B0B),
-    onSurface = Color(0xFFF2F2F2),
-    surfaceVariant = Color(0xFF1F1F1F),
-    onSurfaceVariant = Color(0xFFA3A3A3),
-    surfaceContainer = Color(0xFF161616),
-    surfaceContainerHigh = Color(0xFF1F1F1F),
-    surfaceContainerHighest = Color(0xFF2A2A2A),
-    outline = Color(0xFF6E6E6E),
-    outlineVariant = Color(0xFF262626),
+    primary = Color(0xFF5B9BFF),
+    onPrimary = Color(0xFF0B0C0F),
+    primaryContainer = Color(0xFF12233F),
+    onPrimaryContainer = Color(0xFF9CC2FF),
+    secondary = Color(0xFFF2F3F5),
+    onSecondary = Color(0xFF0B0C0F),
+    secondaryContainer = Color(0xFF26301A),
+    onSecondaryContainer = Color(0xFFC9F25C),
+    tertiary = Color(0xFFA8E600),
+    onTertiary = Color(0xFF17181C),
+    error = Color(0xFFFF8A80),
+    background = Color(0xFF0B0C0F),
+    onBackground = Color(0xFFF2F3F5),
+    surface = Color(0xFF0B0C0F),
+    onSurface = Color(0xFFF2F3F5),
+    surfaceVariant = Color(0xFF1E2026),
+    onSurfaceVariant = Color(0xFFA3A8AD),
+    surfaceContainer = Color(0xFF17181C),
+    surfaceContainerHigh = Color(0xFF1E2026),
+    surfaceContainerHighest = Color(0xFF2A2D33),
+    outline = Color(0xFF6B7075),
+    outlineVariant = Color(0xFF2A2D33),
 )
 
 /*

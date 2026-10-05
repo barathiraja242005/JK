@@ -56,58 +56,58 @@ import com.barathiraja.jk.ui.theme.Plex
 import com.barathiraja.jk.ui.theme.pick
 
 /*
- * The owner's look, built on the app's red / black / yellow / white palette (see Theme.kt for the reasoning).
- * One red thing per screen: the action the owner should take next. Black carries text and the one hero card.
- * Yellow marks reward and the top spot. Everything else is white space, so the owner's eye has few places to go.
+ * The owner's look, built on the app's blue / lime / charcoal / white palette (see Theme.kt for the reasoning).
+ * One blue thing per screen: the action the owner should take next. Charcoal carries text and the one hero card.
+ * Lime marks reward and the top spot. Peach, the only warm colour, marks people who need a look.
  * Status is always a word in a chip ([Tone]); the colour only backs the word up.
  */
 internal object Owner {
-    val Paper get() = pick(0xFFF6F6F4, 0xFF0B0B0B)
-    /** Plain cards on the paper. */
-    val Card get() = pick(0xFFFFFFFF, 0xFF161616)
+    val Paper get() = pick(0xFFFFFFFF, 0xFF0B0C0F)
+    /** Cards on the page: soft cool grey on white. */
+    val Card get() = pick(0xFFF3F4F6, 0xFF17181C)
     /** A panel or strip inside a card. */
-    val Well get() = pick(0xFFF1F1EE, 0xFF1F1F1F)
-    /** Text, icons and lines on paper and cards. */
-    val Ink get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
-    val OnInk get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
+    val Well get() = pick(0xFFFFFFFF, 0xFF1E2026)
+    /** Text, icons and lines on the page and cards. */
+    val Ink get() = pick(0xFF17181C, 0xFFF2F3F5)
+    val OnInk get() = pick(0xFFFFFFFF, 0xFF0B0C0F)
     /** The dark hero card; white text on it in both modes. */
-    val Hero get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
-    /** Text on yellow, in both modes. */
-    val Black = Color(0xFF0A0A0A)
-    /** Red as a fill: the main action. White text on it (5.2:1). */
-    val Red = Color(0xFFD7141E)
-    /** Red as text or an icon on paper and cards. */
-    val RedText get() = pick(0xFFD7141E, 0xFFFF5A5F)
-    val Yellow = Color(0xFFFFC629)
-    val Muted get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
-    val Line get() = pick(0xFFE6E6E3, 0xFF262626)
+    val Hero get() = pick(0xFF17181C, 0xFF1E2026)
+    /** Text on lime and peach, in both modes. */
+    val Black = Color(0xFF17181C)
+    /** Blue as a fill: the main action. White text on it (5.4:1). */
+    val Brand = Color(0xFF1565D8)
+    /** Removing, rejecting, signing out: the standard warning red, kept out of the brand palette on purpose. */
+    val Danger get() = pick(0xFFB3261E, 0xFFFF8A80)
+    val Lime = Color(0xFFA8E600)
+    val Muted get() = pick(0xFF5E6368, 0xFFA3A8AD)
+    val Line get() = pick(0xFFE8EAED, 0xFF2A2D33)
     /** On the hero card. */
-    val OnDarkMuted = Color(0xFFA3A3A3)
-    val OnDarkSoft = Color(0xFFD4D4D4)
-    val DarkTrack = Color(0xFF333333)
-    val DarkStrip get() = pick(0xFF1F1F1F, 0xFF2A2A2A)
+    val OnDarkMuted = Color(0xFFA3A8AD)
+    val OnDarkSoft = Color(0xFFD5D8DB)
+    val DarkTrack = Color(0xFF33363C)
+    val DarkStrip get() = pick(0xFF25272D, 0xFF2A2D33)
 }
 
 /**
- * A status word's look. [TOP]: yellow, the best. [GOOD]: quiet grey, all fine (the usual case, so it stays calm).
- * [WARN]: pale yellow, worth a look. [BAD]: pale red, needs the owner. [NONE]: outlined, nothing yet.
+ * A status word's look. [TOP]: lime, the best. [GOOD]: pale blue, all fine. [WARN]: pale peach, worth a look.
+ * [BAD]: peach, needs the owner. [NONE]: outlined, nothing yet.
  */
 internal enum class Tone {
     TOP, GOOD, WARN, BAD, NONE;
 
     val fill: Color get() = when (this) {
-        TOP -> Owner.Yellow
-        GOOD -> pick(0xFFEFEFEC, 0xFF262626)
-        WARN -> pick(0xFFFFF2C7, 0xFF2A2410)
-        BAD -> pick(0xFFFDE4E4, 0xFF2A1214)
+        TOP -> Owner.Lime
+        GOOD -> pick(0xFFE3EDFB, 0xFF12233F)
+        WARN -> pick(0xFFFDEBE1, 0xFF3A2216)
+        BAD -> Color(0xFFF4A07C)
         NONE -> Color.Transparent
     }
     val ink: Color get() = when (this) {
         TOP -> Owner.Black
-        GOOD -> Owner.Ink
-        WARN -> pick(0xFF0A0A0A, 0xFFFFD966)
-        BAD -> pick(0xFF9E0F16, 0xFFFFB4B6)
-        NONE -> pick(0xFF3D3D3D, 0xFFD4D4D4)
+        GOOD -> pick(0xFF0E4BA6, 0xFF9CC2FF)
+        WARN -> pick(0xFF7A3A14, 0xFFF4A07C)
+        BAD -> Owner.Black
+        NONE -> pick(0xFF5E6368, 0xFFD5D8DB)
     }
 }
 
@@ -148,7 +148,7 @@ internal fun OwnerHeading(title: String, explain: String? = null) {
 internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
     Surface(
         onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
-        color = if (enabled) Owner.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Owner.Muted,
+        color = if (enabled) Owner.Brand else Owner.Line, contentColor = if (enabled) Color.White else Owner.Muted,
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text(text, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -191,7 +191,7 @@ internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? 
 /** Round photo, or the first letter on grey. */
 @Composable
 internal fun OwnerAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDark: Boolean = false) {
-    val fill = if (onDark) Owner.DarkStrip else Tone.GOOD.fill
+    val fill = if (onDark) Owner.DarkStrip else pick(0xFFE8EAED, 0xFF2A2D33)
     Box(Modifier.size(size).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
         if (photoUrl != null) {
             coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)

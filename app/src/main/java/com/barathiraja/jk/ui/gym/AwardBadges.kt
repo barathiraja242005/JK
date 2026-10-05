@@ -43,8 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.barathiraja.jk.gym.Award
 
 /*
- * Award badges: every award is drawn as a medal (a gold, silver or rose disc with a black ring and a line icon,
- * hanging from two red ribbon tails) instead of an emoji, so they match the rest of the app and look the same on every phone. Awards
+ * Award badges: every award is drawn as a medal (a lime, silver, peach or pale blue disc with a black ring and a line icon,
+ * hanging from two blue ribbon tails) instead of an emoji, so they match the rest of the app and look the same on every phone. Awards
  * are stored with an emoji; it is only used here to pick the badge.
  */
 
@@ -52,10 +52,10 @@ import com.barathiraja.jk.gym.Award
 internal data class AwardLook(val icon: ImageVector, val fill: Color)
 
 /** Medal discs: fixed light colours so the black icon and ring read the same in light and dark mode. */
-private val Gold = Color(0xFFFFC629)
-private val Silver = Color(0xFFE6E6E3)
-private val Rose = Color(0xFFFFD0D2)
-private val Cream = Color(0xFFFFF2C7)
+private val Gold = Color(0xFFA8E600)
+private val Silver = Color(0xFFBFC4C8)
+private val Rose = Color(0xFFF4A07C)
+private val Cream = Color(0xFFE3EDFB)
 
 internal fun awardLook(emoji: String, title: String = ""): AwardLook = when {
     emoji == Award.BEST_MEMBER.emoji || title == Award.BEST_MEMBER.label -> AwardLook(Icons.Outlined.Star, Gold)
@@ -90,10 +90,10 @@ internal fun rewardIcon(emoji: String): ImageVector = when (emoji) {
 }
 
 /**
- * A medal [size] wide (and a little taller, for the ribbon). [ribbon] is the tails' colour: brand red.
+ * A medal [size] wide (and a little taller, for the ribbon). [ribbon] is the tails' colour: brand blue.
  */
 @Composable
-internal fun AwardBadge(look: AwardLook, size: Dp, ribbon: Color = Owner.Red, modifier: Modifier = Modifier) {
+internal fun AwardBadge(look: AwardLook, size: Dp, ribbon: Color = Owner.Brand, modifier: Modifier = Modifier) {
     Box(modifier.size(size, size * 1.12f)) {
         Canvas(Modifier.fillMaxSize()) {
             val w = this.size.width

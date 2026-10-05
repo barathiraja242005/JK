@@ -190,17 +190,17 @@ private val ownerTabs = listOf(
 )
 
 /**
- * The floating bottom bar: a black bar whose top edge dips smoothly under the open tab, with a raised red button
- * resting in the dip that shows that tab's icon. Black anchors the screen; the one red circle says "you are here".
+ * The floating bottom bar: a charcoal bar whose top edge dips smoothly under the open tab, with a raised blue button
+ * resting in the dip that shows that tab's icon. Charcoal anchors the screen; the one blue circle says "you are here".
  * Picking another tab slides the dip and the button across to it; the open tab's label sits in the dip under the
- * button in white, the others show icon over label in light grey (7:1 on black).
+ * button in white, the others show icon over label in silver (10:1 on charcoal).
  * Nothing is painted behind it, so pages scroll under it.
  */
 @Composable
 private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     // In dark mode the bar lifts a step off the black page so it still reads as a bar.
-    val barFill = if (dark) androidx.compose.ui.graphics.Color(0xFF1C1C1C) else com.barathiraja.jk.ui.theme.Ink
+    val barFill = if (dark) androidx.compose.ui.graphics.Color(0xFF1E2026) else com.barathiraja.jk.ui.theme.Ink
     val selected = tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
     val pos by androidx.compose.animation.core.animateFloatAsState(
         selected.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")
@@ -227,7 +227,7 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
         ) {
             tabs.forEachIndexed { i, tab -> SideTab(tab, i == selected, Modifier.weight(1f).fillMaxHeight(), onSelect) }
         }
-        val fill = com.barathiraja.jk.ui.theme.Red
+        val fill = com.barathiraja.jk.ui.theme.Brand
         val ink = androidx.compose.ui.graphics.Color.White
         val tab = tabs[selected]
         androidx.compose.material3.Surface(
@@ -249,7 +249,7 @@ private val BAR_HEIGHT = 60.dp
 /** One slot: icon over label in light grey; when open, just its label in white, low in the dip under the button. */
 @Composable
 private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String) -> Unit) {
-    val idle = androidx.compose.ui.graphics.Color(0xFFB3B3B3)
+    val idle = androidx.compose.ui.graphics.Color(0xFFBFC4C8)
     androidx.compose.foundation.layout.Column(
         modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).clickable { onSelect(tab.route) }
             .semantics { selected = on }.padding(bottom = 8.dp),

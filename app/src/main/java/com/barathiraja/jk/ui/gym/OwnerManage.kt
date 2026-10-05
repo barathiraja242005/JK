@@ -55,7 +55,7 @@ import com.barathiraja.jk.ui.GymViewModel
 /** A full-width outlined button; [danger] makes its words red, for removing. */
 @Composable
 internal fun ManageButton(text: String, icon: ImageVector, danger: Boolean = false, onClick: () -> Unit) =
-    PlainButton(text, onClick, Modifier.fillMaxWidth(), icon, ink = if (danger) Owner.RedText else Owner.Ink)
+    PlainButton(text, onClick, Modifier.fillMaxWidth(), icon, ink = if (danger) Owner.Danger else Owner.Ink)
 
 /** A tappable trainer choice with a round tick: 56dp tall, name in full. */
 @Composable
@@ -75,8 +75,8 @@ private fun TrainerOption(p: Person, note: String, selected: Boolean, onClick: (
             Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
             Text(note, style = plex(13.sp), color = cs.onSurfaceVariant, maxLines = 1)
         }
-        Box(Modifier.size(24.dp).clip(CircleShape).background(if (selected) Owner.Red else Color.Transparent)
-            .border(1.5.dp, if (selected) Owner.Red else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(24.dp).clip(CircleShape).background(if (selected) Owner.Brand else Color.Transparent)
+            .border(1.5.dp, if (selected) Owner.Brand else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
             if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.White)
         }
     }
@@ -144,7 +144,7 @@ internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> U
         },
         confirmButton = {
             TextButton(onClick = { onDismiss(); gvm.removeFromGym(p, moveTo); onRemoved() }) {
-                Text("Remove ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText)
+                Text("Remove ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Danger)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Keep ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } },
@@ -165,7 +165,7 @@ internal fun OwnerPersonActions(p: Person, gvm: GymViewModel, onRemoved: () -> U
         RedButton("Message", { context.whatsApp("Hi ${p.firstName}, ") }, Modifier.weight(1f),
             Icons.AutoMirrored.Outlined.Send)
         if (member) PlainButton("Trainer", { changing = true }, Modifier.weight(1f), Icons.Outlined.SwapHoriz)
-        Surface(onClick = { removing = true }, shape = CircleShape, color = Owner.Card, contentColor = Owner.RedText,
+        Surface(onClick = { removing = true }, shape = CircleShape, color = Owner.Card, contentColor = Owner.Danger,
             border = androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PersonRemove, "Remove ${p.firstName} from the gym", Modifier.size(20.dp)) }
         }

@@ -143,7 +143,7 @@ internal fun GivenAwardEditor(editing: GivenAward?, gvm: GymViewModel, onClose: 
             title = { Text("Take back this award?") },
             text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.", style = plex(15.sp, line = 21.sp)) },
             confirmButton = { TextButton(onClick = { removing = null; gvm.removeGivenAward(a) }) {
-                Text("Take it back", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
+                Text("Take it back", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Danger) } },
             dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep it", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
     }
 }
@@ -172,7 +172,7 @@ private fun AwardSheet(a: GivenAward, person: Person?, onDismiss: () -> Unit, on
                 placeholder = { Text("e.g. Free PT session") }, singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences))
             RedButton("Save changes", { onSave(title, note) }, Modifier.fillMaxWidth(), enabled = title.isNotBlank() && changed)
-            PlainButton("Take back award", onRemove, Modifier.fillMaxWidth(), Icons.Outlined.Close, ink = Owner.RedText)
+            PlainButton("Take back award", onRemove, Modifier.fillMaxWidth(), Icons.Outlined.Close, ink = Owner.Danger)
             Spacer(Modifier.height(4.dp))
         }
     }

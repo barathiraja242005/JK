@@ -97,7 +97,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                         EditDisc("Rename gym", onDark = true) { renamingGym = true }
                     }
                     Text("Code for new trainers", style = plex(13.sp), color = Owner.OnDarkMuted, modifier = Modifier.padding(top = 18.dp))
-                    Text(g.gymCode, style = plex(29.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont), color = Owner.Yellow)
+                    Text(g.gymCode, style = plex(29.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont), color = Owner.Lime)
                     Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         RedButton("Share code", {
                             context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}")
@@ -141,7 +141,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                         }
                         Spacer(Modifier.width(12.dp))
                         Switch(checked = demo != null, onCheckedChange = { gvm.setDemo(it) },
-                            colors = SwitchDefaults.colors(checkedTrackColor = Owner.Red, checkedThumbColor = Color.White))
+                            colors = SwitchDefaults.colors(checkedTrackColor = Owner.Brand, checkedThumbColor = Color.White))
                     }
                 }
             }
@@ -149,7 +149,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
 
         item { OwnerHeading("Account", "Signed in with Google.") }
         item { PlainButton("Help and questions", { nav.navigate(Routes.HELP) }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.HelpOutline) }
-        item { PlainButton("Sign out", { signingOut = true }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.Logout, ink = Owner.RedText) }
+        item { PlainButton("Sign out", { signingOut = true }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.Logout, ink = Owner.Danger) }
     }
 
     if (renamingGym) NameDialog("Gym name", null, gym?.name.orEmpty(), { renamingGym = false }) { gvm.renameGym(it) }
@@ -158,7 +158,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         title = { Text("Sign out?") },
         text = { Text("Your gym stays safe. Sign in again with the same Google account to come back.", style = plex(15.sp, line = 21.sp)) },
         confirmButton = { TextButton(onClick = { signingOut = false; gvm.signOut() }) {
-            Text("Sign out", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
+            Text("Sign out", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Danger) } },
         dismissButton = { TextButton(onClick = { signingOut = false }) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
 }
 

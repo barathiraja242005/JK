@@ -366,13 +366,13 @@ private fun WhoTab(
         Text(label, style = plex(14.sp, FontWeight.SemiBold), color = fg, maxLines = 1)
         Spacer(Modifier.width(8.dp))
         Box(Modifier.heightIn(min = 20.dp).clip(RoundedCornerShape(50))
-            .background(if (selected) com.barathiraja.jk.ui.theme.Yellow else cs.surfaceContainerHighest)
+            .background(if (selected) com.barathiraja.jk.ui.theme.Lime else cs.surfaceContainerHighest)
             .padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
             Text("$count", style = plex(11.sp, FontWeight.SemiBold), color = if (selected) Color.Black else fg)
         }
         if (picked && !selected) {
             Spacer(Modifier.width(6.dp))
-            Box(Modifier.size(20.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Yellow).border(1.5.dp, Color.Black, CircleShape),
+            Box(Modifier.size(20.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Lime).border(1.5.dp, Color.Black, CircleShape),
                 contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Check, "Your pick is here", Modifier.size(13.dp), tint = Color.Black)
             }
@@ -385,7 +385,7 @@ private fun WhoTab(
 private fun StepSummary(label: String, value: String, onChange: () -> Unit) {
     OwnerCardBox(padding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(30.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Yellow), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(30.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Lime), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
             }
             Spacer(Modifier.width(12.dp))
@@ -406,7 +406,7 @@ private fun StepSummary(label: String, value: String, onChange: () -> Unit) {
 private fun StepTitle(n: Int, text: String, done: Boolean) {
     val cs = MaterialTheme.colorScheme
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 14.dp, start = 4.dp)) {
-        Box(Modifier.size(30.dp).clip(CircleShape).background(if (done) com.barathiraja.jk.ui.theme.Yellow else cs.onSurface),
+        Box(Modifier.size(30.dp).clip(CircleShape).background(if (done) com.barathiraja.jk.ui.theme.Lime else cs.onSurface),
             contentAlignment = Alignment.Center) {
             if (done) Icon(Icons.Outlined.Check, "Done", Modifier.size(18.dp), tint = Color.Black)
             else Text("$n", style = plex(14.sp, FontWeight.SemiBold), color = cs.surface)
@@ -433,7 +433,7 @@ private fun TileGrid(count: Int, tile: @Composable (index: Int, modifier: Modifi
 @Composable
 private fun CheckDisc(on: Boolean) {
     val cs = MaterialTheme.colorScheme
-    Box(Modifier.size(24.dp).clip(CircleShape).background(if (on) com.barathiraja.jk.ui.theme.Yellow else Color.Transparent)
+    Box(Modifier.size(24.dp).clip(CircleShape).background(if (on) com.barathiraja.jk.ui.theme.Lime else Color.Transparent)
         .border(1.5.dp, if (on) Color.Black else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
         if (on) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
     }
@@ -465,7 +465,7 @@ private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, la
         color = if (selected) com.barathiraja.jk.ui.theme.HeroBlue else cs.surfaceContainer,
         contentColor = if (selected) Color.White else cs.onSurface) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(if (selected) com.barathiraja.jk.ui.theme.Yellow else cs.surfaceContainerHigh),
+            Box(Modifier.size(38.dp).clip(CircleShape).background(if (selected) com.barathiraja.jk.ui.theme.Lime else cs.surfaceContainerHigh),
                 contentAlignment = Alignment.Center) {
                 Icon(icon, null, Modifier.size(19.dp), tint = if (selected) Color.Black else cs.onSurface)
             }
@@ -478,7 +478,7 @@ private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, la
 /** What everyone will see: the medal, who it is for, the award and the gift, on a mustard card. */
 @Composable
 private fun AwardPreview(look: AwardLook, title: String, person: Person, reward: String) {
-    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(com.barathiraja.jk.ui.theme.Yellow).padding(22.dp),
+    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(com.barathiraja.jk.ui.theme.Lime).padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
         Text("Preview", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Black)
         Spacer(Modifier.height(12.dp))

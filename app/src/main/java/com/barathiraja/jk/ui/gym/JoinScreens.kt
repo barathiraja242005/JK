@@ -66,7 +66,7 @@ import com.barathiraja.jk.ui.theme.CodeFont
 
 @Composable
 fun GymLoading() {
-    Box(Modifier.fillMaxSize().background(Owner.Paper), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Owner.Red) }
+    Box(Modifier.fillMaxSize().background(Owner.Paper), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = Owner.Brand) }
 }
 
 @Composable
@@ -78,14 +78,14 @@ private fun JoinColumn(content: @Composable ColumnScope.() -> Unit) {
     ) { content() }
 }
 
-/** The JK mark: a red K after the J, on a black tile ([onDark]: a white tile, for black cards). */
+/** The JK mark: a lime K after the J, on a black tile ([onDark]: a white tile, for black cards). */
 @Composable
 private fun Logo(size: Int = 56, onDark: Boolean = false) {
     Box(Modifier.size(size.dp).clip(RoundedCornerShape((size * 0.28f).dp)).background(if (onDark) Color.White else Owner.Black),
         contentAlignment = Alignment.Center) {
         Row {
             Text("J", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Black else Color.White)
-            Text("K", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Red else Color(0xFFE5212B))
+            Text("K", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Brand else Owner.Lime)
         }
     }
 }
@@ -105,7 +105,7 @@ fun SignInScreen(gvm: GymViewModel) {
             }
             Spacer(Modifier.height(32.dp))
             Text("Your whole gym,\nin one place.", style = plex(28.sp, FontWeight.Bold, line = 35.sp, tracking = (-1).sp), color = Color.White)
-            Box(Modifier.padding(top = 14.dp).width(56.dp).height(6.dp).clip(RoundedCornerShape(50)).background(Owner.Red))
+            Box(Modifier.padding(top = 14.dp).width(56.dp).height(6.dp).clip(RoundedCornerShape(50)).background(Owner.Lime))
             Spacer(Modifier.height(24.dp))
             listOf(
                 "Owners see who trained today",
@@ -116,7 +116,7 @@ fun SignInScreen(gvm: GymViewModel) {
         Spacer(Modifier.height(4.dp))
         Surface(
             onClick = { gvm.message.value = null; gvm.signIn(context) }, enabled = !busy, shape = RoundedCornerShape(50),
-            color = Owner.Red, contentColor = Color.White, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+            color = Owner.Brand, contentColor = Color.White, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
         ) {
             Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
@@ -139,7 +139,7 @@ fun SignInScreen(gvm: GymViewModel) {
 @Composable
 private fun Point(text: String) {
     Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(22.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(22.dp).clip(CircleShape).background(Owner.Lime), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Owner.Black)
         }
         Spacer(Modifier.width(12.dp))
@@ -200,7 +200,7 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
                 placeholder = { Text(if (isCode) "ABC123" else "e.g. Iron Temple Fitness", style = plex(if (isCode) 21.sp else 16.sp)) },
                 textStyle = if (isCode) plex(22.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont, color = Owner.Ink)
                     else plex(16.sp, FontWeight.SemiBold).copy(color = Owner.Ink),
-                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Owner.Ink, focusedLabelColor = Owner.Ink, cursorColor = Owner.Red,
+                colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Owner.Ink, focusedLabelColor = Owner.Ink, cursorColor = Owner.Brand,
                     focusedContainerColor = Owner.Card, unfocusedContainerColor = Owner.Card),
                 keyboardOptions = KeyboardOptions(capitalization = if (isCode) KeyboardCapitalization.Characters else KeyboardCapitalization.Words),
             )
@@ -244,7 +244,7 @@ private fun RoleCard(icon: ImageVector, title: String, sub: String, onClick: () 
 fun WaitingScreen(gvm: GymViewModel, gym: Gym?, removed: Boolean) {
     JoinColumn {
         Spacer(Modifier.height(48.dp))
-        Box(Modifier.size(72.dp).clip(CircleShape).background(if (removed) Tone.BAD.fill else Owner.Yellow).align(Alignment.CenterHorizontally),
+        Box(Modifier.size(72.dp).clip(CircleShape).background(if (removed) Tone.BAD.fill else Owner.Lime).align(Alignment.CenterHorizontally),
             contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.HourglassTop, null, Modifier.size(40.dp), tint = if (removed) Tone.BAD.ink else Owner.Black)
         }
@@ -257,6 +257,6 @@ fun WaitingScreen(gvm: GymViewModel, gym: Gym?, removed: Boolean) {
         )
         Spacer(Modifier.height(8.dp))
         PlainButton(if (removed) "Join another gym" else "Use a different code", { gvm.leaveGym() }, Modifier.fillMaxWidth())
-        PlainButton("Sign out", { gvm.signOut() }, Modifier.fillMaxWidth(), ink = Owner.RedText)
+        PlainButton("Sign out", { gvm.signOut() }, Modifier.fillMaxWidth(), ink = Owner.Danger)
     }
 }

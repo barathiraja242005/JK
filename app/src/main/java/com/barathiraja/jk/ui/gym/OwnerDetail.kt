@@ -54,8 +54,8 @@ import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.theme.HeroBlue
-import com.barathiraja.jk.ui.theme.Red
-import com.barathiraja.jk.ui.theme.Yellow
+import com.barathiraja.jk.ui.theme.Brand
+import com.barathiraja.jk.ui.theme.Lime
 
 /*
  * One person's page (a trainer for the owner, a member for the owner or their trainer): a black top card with
@@ -111,7 +111,7 @@ internal fun PersonHero(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerRing(fraction ?: 0f, 76.dp, 8.dp, Owner.DarkTrack, Yellow, "hero-" + p.uid) {
+            OwnerRing(fraction ?: 0f, 76.dp, 8.dp, Owner.DarkTrack, Lime, "hero-" + p.uid) {
                 Text(if (fraction == null) "–" else "${Math.round(fraction * 100)}%",
                     style = plex(if ((fraction ?: 0f) >= 1f) 15.sp else 17.sp, FontWeight.Bold, tracking = (-0.5).sp), color = Color.White, maxLines = 1)
             }
@@ -169,7 +169,7 @@ internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
                     Box(Modifier.weight(1f).width(30.dp).clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainerHigh),
                         contentAlignment = Alignment.BottomCenter) {
                         Box(Modifier.fillMaxWidth().fillMaxHeight((f * k).coerceIn(0f, 1f)).clip(RoundedCornerShape(10.dp))
-                            .background(if (i == weeks.lastIndex) Red else cs.onSurface))
+                            .background(if (i == weeks.lastIndex) Brand else cs.onSurface))
                     }
                 }
             }
