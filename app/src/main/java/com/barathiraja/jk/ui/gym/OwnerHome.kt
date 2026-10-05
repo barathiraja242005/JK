@@ -1,6 +1,7 @@
 package com.barathiraja.jk.ui.gym
 
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,12 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -56,6 +57,8 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
+import com.barathiraja.jk.ui.theme.Charcoal
+import java.time.LocalTime
 
 /*
  * The owner's Home answers two questions and nothing else: "how is my gym doing today?" (the black card) and
@@ -127,7 +130,7 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
     choosingFor?.let { m -> ChangeTrainerDialog(m, gvm) { choosingFor = null } }
 }
 
-private fun greeting(): String = when (java.time.LocalTime.now().hour) {
+private fun greeting(): String = when (LocalTime.now().hour) {
     in 5..11 -> "Good morning"
     in 12..16 -> "Good afternoon"
     else -> "Good evening"
@@ -238,16 +241,17 @@ private fun NoTrainerCard(m: Person, onOpen: () -> Unit, onChoose: () -> Unit) {
 @Composable
 private fun AwayCard(i: OwnerStats.Idle, trainer: Person?, gymName: String, context: Context, onOpen: () -> Unit) {
     val m = i.member
-    val noPlan = !i.assignedRecently && trainer != null
+    // The trainer to nudge when they gave no workout lately; null means the member is simply away.
+    val nudge = trainer?.takeIf { !i.assignedRecently }
     val days = if (i.days > 30) "30+ days" else plural(i.days, "day")
     NeedCard(
-        m, if (noPlan) "No plan" else "Away", if (noPlan) Tone.WARN else Tone.BAD,
-        if (noPlan) "No workout given for $days. Ask ${trainer!!.firstName}."
+        m, if (nudge != null) "No plan" else "Away", if (nudge != null) Tone.WARN else Tone.BAD,
+        if (nudge != null) "No workout given for $days. Ask ${nudge.firstName}."
         else "No workout for $days" + (trainer?.let { ". Trainer: ${it.firstName}" } ?: ""),
         onOpen,
     ) {
-        SmallAction(Icons.AutoMirrored.Outlined.Send, if (noPlan) "Message ${trainer!!.firstName}" else "Message ${m.firstName}", red = false) {
-            if (noPlan) context.whatsApp("Hi ${trainer!!.firstName}, ${m.name} hasn't had a workout for ${i.days} days. Please assign one in the JK app and check in with them. Thanks!")
+        SmallAction(Icons.AutoMirrored.Outlined.Send, if (nudge != null) "Message ${nudge.firstName}" else "Message ${m.firstName}", red = false) {
+            if (nudge != null) context.whatsApp("Hi ${nudge.firstName}, ${m.name} hasn't had a workout for ${i.days} days. Please assign one in the JK app and check in with them. Thanks!")
             else context.whatsApp("Hi ${m.firstName}, we haven't seen you at $gymName for a while. Your trainer has a workout ready for you in the JK app. See you soon! 💪")
         }
     }
@@ -263,11 +267,11 @@ private fun ChipLine(chip: String, tone: Tone, line: String, lines: Int) {
     }
 }
 
-/** A round 44dp icon button: red for the yes, outlined otherwise. [label] is read out by TalkBack. */
+/** A round 48dp icon button: red for the yes, outlined otherwise. [label] is read out by TalkBack. */
 @Composable
-private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, red: Boolean, onClick: () -> Unit) {
+private fun SmallAction(icon: ImageVector, label: String, red: Boolean, onClick: () -> Unit) {
     Surface(onClick = onClick, shape = CircleShape, color = if (red) Owner.Red else Owner.Card, contentColor = if (red) Color.White else Owner.Ink,
-        border = if (red) null else androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(44.dp)) {
+        border = if (red) null else BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
         Box(contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(20.dp)) }
     }
 }
@@ -275,7 +279,7 @@ private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, l
 /** A short outlined pill with a word, for an action an icon can't say. */
 @Composable
 private fun SmallPill(text: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = Owner.Ink, contentColor = Owner.OnInk, modifier = Modifier.heightIn(min = 40.dp)) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = Owner.Ink, contentColor = Owner.OnInk, modifier = Modifier.heightIn(min = 48.dp)) {
         Box(Modifier.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) { Text(text, style = plex(13.sp, FontWeight.SemiBold)) }
     }
 }
@@ -297,10 +301,8 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
     OwnerPage {
         item { PageTitle("People", "Everyone in your gym, best this month first. Tap someone to see them or make a change.") }
         item {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Owner.Card).padding(4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Segment("Members", members.size, !trainersTab, Modifier.weight(1f)) { trainersTab = false }
-                Segment("Trainers", trainers.size, trainersTab, Modifier.weight(1f)) { trainersTab = true }
-            }
+            SegmentedTabs(listOf(SegmentTab("Members", members.size), SegmentTab("Trainers", trainers.size)),
+                if (trainersTab) 1 else 0, { trainersTab = it == 1 })
         }
         item {
             Text(
@@ -392,7 +394,7 @@ private fun Podium(top: List<RankEntry>) {
 private fun RankBadge(rank: Int, modifier: Modifier = Modifier) {
     Box(
         modifier.size(24.dp).clip(CircleShape).background(Owner.Card).padding(2.dp).clip(CircleShape)
-            .background(if (rank == 1) Owner.Yellow else com.barathiraja.jk.ui.theme.Charcoal),
+            .background(if (rank == 1) Owner.Yellow else Charcoal),
         contentAlignment = Alignment.Center,
     ) { Text("$rank", style = plex(11.sp, FontWeight.Bold), color = if (rank == 1) Owner.Black else Color.White) }
 }
@@ -409,7 +411,7 @@ private fun RankList(entries: List<RankEntry>, firstRank: Int) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(if (e.ranked) "${firstRank + i}" else "–", Modifier.width(32.dp), style = plex(15.sp, FontWeight.Bold),
-                    color = Owner.Muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    color = Owner.Muted, textAlign = TextAlign.Center)
                 OwnerAvatar(e.person.photoUrl, e.person.name, 44.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -430,22 +432,6 @@ private fun RankList(entries: List<RankEntry>, firstRank: Int) {
 @Composable
 private fun Empty(text: String) {
     OwnerCardBox { Text(text, style = plex(15.sp, line = 21.sp), color = Owner.Muted) }
-}
-
-/** One side of a two-way switch: black when open, with the count in a small pill. */
-@Composable
-internal fun Segment(label: String, count: Int, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Surface(onClick = onClick, modifier = modifier.heightIn(min = 44.dp).semantics { this.selected = selected }, shape = RoundedCornerShape(50),
-        color = if (selected) Owner.Ink else Color.Transparent, contentColor = if (selected) Owner.OnInk else Owner.Ink) {
-        Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = plex(15.sp, FontWeight.SemiBold))
-            Spacer(Modifier.width(8.dp))
-            Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (selected) Owner.Yellow else Owner.Well)
-                .padding(horizontal = 9.dp), contentAlignment = Alignment.Center) {
-                Text("$count", style = plex(13.sp, FontWeight.SemiBold), color = if (selected) Owner.Black else Owner.Ink)
-            }
-        }
-    }
 }
 
 internal fun trainerStatus(t: OwnerStats.TrainerRow, top: Boolean): Pair<String, Tone> = when {
@@ -471,31 +457,13 @@ internal fun memberStatus(s: Scoring.MemberScore?, top: Boolean, idle: OwnerStat
     }
 }
 
-/** Rank disc: yellow for first, black for second and third, grey after that. */
+/** A compact list row for one person: face, name with status, one line of numbers and a thin bar. */
 @Composable
-private fun RankDisc(rank: Int, show: Boolean) {
-    val (fill, ink) = when {
-        !show -> Color.Transparent to Owner.Muted
-        rank == 1 -> Owner.Yellow to Owner.Black
-        rank <= 3 -> Owner.Ink to Owner.OnInk
-        else -> Owner.Well to Owner.Ink
-    }
-    Box(Modifier.size(26.dp).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
-        Text(if (show) "$rank" else "–", style = plex(12.sp, FontWeight.Bold), color = ink)
-    }
-}
-
-/** A compact list row for one person: rank, face, name with status, one line of numbers and a thin bar. */
-@Composable
-private fun PersonRow(
-    rank: Int?, ranked: Boolean, photo: String?, name: String, status: Pair<String, Tone>, line: String, fraction: Float?, onClick: () -> Unit,
+private fun PersonLine(
+    photo: String?, name: String, status: Pair<String, Tone>, line: String, fraction: Float?, onClick: () -> Unit,
 ) {
     OwnerCardBox(onClick = onClick, onClickLabel = "Open $name", padding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            if (rank != null) {
-                RankDisc(rank, ranked)
-                Spacer(Modifier.width(10.dp))
-            }
             OwnerAvatar(photo, name, 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -512,8 +480,8 @@ private fun PersonRow(
 /** A member row for other pages (a trainer's members): same look as the People tab, without the rank. */
 @Composable
 internal fun MemberCard(p: Person, s: Scoring.MemberScore, idle: OwnerStats.Idle?, trainer: Person?, onClick: () -> Unit) {
-    PersonRow(
-        null, false, p.photoUrl, p.name, memberStatus(s, false, idle, trainer != null),
+    PersonLine(
+        p.photoUrl, p.name, memberStatus(s, false, idle, trainer != null),
         when {
             idle != null -> "No workout for ${if (idle.days > 30) "over a month" else plural(idle.days, "day")}"
             s.due == 0 -> "No workouts given yet this month"

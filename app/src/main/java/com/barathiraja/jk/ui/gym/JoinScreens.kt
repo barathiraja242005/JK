@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.gym
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,7 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
@@ -85,7 +87,7 @@ private fun Logo(size: Int = 56, onDark: Boolean = false) {
         contentAlignment = Alignment.Center) {
         Row {
             Text("J", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Black else Color.White)
-            Text("K", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Red else Color(0xFFE5212B))
+            Text("K", style = plex((size * 0.42f).sp, FontWeight.Bold), color = Owner.Red)
         }
     }
 }
@@ -114,21 +116,16 @@ fun SignInScreen(gvm: GymViewModel) {
             ).forEach { Point(it) }
         }
         Spacer(Modifier.height(4.dp))
-        Surface(
-            onClick = { gvm.message.value = null; gvm.signIn(context) }, enabled = !busy, shape = RoundedCornerShape(50),
-            color = Owner.Red, contentColor = Color.White, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
-        ) {
-            Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                else {
-                    Box(Modifier.size(26.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-                        Text("G", style = plex(15.sp, FontWeight.Bold), color = Owner.Black)
-                    }
-                    Spacer(Modifier.width(12.dp))
-                    Text("Continue with Google", style = plex(15.sp, FontWeight.SemiBold))
+        RedButton(
+            if (busy) "Signing in…" else "Continue with Google", { gvm.clearMessage(); gvm.signIn(context) },
+            Modifier.fillMaxWidth().heightIn(min = 52.dp), enabled = !busy,
+            leading = {
+                if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = Owner.Muted, strokeWidth = 2.dp)
+                else Box(Modifier.size(26.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                    Text("G", style = plex(15.sp, FontWeight.Bold), color = Owner.Black)
                 }
-            }
-        }
+            },
+        )
         Text("We use your Google name and photo so your gym knows it's you.", Modifier.fillMaxWidth(),
             style = plex(13.sp, line = 18.sp), color = Owner.Muted, textAlign = TextAlign.Center)
         message?.let { ErrorText(it) }
@@ -158,8 +155,10 @@ private enum class JoinMode { CHOOSE, OWNER, TRAINER, MEMBER }
 /** Signed in but not in a gym yet: owner creates one, trainers and members join with a code. */
 @Composable
 fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
-    var mode by remember { mutableStateOf(JoinMode.CHOOSE) }
-    var text by remember { mutableStateOf("") }
+    var mode by rememberSaveable { mutableStateOf(JoinMode.CHOOSE) }
+    var text by rememberSaveable { mutableStateOf("") }
+    // Back on a code step returns to the role choice instead of leaving the app.
+    BackHandler(enabled = mode != JoinMode.CHOOSE) { mode = JoinMode.CHOOSE; gvm.clearMessage() }
     val busy by gvm.busy.collectAsStateWithLifecycle()
     val message by gvm.message.collectAsStateWithLifecycle()
 
@@ -169,7 +168,8 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
                 Logo(36)
                 Spacer(Modifier.weight(1f))
                 Text("Use another account", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Ink,
-                    modifier = Modifier.clip(RoundedCornerShape(50)).clickable { gvm.signOut() }.padding(horizontal = 12.dp, vertical = 14.dp))
+                    modifier = Modifier.clip(RoundedCornerShape(50)).clickable(role = Role.Button) { gvm.signOut() }
+                        .heightIn(min = 48.dp).padding(horizontal = 12.dp, vertical = 14.dp))
             }
             Column(Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
                 Text("Hi ${GymViewModel.tidyName(userName).substringBefore(' ').ifBlank { "there" }}", style = plex(25.sp, FontWeight.Bold, tracking = (-0.6).sp),
@@ -180,8 +180,8 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
             RoleCard(Icons.Outlined.Badge, "I'm a trainer", "I coach members. The owner gave me the gym code.") { mode = JoinMode.TRAINER; text = "" }
             RoleCard(Icons.Outlined.FitnessCenter, "I'm a member", "I train here. My trainer gave me a code.") { mode = JoinMode.MEMBER; text = "" }
         } else {
-            Surface(onClick = { mode = JoinMode.CHOOSE; gvm.message.value = null }, shape = CircleShape, color = Owner.Card,
-                contentColor = Owner.Ink, modifier = Modifier.padding(top = 8.dp).size(44.dp)) {
+            Surface(onClick = { mode = JoinMode.CHOOSE; gvm.clearMessage() }, shape = CircleShape, color = Owner.Card,
+                contentColor = Owner.Ink, modifier = Modifier.padding(top = 8.dp).size(48.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", Modifier.size(24.dp)) }
             }
             val isCode = mode != JoinMode.OWNER
@@ -209,7 +209,7 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
             RedButton(
                 if (busy) "Please wait…" else if (mode == JoinMode.OWNER) "Create my gym" else "Join",
                 {
-                    gvm.message.value = null
+                    gvm.clearMessage()
                     when (mode) {
                         JoinMode.OWNER -> gvm.createGym(text)
                         JoinMode.TRAINER -> gvm.joinAsTrainer(text)

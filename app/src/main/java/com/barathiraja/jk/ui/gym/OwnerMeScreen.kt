@@ -27,8 +27,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -101,7 +99,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                         RedButton("Share code", {
                             context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}")
                         }, Modifier.weight(1.4f), Icons.Outlined.Share)
-                        Surface(onClick = { copy(context, g.gymCode); gvm.message.value = "Gym code copied" }, shape = RoundedCornerShape(50),
+                        Surface(onClick = { copy(context, g.gymCode); gvm.showMessage("Gym code copied") }, shape = RoundedCornerShape(50),
                             color = Owner.DarkStrip, contentColor = Color.White, modifier = Modifier.weight(1f).height(48.dp)) {
                             Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp))
@@ -119,18 +117,8 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
             OwnerCardBox(padding = 16.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Theme", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink)
-                    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Owner.Well).padding(4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        ThemeMode.entries.forEach { m ->
-                            val on = m == s.theme
-                            Surface(onClick = { vm.saveSettings(s.copy(theme = m)) }, Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(50),
-                                color = if (on) Owner.Ink else Color.Transparent, contentColor = if (on) Owner.OnInk else Owner.Ink) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(m.name.lowercase().replaceFirstChar(Char::uppercase), style = plex(14.sp, FontWeight.SemiBold))
-                                }
-                            }
-                        }
-                    }
+                    SegmentedTabs(ThemeMode.entries.map { SegmentTab(it.name.lowercase().replaceFirstChar(Char::uppercase)) },
+                        ThemeMode.entries.indexOf(s.theme), { vm.saveSettings(s.copy(theme = ThemeMode.entries[it])) }, track = Owner.Well)
                 }
             }
         }

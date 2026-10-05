@@ -79,7 +79,8 @@ import com.barathiraja.jk.ui.components.Pill
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.openUrl
-import com.barathiraja.jk.ui.theme.Leaf
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Yellow
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -234,9 +235,9 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
                             val next = list.drop(index + 1).firstOrNull { !it.done } ?: list.firstOrNull { !it.done && it.id != item.id }
                             if (next != null) Button(onClick = { nav.navigate(Routes.session(next.id)) { popUpTo(Routes.SESSION) { inclusive = true } } },
                                 modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Great! Next exercise →") }
-                            else Surface(color = Leaf.copy(alpha = 0.15f), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                            else Surface(color = Good.copy(alpha = 0.15f), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text("🏆 Workout complete!", style = MaterialTheme.typography.titleLarge, color = Leaf)
+                                    Text("🏆 Workout complete!", style = MaterialTheme.typography.titleLarge, color = Good)
                                     TextButton(onClick = { nav.popBackStack() }) { Text("Back to your plan") }
                                 }
                             }
@@ -275,7 +276,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
             Card(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.inverseSurface)) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Ring(resting / prefs.restSec.toFloat().coerceAtLeast(1f), Leaf, size = 64.dp, stroke = 6.dp) {
+                    Ring(resting / prefs.restSec.toFloat().coerceAtLeast(1f), Yellow, size = 64.dp, stroke = 6.dp, track = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.2f)) {
                         Text("$resting", color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.width(14.dp))
@@ -285,7 +286,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
                             style = MaterialTheme.typography.bodySmall)
                     }
                     TextButton(onClick = { resting += 15 }) { Text("+15s", color = MaterialTheme.colorScheme.inverseOnSurface) }
-                    TextButton(onClick = { resting = 0 }) { Text("Skip", color = Leaf) }
+                    TextButton(onClick = { resting = 0 }) { Text("Skip", color = Yellow) }
                 }
             }
         }
@@ -297,10 +298,10 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
 internal fun SetRow(i: Int, s: SetSpec, editing: Boolean, onToggle: () -> Unit, onChange: (SetSpec) -> Unit, onDelete: () -> Unit, step: Float) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(enabled = !editing, onClick = onToggle), shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = if (s.done) Leaf.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainer),
+        colors = CardDefaults.cardColors(containerColor = if (s.done) Good.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainer),
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).clip(CircleShape).background(if (s.done) Leaf else MaterialTheme.colorScheme.primary),
+            Box(Modifier.size(40.dp).clip(CircleShape).background(if (s.done) Good else MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center) {
                 if (s.done) Icon(Icons.Filled.Check, null, tint = Color.White)
                 else Text("${i + 1}", color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.titleMedium)

@@ -66,9 +66,8 @@ import com.barathiraja.jk.data.Workout
 import com.barathiraja.jk.data.WorkoutSession
 import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.components.Ring
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -283,9 +282,9 @@ private fun PlayerContent(workout: Workout, vm: JkViewModel, nav: NavHostControl
             val block = pvm.sequence[s.index]
             val shown = if (s.phase == Phase.REST) pvm.sequence[s.index + 1] else block
             val (label, color) = when (s.phase) {
-                Phase.READY -> "GET READY" to Aqua
-                Phase.REST -> "REST · UP NEXT" to Leaf
-                else -> "ROUND ${s.index / workout.blocks.size + 1} OF ${workout.rounds}" to Ember
+                Phase.READY -> "GET READY" to Accent
+                Phase.REST -> "REST · UP NEXT" to Good
+                else -> "ROUND ${s.index / workout.blocks.size + 1} OF ${workout.rounds}" to Accent
             }
             ExerciseDemo(
                 shown.exercise,
@@ -347,7 +346,7 @@ private fun DoneContent(s: PlayerState, onFinish: () -> Unit) {
                 Text("duration", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("${s.calories.toInt()}", style = MaterialTheme.typography.headlineSmall, color = Ember)
+                Text("${s.calories.toInt()}", style = MaterialTheme.typography.headlineSmall, color = Accent)
                 Text("kcal", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }

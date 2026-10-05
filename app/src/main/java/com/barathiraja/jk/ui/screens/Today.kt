@@ -2,7 +2,7 @@ package com.barathiraja.jk.ui.screens
 
 import com.barathiraja.jk.ui.components.Avatar
 import com.barathiraja.jk.ui.components.TabScreen
-import com.barathiraja.jk.ui.theme.HeroBlue
+import com.barathiraja.jk.ui.theme.HeroFill
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,11 +58,10 @@ import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.StatRing
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
+import com.barathiraja.jk.ui.theme.Calm
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -120,7 +119,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.LocalFireDepartment, null, tint = Ember)
+                Icon(Icons.Filled.LocalFireDepartment, null, tint = Accent)
                 Spacer(Modifier.width(6.dp))
                 Text(
                     if (streak > 0) "$streak-day streak — keep it alive!" else "Start a streak today",
@@ -149,7 +148,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                                     color = if (d == todayDay) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                                 Spacer(Modifier.height(4.dp))
                                 Ring(if (weekPlans.any { it.epochDay == d && it.completedAt != null }) 1f else prog,
-                                    if (rest) MaterialTheme.colorScheme.outline else Leaf, size = 36.dp, stroke = 4.dp) {
+                                    if (rest) MaterialTheme.colorScheme.outline else Good, size = 36.dp, stroke = 4.dp) {
                                     Text(if (rest) "R" else "${date.dayOfMonth}", style = MaterialTheme.typography.labelSmall)
                                 }
                             }
@@ -164,7 +163,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                 Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(24.dp))
-                    .background(HeroBlue)
+                    .background(HeroFill)
                     .padding(20.dp),
             ) {
                 Column {
@@ -175,7 +174,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                             Text("Answer 7 quick questions and JK builds your weekly split.", color = Color.White.copy(alpha = 0.85f))
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = { nav.navigate(Routes.TRAIN_SETUP) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue)) { Text("Create My Plan") }
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroFill)) { Text("Create My Plan") }
                         }
                         planParts.isEmpty() -> {
                             Text("TODAY", style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.8f))
@@ -183,7 +182,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                             Text("Recovery is part of the plan. Try a light stretch or a walk.", color = Color.White.copy(alpha = 0.85f))
                             Spacer(Modifier.height(16.dp))
                             Button(onClick = { nav.navigate(Routes.workout("home_mobility")) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue)) { Text("Recovery stretch") }
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroFill)) { Text("Recovery stretch") }
                         }
                         else -> {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -198,7 +197,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                             Spacer(Modifier.height(16.dp))
                             Button(
                                 onClick = { tvm.select(todayDay); nav.navigate(Routes.WORKOUTS) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroBlue),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = HeroFill),
                             ) {
                                 Icon(Icons.Filled.PlayArrow, null)
                                 Spacer(Modifier.width(4.dp))
@@ -214,10 +213,10 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
             JkCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     StatRing("Steps", "%,d".format(steps), "/ ${settings.stepGoal / 1000}k",
-                        steps / settings.stepGoal.toFloat(), Leaf)
+                        steps / settings.stepGoal.toFloat(), Good)
                     StatRing("Water", "$water", "/ ${settings.waterGoalGlasses} gl",
-                        water / settings.waterGoalGlasses.toFloat(), Aqua)
-                    StatRing("Burned", "$burned", "kcal", burned / 500f, Ember)
+                        water / settings.waterGoalGlasses.toFloat(), Accent)
+                    StatRing("Burned", "$burned", "kcal", burned / 500f, Accent)
                 }
             }
         }
@@ -225,10 +224,10 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
         item { SectionTitle("Quick actions") }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                QuickAction("Water", Icons.Outlined.WaterDrop, Aqua, Modifier.weight(1f)) { vm.addWater(1) }
-                QuickAction("Diet", Icons.Outlined.Restaurant, Ember, Modifier.weight(1f)) { nav.navigate(Routes.DIET) }
-                QuickAction("Meditate", Icons.Outlined.SelfImprovement, Violet, Modifier.weight(1f)) { nav.navigate(Routes.MEDITATE) }
-                QuickAction("Fast", Icons.Outlined.Timer, Sun, Modifier.weight(1f)) { nav.navigate(Routes.FASTING) }
+                QuickAction("Water", Icons.Outlined.WaterDrop, Accent, Modifier.weight(1f)) { vm.addWater(1) }
+                QuickAction("Diet", Icons.Outlined.Restaurant, Accent, Modifier.weight(1f)) { nav.navigate(Routes.DIET) }
+                QuickAction("Meditate", Icons.Outlined.SelfImprovement, Calm, Modifier.weight(1f)) { nav.navigate(Routes.MEDITATE) }
+                QuickAction("Fast", Icons.Outlined.Timer, Watch, Modifier.weight(1f)) { nav.navigate(Routes.FASTING) }
             }
         }
 
@@ -242,7 +241,7 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                 nav.navigate(if (active != null) Routes.challenge(active.first.id) else Routes.challenge("transform30"))
             }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.EmojiEvents, null, tint = Sun, modifier = Modifier.size(36.dp))
+                    Icon(Icons.Filled.EmojiEvents, null, tint = Watch, modifier = Modifier.size(36.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         if (active != null) {
@@ -276,10 +275,10 @@ fun TodayScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Macro("$target", "kcal", Ember)
-                    Macro("${m.proteinG}g", "protein", Violet)
-                    Macro("${m.carbsG}g", "carbs", Sun)
-                    Macro("${m.fatG}g", "fat", Aqua)
+                    Macro("$target", "kcal", Accent)
+                    Macro("${m.proteinG}g", "protein", Calm)
+                    Macro("${m.carbsG}g", "carbs", Watch)
+                    Macro("${m.fatG}g", "fat", Accent)
                 }
             }
         }
@@ -323,7 +322,7 @@ fun TodayPlanDialog(name: String, parts: List<BodyPart>, exercises: Int, minutes
             Column(Modifier.padding(20.dp)) {
                 Row(verticalAlignment = Alignment.Top) {
                     Column(Modifier.weight(1f)) {
-                        Text("● Today's plan", style = MaterialTheme.typography.labelLarge, color = Leaf)
+                        Text("● Today's plan", style = MaterialTheme.typography.labelLarge, color = Good)
                         Text("Ready to train, ${name.substringBefore(' ').uppercase()}! 💪", style = MaterialTheme.typography.headlineSmall)
                         Text("Here's what's lined up for you today. Let's make it count.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

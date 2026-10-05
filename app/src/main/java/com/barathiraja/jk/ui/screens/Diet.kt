@@ -55,11 +55,11 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Alert
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Bad
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
+import com.barathiraja.jk.ui.theme.Calm
 
 @Composable
 fun DietScreen(vm: JkViewModel, nav: NavHostController) {
@@ -89,7 +89,7 @@ private fun FoodLog(vm: JkViewModel) {
         item {
             JkCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Ring(eaten / target.toFloat(), if (eaten > target) Alert else Leaf, size = 110.dp, stroke = 11.dp) {
+                    Ring(eaten / target.toFloat(), if (eaten > target) Bad else Good, size = 110.dp, stroke = 11.dp) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text("${(target - eaten)}", style = MaterialTheme.typography.titleLarge)
                             Text(if (eaten > target) "over" else "kcal left", style = MaterialTheme.typography.labelSmall,
@@ -98,9 +98,9 @@ private fun FoodLog(vm: JkViewModel) {
                     }
                     Spacer(Modifier.width(16.dp))
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        MacroBar("Protein", entries.sumOf { it.protein.toDouble() }.toFloat(), macros.proteinG, Violet)
-                        MacroBar("Carbs", entries.sumOf { it.carbs.toDouble() }.toFloat(), macros.carbsG, Sun)
-                        MacroBar("Fat", entries.sumOf { it.fat.toDouble() }.toFloat(), macros.fatG, Aqua)
+                        MacroBar("Protein", entries.sumOf { it.protein.toDouble() }.toFloat(), macros.proteinG, Calm)
+                        MacroBar("Carbs", entries.sumOf { it.carbs.toDouble() }.toFloat(), macros.carbsG, Watch)
+                        MacroBar("Fat", entries.sumOf { it.fat.toDouble() }.toFloat(), macros.fatG, Accent)
                     }
                 }
                 Text("$eaten of $target kcal · ${profile.goal.label}", style = MaterialTheme.typography.bodySmall,

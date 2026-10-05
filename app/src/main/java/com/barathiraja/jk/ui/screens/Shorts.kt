@@ -58,7 +58,7 @@ import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.components.openUrl
 import com.barathiraja.jk.ui.components.shareText
-import com.barathiraja.jk.ui.theme.Ember
+import com.barathiraja.jk.ui.theme.Accent
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -103,7 +103,7 @@ fun ShortsScreen(vm: JkViewModel, nav: NavHostController) {
                 Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(300.dp)
                     .background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f)))))
 
-                Icon(Icons.Filled.Favorite, null, tint = Ember,
+                Icon(Icons.Filled.Favorite, null, tint = Accent,
                     modifier = Modifier.align(Alignment.Center).size(120.dp).scale(heart.value).graphicsLayer { alpha = heart.value.coerceAtMost(1f) })
 
                 Column(Modifier.align(Alignment.BottomStart).padding(start = 16.dp, end = 88.dp, bottom = 24.dp)) {
@@ -128,7 +128,7 @@ fun ShortsScreen(vm: JkViewModel, nav: NavHostController) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     SideAction(if (liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder, if (liked) "Liked" else "Like",
-                        if (liked) Ember else Color.White) { vm.toggleLike(ex.id) }
+                        if (liked) Accent else Color.White) { vm.toggleLike(ex.id) }
                     SideAction(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, if (saved) "Saved" else "Save",
                         Color.White) { vm.toggleSave(ex.id) }
                     SideAction(Icons.Filled.PlayCircle, "Tutorial", Color.White) { context.openUrl(ex.tutorialUrl) }

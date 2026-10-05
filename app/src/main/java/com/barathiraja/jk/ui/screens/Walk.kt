@@ -32,7 +32,7 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.theme.Leaf
+import com.barathiraja.jk.ui.theme.Good
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.LocalDate
@@ -68,7 +68,7 @@ fun WalkScreen(vm: JkViewModel, nav: NavHostController) {
         item {
             JkCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Ring(if (active) (elapsedSec % 60) / 60f else 0f, Leaf, size = 200.dp, stroke = 12.dp) {
+                    Ring(if (active) (elapsedSec % 60) / 60f else 0f, Good, size = 200.dp, stroke = 12.dp) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(formatDuration(elapsedSec.toLong()), style = MaterialTheme.typography.headlineMedium)
                             Text("%,d steps".format(steps), color = MaterialTheme.colorScheme.onSurfaceVariant)

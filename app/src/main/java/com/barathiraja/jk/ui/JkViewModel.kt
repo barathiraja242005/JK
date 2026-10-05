@@ -22,39 +22,44 @@ import com.barathiraja.jk.data.WalkSession
 import com.barathiraja.jk.data.Workout
 import com.barathiraja.jk.data.Profile
 import com.barathiraja.jk.data.Settings
-import com.barathiraja.jk.data.WaterDay
 import com.barathiraja.jk.data.WeightEntry
 import com.barathiraja.jk.data.WorkoutSession
 import com.barathiraja.jk.domain.Health
-import com.barathiraja.jk.reminders.Reminders
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 /** App-wide state shared by all tabs. Room flows are exposed as StateFlows. */
-class JkViewModel(private val c: AppContainer, private val app: android.app.Application) : ViewModel() {
-    private val today get() = LocalDate.now().toEpochDay()
-    private val weekStart = LocalDate.now().toEpochDay() - 6
+@OptIn(ExperimentalCoroutinesApi::class)
+class JkViewModel(private val c: AppContainer) : ViewModel() {
+    /** Day new logs go to; reading it also moves [AppContainer.currentDay] on if midnight has passed. */
+    private val today get() = c.today()
+
+    /** Runs [query] for the current day and re-runs it when the day rolls over. */
+    private fun <T> daily(query: (Long) -> Flow<T>): Flow<T> = c.currentDay.flatMapLatest(query)
 
     val profile: StateFlow<Profile> = c.prefs.profile
     val settings: StateFlow<Settings> = c.prefs.settings
     val stepsToday: StateFlow<Int> = c.steps.today
     val stepSensorAvailable: Boolean get() = c.steps.available
 
-    val waterToday: StateFlow<Int> = c.dao.water(today).map { it?.glasses ?: 0 }.state(0)
+    val waterToday: StateFlow<Int> = daily { c.dao.water(it) }.map { it?.glasses ?: 0 }.state(0)
     val sessions: StateFlow<List<WorkoutSession>> = c.dao.sessions().state(emptyList())
-    val weekSessions = c.dao.sessionsSince(weekStart).state(emptyList())
-    val weekSteps = c.dao.stepsSince(weekStart).state(emptyList())
-    val weekWater = c.dao.waterSince(weekStart).state(emptyList())
+    val weekSessions = daily { c.dao.sessionsSince(it - WEEK_BACK_DAYS) }.state(emptyList())
+    val weekSteps = daily { c.dao.stepsSince(it - WEEK_BACK_DAYS) }.state(emptyList())
+    val weekWater = daily { c.dao.waterSince(it - WEEK_BACK_DAYS) }.state(emptyList())
     val weights: StateFlow<List<WeightEntry>> = c.dao.weights().state(emptyList())
     val activeFast: StateFlow<Fast?> = c.dao.activeFast().state(null)
     val pastFasts = c.dao.pastFasts().state(emptyList())
-    val streak: StateFlow<Int> = c.dao.activeDays().map { Health.streak(it, LocalDate.now().toEpochDay()) }.state(0)
+    val streak: StateFlow<Int> = combine(c.dao.activeDays(), c.currentDay) { days, today -> Health.streak(days, today) }.state(0)
 
     fun saveProfile(p: Profile, logWeight: Boolean = true) {
         val first = !c.prefs.profile.value.onboarded
@@ -65,15 +70,10 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
         if (logWeight) viewModelScope.launch { c.dao.upsertWeight(WeightEntry(today, p.weightKg)) }
     }
 
-    fun saveSettings(s: Settings) {
-        c.prefs.saveSettings(s)
-        Reminders.apply(app, s)
-    }
+    /** Reminders follow the saved settings on their own (see JkApp). */
+    fun saveSettings(s: Settings) = c.prefs.saveSettings(s)
 
-    fun addWater(delta: Int) = viewModelScope.launch {
-        val current = c.dao.water(today).first()?.glasses ?: 0
-        c.dao.upsertWater(WaterDay(today, (current + delta).coerceIn(0, 40)))
-    }
+    fun addWater(delta: Int) = viewModelScope.launch { c.dao.addWater(today, delta, MAX_WATER_GLASSES) }
 
     fun logWeight(kg: Float) = viewModelScope.launch {
         c.dao.upsertWeight(WeightEntry(today, kg))
@@ -128,7 +128,9 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
             return Workout(id, cw.name, "Your custom workout", profile.value.place, Level.BEGINNER, "Custom",
                 cw.restSec, cw.rounds, blocks)
         }
-        return Catalog.resolve(id)
+        // Skip blocks whose exercise is missing from the database, so the player never meets an unknown id.
+        val w = Catalog.resolve(id) ?: return null
+        return w.copy(blocks = w.blocks.filter { ExerciseRepo.get(it.exerciseId) != null }).takeIf { it.blocks.isNotEmpty() }
     }
 
     // ---- Challenges ----
@@ -148,7 +150,7 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
     }
 
     // ---- Food ----
-    val foodToday = c.dao.foodOn(today).state(emptyList())
+    val foodToday = daily { c.dao.foodOn(it) }.state(emptyList())
 
     fun logFood(food: Food, meal: Meal, servings: Float) = viewModelScope.launch {
         c.dao.insertFood(
@@ -180,7 +182,7 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
 
     fun saveWalk(w: WalkSession) = viewModelScope.launch { c.dao.insertWalk(w) }
     fun saveMind(title: String, sec: Int) = viewModelScope.launch {
-        if (sec >= 30) c.dao.insertMind(MindSession(epochDay = today, title = title, durationSec = sec))
+        if (sec >= MIN_MIND_SEC) c.dao.insertMind(MindSession(epochDay = today, title = title, durationSec = sec))
     }
 
     var vegOnly: Boolean
@@ -191,12 +193,20 @@ class JkViewModel(private val c: AppContainer, private val app: android.app.Appl
     val avatar = MutableStateFlow(c.prefs.avatarUri)
     fun setAvatar(uri: String?) { c.prefs.avatarUri = uri; avatar.value = uri }
 
-    private fun <T> kotlinx.coroutines.flow.Flow<T>.state(initial: T) =
-        stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
+    private fun <T> Flow<T>.state(initial: T) =
+        stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), initial)
 
     companion object {
-        fun factory(c: AppContainer, app: android.app.Application) = viewModelFactory {
-            initializer { JkViewModel(c, app) }
+        /** Water glasses per day are clamped to this. */
+        const val MAX_WATER_GLASSES = 40
+        /** "This week" charts cover today and the 6 days before it. */
+        private const val WEEK_BACK_DAYS = 6
+        /** Shorter meditations are not worth logging. */
+        private const val MIN_MIND_SEC = 30
+        private const val STOP_TIMEOUT_MS = 5_000L
+
+        fun factory(c: AppContainer) = viewModelFactory {
+            initializer { JkViewModel(c) }
         }
     }
 }

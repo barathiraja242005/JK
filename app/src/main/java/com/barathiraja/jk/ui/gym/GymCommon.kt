@@ -1,12 +1,19 @@
 package com.barathiraja.jk.ui.gym
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -14,41 +21,49 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.barathiraja.jk.gym.Role
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.barathiraja.jk.data.SetSpec
 import com.barathiraja.jk.gym.AssignStatus
 import com.barathiraja.jk.gym.Assignment
 import com.barathiraja.jk.gym.Person
-import com.barathiraja.jk.ui.components.JkCard
-import com.barathiraja.jk.ui.components.Pill
+import com.barathiraja.jk.gym.Role
+import com.barathiraja.jk.ui.GymState
+import com.barathiraja.jk.ui.GymViewModel
+import com.barathiraja.jk.ui.components.formatDuration
 import com.barathiraja.jk.ui.components.shareText
-import com.barathiraja.jk.ui.components.Avatar
 import com.barathiraja.jk.ui.screens.trimZero
+import com.barathiraja.jk.ui.theme.Bad
 import com.barathiraja.jk.ui.theme.CodeFont
-import com.barathiraja.jk.ui.theme.Alert
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.semantics.Role as SemanticsRole
 
 private val dayFmt = DateTimeFormatter.ofPattern("EEE d MMM")
 
@@ -59,46 +74,57 @@ fun dayLabel(epochDay: Long, today: Long): String = when (epochDay) {
     else -> LocalDate.ofEpochDay(epochDay).format(dayFmt)
 }
 
-/** Status of one assignment as a coloured pill: done / in progress / missed / to do. */
+/** Status of one assignment as a word in a chip: done / in progress / missed / not started. */
 @Composable
 fun StatusPill(a: Assignment?, today: Long, modifier: Modifier = Modifier) {
-    val (text, color) = when {
-        a == null -> "Nothing assigned" to MaterialTheme.colorScheme.outline
-        a.status == AssignStatus.DONE -> (if (a.verified) "✓ Done · verified" else "✓ Done") to Leaf
-        a.status == AssignStatus.IN_PROGRESS -> "● ${a.exercisesDone}/${a.exercises.size} in progress" to Sun
-        a.epochDay < today -> "✗ Missed" to Alert
-        else -> "Not started" to MaterialTheme.colorScheme.outline
+    val (text, tone) = when {
+        a == null -> "Nothing assigned" to Tone.NONE
+        a.status == AssignStatus.DONE -> (if (a.verified) "Done · verified" else "Done") to Tone.GOOD
+        a.status == AssignStatus.IN_PROGRESS -> "${a.exercisesDone}/${a.exercises.size} in progress" to Tone.WARN
+        a.epochDay < today -> "Missed" to Tone.BAD
+        else -> "Not started" to Tone.NONE
     }
-    Pill(text, color, modifier)
+    OwnerChip(text, tone, modifier)
 }
 
+/** A person's photo and name in a row, with an optional line under the name and something on the right. */
 @Composable
-fun PersonRow(p: Person, modifier: Modifier = Modifier, size: Dp = 44.dp, trailing: @Composable () -> Unit = {}, sub: @Composable () -> Unit = {}) {
+internal fun MemberLine(p: Person, modifier: Modifier = Modifier, size: Dp = 44.dp, trailing: @Composable () -> Unit = {}, sub: @Composable () -> Unit = {}) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Avatar(p.photoUrl, p.name, size)
+        OwnerAvatar(p.photoUrl, p.name, size)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+            Text(p.name, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             sub()
         }
         trailing()
     }
 }
 
+/** The signed-in person's photo in a page header; tapping it opens their profile. */
+@Composable
+internal fun ProfileButton(p: Person, onClick: () -> Unit) {
+    Box(
+        Modifier.size(48.dp).clip(CircleShape)
+            .clickable(onClickLabel = "Open your profile", role = SemanticsRole.Button, onClick = onClick)
+            .semantics { contentDescription = "Your profile" },
+    ) { OwnerAvatar(p.photoUrl, p.name, 48.dp) }
+}
+
 /** Big, readable join code with a share button (WhatsApp etc.). */
 @Composable
 fun CodeCard(title: String, code: String, shareText: String) {
     val context = LocalContext.current
-    JkCard(Modifier.fillMaxWidth()) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = RoundedCornerShape(12.dp), modifier = Modifier.padding(vertical = 8.dp)) {
-                Text(code, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontSize = 32.sp, fontWeight = FontWeight.Bold,
-                    fontFamily = CodeFont, letterSpacing = 4.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            }
-            Spacer(Modifier.weight(1f))
-            FilledTonalButton(onClick = { context.shareText(shareText) }) {
-                Icon(Icons.Filled.Share, null); Spacer(Modifier.width(6.dp)); Text("Share")
+    OwnerCardBox {
+        Column {
+            Text(title, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.padding(vertical = 8.dp).clip(RoundedCornerShape(12.dp)).background(Owner.Well)) {
+                    Text(code, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontSize = 32.sp, fontWeight = FontWeight.Bold,
+                        fontFamily = CodeFont, letterSpacing = 4.sp, color = Owner.Ink)
+                }
+                Spacer(Modifier.weight(1f))
+                PlainButton("Share", { context.shareText(shareText) }, icon = Icons.Filled.Share)
             }
         }
     }
@@ -107,29 +133,35 @@ fun CodeCard(title: String, code: String, shareText: String) {
 /** Completion rate as a percentage string, or "–" when nothing was due. */
 fun pct(done: Int, due: Int) = if (due == 0) "–" else "${Math.round(done * 100f / due)}%"
 
+/** Colour for a completion rate, always shown next to the number. */
+@Composable
+@ReadOnlyComposable
 fun rateColor(rate: Float, due: Int): Color = when {
-    due == 0 -> Color.Gray
-    rate >= 0.8f -> Leaf
-    rate >= 0.5f -> Sun
-    else -> Alert
+    due == 0 -> MaterialTheme.colorScheme.outline
+    rate >= 0.8f -> Good
+    rate >= 0.5f -> Watch
+    else -> Bad
 }
 
 /** Gym section on the Me screen: who you are in the gym, leave, sign out; or join a gym if using JK alone. */
 @Composable
-fun GymAccountCard(gvm: com.barathiraja.jk.ui.GymViewModel) {
+fun GymAccountCard(gvm: GymViewModel) {
     val state by gvm.state.collectAsStateWithLifecycle()
     var confirmSignOut by remember { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
     when (val s = state) {
-        is com.barathiraja.jk.ui.GymState.Ready -> JkCard(Modifier.fillMaxWidth()) {
-            Text(s.gym.name, style = MaterialTheme.typography.titleLarge)
-            val role = when (s.me.role) { Role.OWNER -> "Owner"; Role.TRAINER -> "Trainer"; Role.MEMBER -> "Member" }
-            Text(role + (gvm.trainerOf(s.me)?.let { " · Coach ${it.name}" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (s.me.role == Role.TRAINER && !s.me.trainerCode.isNullOrBlank()) Text("Member code: ${s.me.trainerCode}", Modifier.padding(top = 4.dp))
-            if (s.me.role == Role.OWNER) Text("Gym code: ${s.gym.gymCode}", Modifier.padding(top = 4.dp))
-            Row(Modifier.padding(top = 8.dp)) {
-                if (s.me.role != Role.OWNER) TextButton(onClick = { confirmLeave = true }) { Text("Leave gym") }
-                TextButton(onClick = { confirmSignOut = true }) { Text("Sign out") }
+        is GymState.Ready -> OwnerCardBox {
+            Column {
+                Text(s.gym.name, style = plex(17.sp, FontWeight.SemiBold), color = Owner.Ink)
+                val role = when (s.me.role) { Role.OWNER -> "Owner"; Role.TRAINER -> "Trainer"; Role.MEMBER -> "Member" }
+                Text(role + (gvm.trainerOf(s.me)?.let { " · Coach ${it.name}" } ?: ""), style = plex(15.sp), color = Owner.Muted)
+                val code = s.me.trainerCode
+                if (s.me.role == Role.TRAINER && !code.isNullOrBlank()) Text("Member code: $code", Modifier.padding(top = 4.dp), style = plex(15.sp), color = Owner.Ink)
+                if (s.me.role == Role.OWNER) Text("Gym code: ${s.gym.gymCode}", Modifier.padding(top = 4.dp), style = plex(15.sp), color = Owner.Ink)
+                Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (s.me.role != Role.OWNER) PlainButton("Leave gym", { confirmLeave = true }, ink = Owner.RedText)
+                    PlainButton("Sign out", { confirmSignOut = true })
+                }
             }
         }
         else -> {}
@@ -148,11 +180,11 @@ fun GymAccountCard(gvm: com.barathiraja.jk.ui.GymViewModel) {
 
 /** One set as "reps × kg" (or seconds) with small steppers; fits inside a card. */
 @Composable
-fun SetEditorRow(index: Int, s: com.barathiraja.jk.data.SetSpec, step: Float, onChange: (com.barathiraja.jk.data.SetSpec) -> Unit, onDelete: (() -> Unit)?) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("${index + 1}", Modifier.width(22.dp), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary)
+fun SetEditorRow(index: Int, s: SetSpec, step: Float, onChange: (SetSpec) -> Unit, onDelete: (() -> Unit)?) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text("${index + 1}", Modifier.width(22.dp), style = plex(15.sp, FontWeight.SemiBold), color = Owner.RedText)
         if (s.timed) {
-            MiniStepper(com.barathiraja.jk.ui.components.formatDuration(s.seconds.toLong()), "time", Modifier.weight(1f),
+            MiniStepper(formatDuration(s.seconds.toLong()), "time", Modifier.weight(1f),
                 { onChange(s.copy(seconds = (s.seconds - 15).coerceAtLeast(10))) }, { onChange(s.copy(seconds = s.seconds + 15)) })
         } else {
             MiniStepper("${s.reps}", "reps", Modifier.weight(1f),
@@ -160,24 +192,40 @@ fun SetEditorRow(index: Int, s: com.barathiraja.jk.data.SetSpec, step: Float, on
             MiniStepper(if (s.weightKg > 0f) s.weightKg.trimZero() else "BW", "kg", Modifier.weight(1f),
                 { onChange(s.copy(weightKg = (s.weightKg - step).coerceAtLeast(0f))) }, { onChange(s.copy(weightKg = s.weightKg + step)) })
         }
-        if (onDelete != null) androidx.compose.material3.IconButton(onClick = onDelete, Modifier.size(36.dp)) {
-            Icon(Icons.Filled.Close, "Delete set", Modifier.size(18.dp))
-        } else Spacer(Modifier.width(36.dp))
+        // IconButton keeps a 48dp target around its smaller icon.
+        if (onDelete != null) IconButton(onClick = onDelete) {
+            Icon(Icons.Filled.Close, "Delete set ${index + 1}", Modifier.size(18.dp), tint = Owner.Muted)
+        } else Spacer(Modifier.width(48.dp))
     }
 }
 
 @Composable
 private fun MiniStepper(value: String, unit: String, modifier: Modifier, minus: () -> Unit, plus: () -> Unit) {
-    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center) {
-        androidx.compose.material3.FilledTonalIconButton(onClick = minus, Modifier.size(30.dp)) {
-            Icon(Icons.Filled.Remove, "Less $unit", Modifier.size(16.dp))
+    Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+        StepButton(Icons.Filled.Remove, "Less $unit", minus)
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(value, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, softWrap = false)
+            Text(unit, style = plex(13.sp), color = Owner.Muted)
         }
-        Column(Modifier.width(52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = MaterialTheme.typography.titleMedium, maxLines = 1)
-            Text(unit, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        androidx.compose.material3.FilledTonalIconButton(onClick = plus, Modifier.size(30.dp)) {
-            Icon(Icons.Filled.Add, "More $unit", Modifier.size(16.dp))
+        StepButton(Icons.Filled.Add, "More $unit", plus)
+    }
+}
+
+/**
+ * A ± button: a 30dp circle to look at inside a 36 × 48dp target. Two steppers and a delete button must fit one
+ * row of a card, so the target is narrower than 48dp; Compose widens touches on small targets to 48dp, and the
+ * value text between the buttons isn't tappable, so nothing else competes for those touches.
+ */
+@Composable
+private fun StepButton(icon: ImageVector, label: String, onClick: () -> Unit) {
+    Box(
+        Modifier.width(36.dp).height(48.dp)
+            .clickable(remember { MutableInteractionSource() }, ripple(bounded = false, radius = 22.dp), role = SemanticsRole.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(Modifier.size(30.dp).clip(CircleShape).background(Owner.Well), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(16.dp), tint = Owner.Ink)
         }
     }
 }

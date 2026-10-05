@@ -1,67 +1,78 @@
 package com.barathiraja.jk.ui
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.outlined.FitnessCenter
-import androidx.compose.material.icons.outlined.Insights
-import androidx.compose.material.icons.outlined.SlowMotionVideo
-import androidx.compose.material.icons.outlined.WbSunny
-import androidx.compose.material.icons.outlined.AddTask
-import androidx.compose.material.icons.outlined.EmojiEvents
-import androidx.compose.material.icons.outlined.Groups
-import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.key
-import com.barathiraja.jk.gym.Role
-import com.barathiraja.jk.ui.gym.AssignScreen
-import com.barathiraja.jk.ui.gym.AssignedSessionScreen
-import com.barathiraja.jk.ui.gym.ChooseRoleScreen
-import com.barathiraja.jk.ui.gym.GymLoading
-import com.barathiraja.jk.ui.gym.MemberDetailScreen
-import com.barathiraja.jk.ui.gym.MemberGymScreen
-import com.barathiraja.jk.ui.gym.GiveAwardScreen
-import com.barathiraja.jk.ui.gym.OwnerHomeScreen
-import com.barathiraja.jk.ui.gym.OwnerPeopleScreen
-import com.barathiraja.jk.ui.gym.OwnerAwardsScreen
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
-import com.barathiraja.jk.ui.gym.OwnerMeScreen
-import com.barathiraja.jk.ui.gym.RanksScreen
-import com.barathiraja.jk.ui.gym.SignInScreen
-import com.barathiraja.jk.ui.gym.TrainerDetailScreen
-import com.barathiraja.jk.ui.gym.TrainerMembersScreen
-import com.barathiraja.jk.ui.gym.WaitingScreen
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddTask
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.SlowMotionVideo
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.border
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role as A11yRole
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -70,13 +81,27 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import com.barathiraja.jk.ui.screens.EditDaysScreen
-import com.barathiraja.jk.ui.screens.ExerciseSessionScreen
-import com.barathiraja.jk.ui.screens.TrainingHistoryScreen
-import com.barathiraja.jk.ui.screens.TrainingSetupScreen
+import com.barathiraja.jk.data.Place
+import com.barathiraja.jk.data.Profile
+import com.barathiraja.jk.gym.Role
+import com.barathiraja.jk.ui.components.LocalNavBarInset
+import com.barathiraja.jk.ui.gym.AssignScreen
+import com.barathiraja.jk.ui.gym.AssignedSessionScreen
+import com.barathiraja.jk.ui.gym.ChooseRoleScreen
+import com.barathiraja.jk.ui.gym.GiveAwardScreen
+import com.barathiraja.jk.ui.gym.GymLoading
+import com.barathiraja.jk.ui.gym.MemberDetailScreen
+import com.barathiraja.jk.ui.gym.MemberGymScreen
+import com.barathiraja.jk.ui.gym.OwnerAwardsScreen
+import com.barathiraja.jk.ui.gym.Owner
+import com.barathiraja.jk.ui.gym.OwnerHomeScreen
+import com.barathiraja.jk.ui.gym.OwnerMeScreen
+import com.barathiraja.jk.ui.gym.OwnerPeopleScreen
+import com.barathiraja.jk.ui.gym.RanksScreen
+import com.barathiraja.jk.ui.gym.SignInScreen
+import com.barathiraja.jk.ui.gym.TrainerDetailScreen
+import com.barathiraja.jk.ui.gym.TrainerMembersScreen
+import com.barathiraja.jk.ui.gym.WaitingScreen
 import com.barathiraja.jk.ui.screens.ArticleScreen
 import com.barathiraja.jk.ui.screens.ArticlesScreen
 import com.barathiraja.jk.ui.screens.BreathingScreen
@@ -84,8 +109,10 @@ import com.barathiraja.jk.ui.screens.BuilderScreen
 import com.barathiraja.jk.ui.screens.CalculatorsScreen
 import com.barathiraja.jk.ui.screens.ChallengeDetailScreen
 import com.barathiraja.jk.ui.screens.DietScreen
+import com.barathiraja.jk.ui.screens.EditDaysScreen
 import com.barathiraja.jk.ui.screens.EditProfileScreen
 import com.barathiraja.jk.ui.screens.ExerciseDetailScreen
+import com.barathiraja.jk.ui.screens.ExerciseSessionScreen
 import com.barathiraja.jk.ui.screens.FastingScreen
 import com.barathiraja.jk.ui.screens.HelpScreen
 import com.barathiraja.jk.ui.screens.MeditateScreen
@@ -98,10 +125,16 @@ import com.barathiraja.jk.ui.screens.ShortsScreen
 import com.barathiraja.jk.ui.screens.TodayScreen
 import com.barathiraja.jk.ui.screens.ToolsScreen
 import com.barathiraja.jk.ui.screens.TrackScreen
+import com.barathiraja.jk.ui.screens.TrainingHistoryScreen
+import com.barathiraja.jk.ui.screens.TrainingSetupScreen
 import com.barathiraja.jk.ui.screens.WalkScreen
 import com.barathiraja.jk.ui.screens.WorkoutDetailScreen
 import com.barathiraja.jk.ui.screens.WorkoutPlayerScreen
 import com.barathiraja.jk.ui.screens.WorkoutsScreen
+import com.barathiraja.jk.ui.theme.Charcoal
+import com.barathiraja.jk.ui.theme.HeroFill
+import com.barathiraja.jk.ui.theme.LocalDarkTheme
+import com.barathiraja.jk.ui.theme.Red
 
 object Routes {
     const val TODAY = "today"
@@ -198,46 +231,41 @@ private val ownerTabs = listOf(
  */
 @Composable
 private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
-    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    // In dark mode the bar lifts a step off the black page so it still reads as a bar.
-    val barFill = if (dark) androidx.compose.ui.graphics.Color(0xFF2A2C31) else com.barathiraja.jk.ui.theme.Charcoal
+    // In dark mode the bar lifts a step off the black page (the hero fill) so it still reads as a bar.
+    val barFill = if (LocalDarkTheme.current) HeroFill else Charcoal
     val selected = tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
-    val pos by androidx.compose.animation.core.animateFloatAsState(
-        selected.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")
+    val pos by animateFloatAsState(
+        selected.toFloat(), spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")
     // Fewer tabs leave room for a bigger button and a wider, deeper dip.
     val roomy = tabs.size <= 3
-    val button = if (roomy) 52.dp else 46.dp
+    val button = if (roomy) 52.dp else 48.dp
     val hw = if (roomy) 64.dp else 46.dp
     val depth = if (roomy) 32.dp else 28.dp
     val rise = if (roomy) 18.dp else 16.dp
     val inner = 18.dp
     // Full screen width, flush with the bottom edge: the bar's white runs down behind the system gesture area.
-    val navInset = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-    androidx.compose.foundation.layout.BoxWithConstraints(
+    val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    BoxWithConstraints(
         modifier.fillMaxWidth().height(BAR_HEIGHT + rise + navInset),
     ) {
         val slot = (maxWidth - inner * 2) / tabs.size
         val cx = inner + slot * (pos + 0.5f)
         val barShape = DipShape(radius = 28.dp, center = cx, dipHalfWidth = hw, dipDepth = depth, roundBottom = false)
-        androidx.compose.foundation.layout.Row(
-            Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().height(BAR_HEIGHT + navInset)
-                .shadow(24.dp, barShape, ambientColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
-                    spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.22f))
+        Row(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(BAR_HEIGHT + navInset)
+                .shadow(24.dp, barShape, ambientColor = Color.Black.copy(alpha = 0.18f),
+                    spotColor = Color.Black.copy(alpha = 0.22f))
                 .clip(barShape).background(barFill).padding(start = inner, end = inner, bottom = navInset),
         ) {
             tabs.forEachIndexed { i, tab -> SideTab(tab, i == selected, Modifier.weight(1f).fillMaxHeight(), onSelect) }
         }
-        val fill = com.barathiraja.jk.ui.theme.Red
-        val ink = androidx.compose.ui.graphics.Color.White
         val tab = tabs[selected]
-        androidx.compose.material3.Surface(
-            onClick = { onSelect(tab.route) },
-            shape = androidx.compose.foundation.shape.CircleShape,
-            color = fill, contentColor = ink, shadowElevation = 8.dp,
-            modifier = Modifier.offset(x = cx - button / 2).size(button)
-                .semantics { contentDescription = tab.label },
+        // Decoration for the open tab: the tab row under it already is the accessible control, so this is hidden.
+        Surface(
+            shape = CircleShape, color = Red, contentColor = Color.White, shadowElevation = 8.dp,
+            modifier = Modifier.offset(x = cx - button / 2).size(button).clearAndSetSemantics { },
         ) {
-            androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
+            Box(contentAlignment = Alignment.Center) {
                 Icon(tab.icon, null, Modifier.size(if (roomy) 22.dp else 20.dp))
             }
         }
@@ -249,21 +277,22 @@ private val BAR_HEIGHT = 60.dp
 /** One slot: icon over label in light grey; when open, just its label in white, low in the dip under the button. */
 @Composable
 private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String) -> Unit) {
-    val idle = androidx.compose.ui.graphics.Color(0xFFB3B3B3)
-    androidx.compose.foundation.layout.Column(
-        modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).clickable { onSelect(tab.route) }
-            .semantics { selected = on }.padding(bottom = 8.dp),
-        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-        verticalArrangement = androidx.compose.foundation.layout.Arrangement.Bottom,
+    val idle = Owner.OnDarkMuted
+    Column(
+        modifier.clip(RoundedCornerShape(18.dp))
+            .selectable(selected = on, role = A11yRole.Tab) { onSelect(tab.route) }
+            .padding(bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
     ) {
-        androidx.compose.animation.AnimatedVisibility(!on,
-            enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
-            exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()) {
+        AnimatedVisibility(!on,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()) {
             Icon(tab.icon, null, tint = idle, modifier = Modifier.size(21.dp))
         }
         Text(tab.label, style = MaterialTheme.typography.labelMedium.copy(
-            fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-            fontSize = 11.sp), color = if (on) androidx.compose.ui.graphics.Color.White else idle, maxLines = 1,
+            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+            fontSize = 11.sp), color = if (on) Color.White else idle, maxLines = 1,
             modifier = Modifier.padding(top = 2.dp))
     }
 }
@@ -273,16 +302,16 @@ private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String
  * outline reads as one curve around the button that sits in it.
  */
 private class DipShape(
-    private val radius: androidx.compose.ui.unit.Dp,
-    private val center: androidx.compose.ui.unit.Dp,
-    private val dipHalfWidth: androidx.compose.ui.unit.Dp,
-    private val dipDepth: androidx.compose.ui.unit.Dp,
+    private val radius: Dp,
+    private val center: Dp,
+    private val dipHalfWidth: Dp,
+    private val dipDepth: Dp,
     private val roundBottom: Boolean = true,
-) : androidx.compose.ui.graphics.Shape {
+) : Shape {
     override fun createOutline(
-        size: androidx.compose.ui.geometry.Size, layoutDirection: androidx.compose.ui.unit.LayoutDirection,
-        density: androidx.compose.ui.unit.Density,
-    ): androidx.compose.ui.graphics.Outline = with(density) {
+        size: Size, layoutDirection: LayoutDirection,
+        density: Density,
+    ): Outline = with(density) {
         val d = dipDepth.toPx()
         val w = size.width; val h = size.height; val cx = center.toPx()
         // Near an end the dip narrows and the top corner tightens, so the outline never runs past the bar's edge.
@@ -291,20 +320,20 @@ private class DipShape(
         val rl = radius.toPx().coerceAtMost(cx - hw)
         val rr = radius.toPx().coerceAtMost(w - cx - hw)
         val r = radius.toPx()
-        androidx.compose.ui.graphics.Outline.Generic(androidx.compose.ui.graphics.Path().apply {
+        Outline.Generic(Path().apply {
             moveTo(0f, rl)
-            if (rl > 0f) arcTo(androidx.compose.ui.geometry.Rect(0f, 0f, 2 * rl, 2 * rl), 180f, 90f, false)
+            if (rl > 0f) arcTo(Rect(0f, 0f, 2 * rl, 2 * rl), 180f, 90f, false)
             lineTo(cx - hw, 0f)
             // Shoulder eases off the top edge, then the wall curves round into a flat floor under the button.
             cubicTo(cx - hw * 0.5f, 0f, cx - hw * 0.5f, d, cx, d)
             cubicTo(cx + hw * 0.5f, d, cx + hw * 0.5f, 0f, cx + hw, 0f)
             lineTo(w - rr, 0f)
-            if (rr > 0f) arcTo(androidx.compose.ui.geometry.Rect(w - 2 * rr, 0f, w, 2 * rr), 270f, 90f, false)
+            if (rr > 0f) arcTo(Rect(w - 2 * rr, 0f, w, 2 * rr), 270f, 90f, false)
             if (roundBottom) {
                 lineTo(w, h - r)
-                arcTo(androidx.compose.ui.geometry.Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
+                arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
                 lineTo(r, h)
-                arcTo(androidx.compose.ui.geometry.Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
+                arcTo(Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
             } else {
                 lineTo(w, h)
                 lineTo(0f, h)
@@ -321,7 +350,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     val training by tvm.prefs.collectAsStateWithLifecycle()
     val gymState by gvm.state.collectAsStateWithLifecycle()
-    var pendingProfile by remember { mutableStateOf<com.barathiraja.jk.data.Profile?>(null) }
+    var pendingProfile by remember { mutableStateOf<Profile?>(null) }
 
     // Gym gate: everyone signs in and joins a gym first (only builds without Firebase run solo).
     val solo = gymState == GymState.Disabled
@@ -347,8 +376,8 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
         val p = pendingProfile
         if (p == null) {
             // Gym members start with their Google name and "Gym" picked.
-            val initial = if (me != null) com.barathiraja.jk.data.Profile(name = me.name, place = com.barathiraja.jk.data.Place.GYM)
-                else com.barathiraja.jk.data.Profile()
+            val initial = if (me != null) Profile(name = me.name, place = Place.GYM)
+                else Profile()
             OnboardingScreen(initial, onDone = { pendingProfile = it })
         } else {
             // Step 2 of onboarding: training preferences, then the plan is generated.
@@ -370,18 +399,18 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     val snackbar = remember { SnackbarHostState() }
     val message by gvm.message.collectAsStateWithLifecycle()
     LaunchedEffect(message) {
-        message?.let { snackbar.showSnackbar(it); gvm.message.value = null }
+        message?.let { snackbar.showSnackbar(it); gvm.clearMessage() }
     }
 
     // The bar floats over the screens (nothing painted behind it); screens pad their lists by LocalNavBarInset.
-    val barInset = if (showBar) 88.dp + androidx.compose.foundation.layout.WindowInsets.navigationBars
+    val barInset = if (showBar) 88.dp + WindowInsets.navigationBars
         .asPaddingValues().calculateBottomPadding() else 0.dp
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = barInset)) },
-        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
     ) { _ ->
-      androidx.compose.foundation.layout.Box(Modifier.fillMaxSize()) {
-      androidx.compose.runtime.CompositionLocalProvider(com.barathiraja.jk.ui.components.LocalNavBarInset provides barInset) {
+      Box(Modifier.fillMaxSize()) {
+      CompositionLocalProvider(LocalNavBarInset provides barInset) {
         NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.fillMaxSize()) {
             composable(Routes.TODAY) { TodayScreen(vm, tvm, nav, gvm.takeIf { role == Role.MEMBER }) }
             composable(Routes.GYM) { if (role == Role.OWNER) OwnerHomeScreen(gvm, nav) else MemberGymScreen(gvm, nav) }
@@ -432,7 +461,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             }
         }
       }
-        if (showBar) DipBottomBar(tabs, route, Modifier.align(androidx.compose.ui.Alignment.BottomCenter)) { nav.switchTab(it) }
+        if (showBar) DipBottomBar(tabs, route, Modifier.align(Alignment.BottomCenter)) { nav.switchTab(it) }
       }
     }
     }

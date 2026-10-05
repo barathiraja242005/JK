@@ -35,16 +35,23 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -52,6 +59,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.jk.ui.components.LocalNavBarInset
+import com.barathiraja.jk.ui.theme.HeroFill
 import com.barathiraja.jk.ui.theme.Plex
 import com.barathiraja.jk.ui.theme.pick
 
@@ -62,30 +70,30 @@ import com.barathiraja.jk.ui.theme.pick
  * Status is always a word in a chip ([Tone]); the colour only backs the word up.
  */
 internal object Owner {
-    val Paper get() = pick(0xFFF6F6F4, 0xFF0B0B0B)
+    val Paper: Color @Composable @ReadOnlyComposable get() = pick(0xFFF6F6F4, 0xFF0B0B0B)
     /** Plain cards on the paper. */
-    val Card get() = pick(0xFFFFFFFF, 0xFF161616)
+    val Card: Color @Composable @ReadOnlyComposable get() = pick(0xFFFFFFFF, 0xFF161616)
     /** A panel or strip inside a card. */
-    val Well get() = pick(0xFFF1F1EE, 0xFF1F1F1F)
+    val Well: Color @Composable @ReadOnlyComposable get() = pick(0xFFF1F1EE, 0xFF1F1F1F)
     /** Text, icons and lines on paper and cards. */
-    val Ink get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
-    val OnInk get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
+    val Ink: Color @Composable @ReadOnlyComposable get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
+    val OnInk: Color @Composable @ReadOnlyComposable get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
     /** The charcoal hero card; white text on it in both modes. */
-    val Hero get() = pick(0xFF232529, 0xFF2A2C31)
+    val Hero: Color @Composable @ReadOnlyComposable get() = HeroFill
     /** Text on yellow, in both modes. */
     val Black = Color(0xFF0A0A0A)
     /** Red as a fill: the main action. White text on it (5.2:1). */
     val Red = Color(0xFFD7141E)
     /** Red as text or an icon on paper and cards. */
-    val RedText get() = pick(0xFFD7141E, 0xFFFF5A5F)
+    val RedText: Color @Composable @ReadOnlyComposable get() = pick(0xFFD7141E, 0xFFFF5A5F)
     val Yellow = Color(0xFFFFC629)
-    val Muted get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
-    val Line get() = pick(0xFFE6E6E3, 0xFF262626)
+    val Muted: Color @Composable @ReadOnlyComposable get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
+    val Line: Color @Composable @ReadOnlyComposable get() = pick(0xFFE6E6E3, 0xFF262626)
     /** On the hero card. */
     val OnDarkMuted = Color(0xFFA3A3A3)
     val OnDarkSoft = Color(0xFFD4D4D4)
     val DarkTrack = Color(0xFF44474D)
-    val DarkStrip get() = pick(0xFF33363B, 0xFF383B40)
+    val DarkStrip: Color @Composable @ReadOnlyComposable get() = pick(0xFF33363B, 0xFF383B40)
 }
 
 /**
@@ -95,14 +103,14 @@ internal object Owner {
 internal enum class Tone {
     TOP, GOOD, WARN, BAD, NONE;
 
-    val fill: Color get() = when (this) {
+    val fill: Color @Composable @ReadOnlyComposable get() = when (this) {
         TOP -> Owner.Yellow
         GOOD -> pick(0xFFEFEFEC, 0xFF262626)
         WARN -> pick(0xFFFFF2C7, 0xFF2A2410)
         BAD -> pick(0xFFFDE4E4, 0xFF2A1214)
         NONE -> Color.Transparent
     }
-    val ink: Color get() = when (this) {
+    val ink: Color @Composable @ReadOnlyComposable get() = when (this) {
         TOP -> Owner.Black
         GOOD -> Owner.Ink
         WARN -> pick(0xFF0A0A0A, 0xFFFFD966)
@@ -112,7 +120,7 @@ internal enum class Tone {
 }
 
 internal fun plex(size: TextUnit, weight: FontWeight = FontWeight.Normal, line: TextUnit = TextUnit.Unspecified, tracking: TextUnit = 0.sp) =
-    androidx.compose.ui.text.TextStyle(fontFamily = Plex, fontSize = size, fontWeight = weight, lineHeight = line, letterSpacing = tracking)
+    TextStyle(fontFamily = Plex, fontSize = size, fontWeight = weight, lineHeight = line, letterSpacing = tracking)
 
 /** Owner page shell: paper background, status-bar padding and room for the bottom bar. */
 @Composable
@@ -145,12 +153,19 @@ internal fun OwnerHeading(title: String, explain: String? = null) {
 
 /** The screen's main action: a red pill, white words, an optional icon after them. 56dp tall. */
 @Composable
-internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
+internal fun RedButton(
+    text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true,
+    leading: (@Composable () -> Unit)? = null,
+) {
     Surface(
         onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
         color = if (enabled) Owner.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Owner.Muted,
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            if (leading != null) {
+                leading()
+                Spacer(Modifier.width(12.dp))
+            }
             Text(text, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (icon != null) {
                 Spacer(Modifier.width(10.dp))
@@ -186,6 +201,45 @@ internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? 
             .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
             .padding(padding),
     ) { content() }
+}
+
+/** One tab of [SegmentedTabs]: its label, an optional count, and whether it can be picked right now. */
+internal data class SegmentTab(val label: String, val count: Int? = null, val enabled: Boolean = true)
+
+/**
+ * The app's one switch between views (Members | Trainers, Members | Trainers | Awards, theme…): a white pill track
+ * ([track]: grey inside a white card) with the open tab filled black and its count on yellow. Every tab is a 48dp target announced as a tab.
+ */
+@Composable
+internal fun SegmentedTabs(
+    tabs: List<SegmentTab>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, track: Color = Owner.Card,
+) {
+    Row(
+        modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(track).padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        tabs.forEachIndexed { i, tab ->
+            val on = i == selected
+            Surface(
+                onClick = { onSelect(i) }, enabled = tab.enabled && !on,
+                modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { role = Role.Tab; this.selected = on },
+                shape = RoundedCornerShape(50),
+                color = if (on) Owner.Ink else Color.Transparent,
+                contentColor = when { on -> Owner.OnInk; tab.enabled -> Owner.Ink; else -> Owner.Muted },
+            ) {
+                Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Text(tab.label, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1)
+                    if (tab.count != null) {
+                        Spacer(Modifier.width(8.dp))
+                        Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (on) Owner.Yellow else Owner.Well)
+                            .padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
+                            Text("${tab.count}", style = plex(12.sp, FontWeight.SemiBold), color = if (on) Owner.Black else Owner.Ink)
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /** Round photo, or the first letter on grey. */
@@ -232,7 +286,7 @@ internal fun OwnerRing(fraction: Float, size: Dp, stroke: Dp, track: Color, colo
         Canvas(Modifier.size(size)) {
             val s = stroke.toPx()
             val box = Size(this.size.width - s, this.size.height - s)
-            val tl = androidx.compose.ui.geometry.Offset(s / 2, s / 2)
+            val tl = Offset(s / 2, s / 2)
             drawArc(track, 0f, 360f, false, tl, box, style = Stroke(s))
             val sweep = 360f * fraction.coerceIn(0f, 1f) * k
             if (sweep > 0f) drawArc(color, -90f, sweep, false, tl, box, style = Stroke(s, cap = StrokeCap.Round))

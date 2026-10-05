@@ -4,6 +4,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import com.barathiraja.jk.data.Ambience
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.random.Random
@@ -13,10 +14,10 @@ import kotlin.random.Random
  * rain = softened white noise, ocean = brown noise with slow swells, drone = layered soft sines.
  */
 class AmbientPlayer {
-    private val rate = 22050
-    @Volatile private var running = false
+    private val rate = SAMPLE_RATE
     @Volatile var volume = 0.5f
-    private var thread: Thread? = null
+    /** Stop flag of the current generator; each start gets its own so a quick restart can't revive an old thread. */
+    private var running: AtomicBoolean? = null
     private var track: AudioTrack? = null
 
     fun start(kind: Ambience) {
@@ -28,19 +29,21 @@ class AmbientPlayer {
                 .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
             .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                 .setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-            .setBufferSizeInBytes(minBuf * 4)
+            .setBufferSizeInBytes(minBuf * BUFFER_MULTIPLIER)
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
+        val alive = AtomicBoolean(true)
         track = t
-        running = true
+        running = alive
         t.play()
-        thread = Thread {
-            val buf = ShortArray(1024)
+        // The thread owns its track (a local, never the field) and releases it when done, so stop() never blocks.
+        Thread {
+            val buf = ShortArray(CHUNK_SAMPLES)
             var n = 0L
             var brown = 0.0
             var lp = 0.0
             val rnd = Random(42)
-            while (running) {
+            while (alive.get()) {
                 for (i in buf.indices) {
                     val time = n.toDouble() / rate
                     val white = rnd.nextDouble() * 2 - 1
@@ -62,12 +65,14 @@ class AmbientPlayer {
                         Ambience.SILENCE -> 0.0
                     }
                     // Fade in over the first 3 seconds.
-                    val fade = (time / 3.0).coerceAtMost(1.0)
+                    val fade = (time / FADE_IN_SEC).coerceAtMost(1.0)
                     buf[i] = (s.coerceIn(-1.0, 1.0) * volume * fade * Short.MAX_VALUE * 0.6).toInt().toShort()
                     n++
                 }
-                track?.write(buf, 0, buf.size)
+                t.write(buf, 0, buf.size)
             }
+            runCatching { t.stop() }
+            t.release()
         }.apply { isDaemon = true; start() }
     }
 
@@ -75,10 +80,17 @@ class AmbientPlayer {
     fun resume() = track?.play()
 
     fun stop() {
-        running = false
-        thread?.join(300)
-        thread = null
-        track?.run { runCatching { stop() }; release() }
+        running?.set(false)
+        running = null
+        // Pause and drop queued audio so a write blocked on a full (or paused) buffer returns and the thread can exit.
+        track?.let { t -> runCatching { t.pause(); t.flush() } }
         track = null
+    }
+
+    private companion object {
+        const val SAMPLE_RATE = 22050
+        const val BUFFER_MULTIPLIER = 4
+        const val CHUNK_SAMPLES = 1024
+        const val FADE_IN_SEC = 3.0
     }
 }

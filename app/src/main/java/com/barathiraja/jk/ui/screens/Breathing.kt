@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import com.barathiraja.jk.ui.components.JkCard
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Calm
 
 /** A breathing pattern as (label, seconds, target scale) steps. */
 private data class Pattern(val name: String, val about: String, val steps: List<Triple<String, Int, Float>>)
@@ -74,8 +74,8 @@ fun BreathingScreen(nav: NavHostController) {
             JkCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Box(Modifier.size(260.dp), contentAlignment = Alignment.Center) {
-                        Box(Modifier.size(260.dp).scale(scale.value).background(Violet.copy(alpha = 0.18f), CircleShape))
-                        Box(Modifier.size(180.dp).scale(scale.value).background(Violet.copy(alpha = 0.35f), CircleShape))
+                        Box(Modifier.size(260.dp).scale(scale.value).background(Calm.copy(alpha = 0.18f), CircleShape))
+                        Box(Modifier.size(180.dp).scale(scale.value).background(Calm.copy(alpha = 0.35f), CircleShape))
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(label, style = MaterialTheme.typography.headlineSmall)
                             if (running) Text("$count", style = MaterialTheme.typography.displaySmall)

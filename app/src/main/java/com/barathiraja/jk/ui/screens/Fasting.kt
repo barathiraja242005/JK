@@ -28,8 +28,8 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
 import kotlinx.coroutines.delay
 import java.time.Instant
 import java.time.ZoneId
@@ -71,7 +71,7 @@ fun FastingScreen(vm: JkViewModel, nav: NavHostController) {
                         val elapsedMs = (now - f.startedAt).coerceAtLeast(0)
                         val targetMs = f.targetHours * 3_600_000L
                         val reached = elapsedMs >= targetMs
-                        Ring(elapsedMs / targetMs.toFloat(), if (reached) Leaf else Sun, size = 220.dp, stroke = 14.dp) {
+                        Ring(elapsedMs / targetMs.toFloat(), if (reached) Good else Watch, size = 220.dp, stroke = 14.dp) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(if (reached) "Goal reached!" else "Elapsed", color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text(formatDuration(elapsedMs / 1000), style = MaterialTheme.typography.headlineMedium)

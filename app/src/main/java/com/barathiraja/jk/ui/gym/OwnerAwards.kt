@@ -56,7 +56,8 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
     val awards by gvm.awards.collectAsStateWithLifecycle()
     val digest by gvm.ownerDigest.collectAsStateWithLifecycle()
     val ranking by gvm.memberRanking.collectAsStateWithLifecycle()
-    var editing by remember { mutableStateOf<GivenAward?>(null) }
+    // Kept by id so the open editor survives rotation and follows live edits.
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
 
     val topMember = ranking.firstOrNull { it.points > 0 }?.let { s -> gvm.person(s.uid)?.let { it to s } }
     val topTrainer = digest?.trainers?.filter { it.due > 0 }?.maxByOrNull { it.rate }
@@ -80,7 +81,7 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
         }
 
         item { OwnerHeading("Awards you gave", if (given.isEmpty()) "None yet. Tap Give an award to start." else "Tap one to change it or take it back.") }
-        items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid), onClick = { editing = a }) }
+        items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid), onClick = { editingId = a.id }) }
 
         item { OwnerHeading("Monthly awards", "The app picks these on the 1st of each month from everyone's workouts.") }
         if (awards.isEmpty()) item {
@@ -91,7 +92,7 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
         }
         awards.sortedByDescending { it.month }.forEach { m -> item(key = m.month) { AwardsCard(m, gvm) } }
     }
-    GivenAwardEditor(editing, gvm) { editing = null }
+    GivenAwardEditor(given.firstOrNull { it.id == editingId }, gvm) { editingId = null }
 }
 
 /** This month's leader: face, a yellow "Top …" chip and their numbers. Opens their page. */

@@ -1,6 +1,7 @@
 package com.barathiraja.jk.data
 
 import android.content.Context
+import com.barathiraja.jk.steps.StepState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,6 +44,29 @@ data class Settings(
 class UserPrefs(context: Context) {
     private val sp = context.getSharedPreferences("jk_prefs", Context.MODE_PRIVATE)
 
+    /**
+     * Phone-specific values (step counter, photo URI, popups). A separate file so Android backup can leave it out
+     * (res/xml/backup_rules.xml, data_extraction_rules.xml): they mean nothing on another phone.
+     */
+    private val device = context.getSharedPreferences(DEVICE_FILE, Context.MODE_PRIVATE)
+
+    init {
+        // One-time move of device keys saved in the main file by older versions.
+        if (deviceKeys.any { it in sp.all }) {
+            val from = sp.all
+            val to = device.edit()
+            deviceKeys.forEach { k ->
+                when (val v = from[k]) {
+                    is Long -> to.putLong(k, v)
+                    is Float -> to.putFloat(k, v)
+                    is String -> to.putString(k, v)
+                }
+            }
+            to.commit()
+            sp.edit().apply { deviceKeys.forEach { remove(it) } }.commit()
+        }
+    }
+
     private val _profile = MutableStateFlow(readProfile())
     val profile: StateFlow<Profile> = _profile.asStateFlow()
 
@@ -78,13 +102,18 @@ class UserPrefs(context: Context) {
         _settings.value = s
     }
 
-    // Step counter bookkeeping: TYPE_STEP_COUNTER is cumulative since boot.
-    var stepBaselineDay: Long
-        get() = sp.getLong("stepBaselineDay", -1)
-        set(v) = sp.edit().putLong("stepBaselineDay", v).apply()
-    var stepBaseline: Float
-        get() = sp.getFloat("stepBaseline", -1f)
-        set(v) = sp.edit().putFloat("stepBaseline", v).apply()
+    /** Step counter bookkeeping: TYPE_STEP_COUNTER is cumulative since boot. */
+    var stepState: StepState
+        get() = StepState(
+            day = device.getLong("stepBaselineDay", StepState.NONE.day),
+            baseline = device.getFloat("stepBaseline", StepState.NONE.baseline),
+            lastTotal = device.getFloat("stepLastTotal", StepState.NONE.lastTotal),
+        )
+        set(v) = device.edit()
+            .putLong("stepBaselineDay", v.day)
+            .putFloat("stepBaseline", v.baseline)
+            .putFloat("stepLastTotal", v.lastTotal)
+            .apply()
 
     private val _training = MutableStateFlow(readTraining())
     val training: StateFlow<TrainingPrefs> = _training.asStateFlow()
@@ -150,11 +179,12 @@ class UserPrefs(context: Context) {
         _training.value = readTraining()
     }
 
-    private val deviceKeys = setOf("stepBaselineDay", "stepBaseline", "avatarUri", "planDialogDay")
+    private val deviceKeys get() = setOf("stepBaselineDay", "stepBaseline", "stepLastTotal", "avatarUri", "planDialogDay")
 
-    /** Wipes everything stored on this phone (used when a gym account signs out). */
+    /** Wipes everything stored on this phone (used when a gym account signs out). Reminders follow [settings] off. */
     fun clearAll() {
         sp.edit().clear().commit()
+        device.edit().clear().commit()
         _profile.value = readProfile()
         _settings.value = readSettings()
         _training.value = readTraining()
@@ -162,12 +192,12 @@ class UserPrefs(context: Context) {
 
     /** Last day the "Today's plan" popup was shown. */
     var planDialogDay: Long
-        get() = sp.getLong("planDialogDay", -1)
-        set(v) = sp.edit().putLong("planDialogDay", v).apply()
+        get() = device.getLong("planDialogDay", -1)
+        set(v) = device.edit().putLong("planDialogDay", v).apply()
 
     var avatarUri: String?
-        get() = sp.getString("avatarUri", null)
-        set(v) = sp.edit().putString("avatarUri", v).apply()
+        get() = device.getString("avatarUri", null)
+        set(v) = device.edit().putString("avatarUri", v).apply()
 
     var vegOnly: Boolean
         get() = sp.getBoolean("vegOnly", false)
@@ -195,6 +225,11 @@ class UserPrefs(context: Context) {
         reminderMinute = sp.getInt("reminderMinute", 0),
         waterReminder = sp.getBoolean("waterReminder", false),
     )
+
+    private companion object {
+        /** Must match the path in res/xml/backup_rules.xml and data_extraction_rules.xml. */
+        const val DEVICE_FILE = "jk_device"
+    }
 
     private inline fun <reified T : Enum<T>> enumOr(name: String?, default: T): T =
         name?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default

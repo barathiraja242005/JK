@@ -20,39 +20,41 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.BodyPart
+import com.barathiraja.jk.data.Exercise
 import com.barathiraja.jk.data.ExerciseRepo
 import com.barathiraja.jk.data.SetSpec
 import com.barathiraja.jk.data.TrainingPool
 import com.barathiraja.jk.gym.AssignedExercise
 import com.barathiraja.jk.gym.Role
+import com.barathiraja.jk.gym.Template
 import com.barathiraja.jk.ui.GymViewModel
-import com.barathiraja.jk.ui.components.ExerciseDemo
-import com.barathiraja.jk.ui.components.JkCard
-import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.BackScreen
+import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.screens.ExercisePicker
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -70,8 +72,17 @@ private fun defaultExercise(id: String): AssignedExercise {
 private fun autoTitle(list: List<AssignedExercise>): String =
     list.mapNotNull { e -> BodyPart.entries.firstOrNull { it.name == e.bodyPart }?.label }.distinct().take(3).joinToString(" + ").ifBlank { "Workout" }
 
+/** Keeps a list of plain values (strings, numbers) across rotation. */
+private fun <T : Any> stateListSaver(): Saver<SnapshotStateList<T>, Any> =
+    listSaver(save = { it.toList() }, restore = { it.toMutableStateList() })
+
+/** Keeps the exercises being built across rotation: three strings each (id, body part, sets as [SetSpec.encode]). */
+private val exerciseListSaver: Saver<SnapshotStateList<AssignedExercise>, Any> = listSaver(
+    save = { list -> list.flatMap { listOf(it.exerciseId, it.bodyPart, SetSpec.encode(it.sets)) } },
+    restore = { flat -> flat.chunked(3).map { (id, part, sets) -> AssignedExercise(id, part, SetSpec.decode(sets)) }.toMutableStateList() },
+)
+
 /** Trainer builds a workout and assigns it to one or more members on one or more days. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AssignScreen(memberUid: String, gvm: GymViewModel, nav: NavHostController) {
     val me by gvm.me.collectAsStateWithLifecycle()
@@ -81,34 +92,22 @@ fun AssignScreen(memberUid: String, gvm: GymViewModel, nav: NavHostController) {
     val today = gvm.today
     val members = people.filter { it.role == Role.MEMBER && it.active && it.trainerUid == me?.uid }.sortedBy { it.name }
 
-    val exercises = remember { mutableStateListOf<AssignedExercise>() }
-    val chosen = remember { mutableStateListOf<String>().apply { if (memberUid.isNotBlank()) add(memberUid) } }
-    val days = remember { mutableStateListOf(today) }
-    var title by remember { mutableStateOf("") }
-    var weekly by remember { mutableStateOf(false) }
-    var picking by remember { mutableStateOf(false) }
-    var showTemplates by remember { mutableStateOf(false) }
+    val exercises = rememberSaveable(saver = exerciseListSaver) { SnapshotStateList() }
+    val chosen = rememberSaveable(saver = stateListSaver()) { SnapshotStateList<String>().apply { if (memberUid.isNotBlank()) add(memberUid) } }
+    val days = rememberSaveable(saver = stateListSaver()) { SnapshotStateList<Long>().apply { add(today) } }
+    var title by rememberSaveable { mutableStateOf("") }
+    var weekly by rememberSaveable { mutableStateOf(false) }
+    var picking by rememberSaveable { mutableStateOf(false) }
+    var showTemplates by rememberSaveable { mutableStateOf(false) }
 
     if (picking) {
         ExercisePicker(onDismiss = { picking = false }) { id -> exercises += defaultExercise(id); picking = false }
     }
     if (showTemplates) {
-        AlertDialog(onDismissRequest = { showTemplates = false }, title = { Text("Load a template") },
-            text = {
-                Column {
-                    if (templates.isEmpty()) Text("No templates yet. Build a workout and tap \"Save as template\".")
-                    templates.forEach { t ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            TextButton(onClick = {
-                                exercises.clear(); exercises.addAll(t.exercises.filter { ExerciseRepo.get(it.exerciseId) != null })
-                                title = t.title; showTemplates = false
-                            }, Modifier.weight(1f)) { Text("${t.title} (${t.exercises.size})", Modifier.fillMaxWidth()) }
-                            IconButton(onClick = { gvm.deleteTemplate(t) }) { Icon(Icons.Filled.Close, "Delete template") }
-                        }
-                    }
-                }
-            },
-            confirmButton = { TextButton(onClick = { showTemplates = false }) { Text("Close") } })
+        TemplatesDialog(templates, onDismiss = { showTemplates = false }, onDelete = { gvm.deleteTemplate(it) }) { t ->
+            exercises.clear(); exercises.addAll(t.exercises.filter { ExerciseRepo.get(it.exerciseId) != null })
+            title = t.title; showTemplates = false
+        }
     }
 
     val finalDays = (if (weekly) days.flatMap { d -> (0..3).map { d + it * 7L } } else days.toList()).distinct()
@@ -117,37 +116,14 @@ fun AssignScreen(memberUid: String, gvm: GymViewModel, nav: NavHostController) {
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f)) {
             BackScreen("Assign workout", onBack = { nav.popBackStack() }) {
-                item { SectionTitle("1. Who") }
-                item {
-                    if (members.isEmpty()) Text("You don't have members yet. Share your member code from the Members tab.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (members.size > 1) FilterChip(chosen.size == members.size, {
-                            if (chosen.size == members.size) chosen.clear() else { chosen.clear(); chosen.addAll(members.map { it.uid }) }
-                        }, label = { Text("Everyone") })
-                        members.forEach { m ->
-                            FilterChip(m.uid in chosen, { if (m.uid in chosen) chosen.remove(m.uid) else chosen.add(m.uid) }, label = { Text(m.name) })
-                        }
-                    }
-                }
-                item { SectionTitle("2. When") }
-                item {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        items(14) { i ->
-                            val d = today + i
-                            FilterChip(d in days, { if (d in days) days.remove(d) else days.add(d) },
-                                label = { Text(if (i == 0) "Today" else LocalDate.ofEpochDay(d).format(chipDay)) })
-                        }
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-                        Text("Repeat every week for 4 weeks", Modifier.weight(1f))
-                        Switch(weekly, { weekly = it })
-                    }
-                }
+                item { OwnerHeading("1. Who") }
+                item { WhoPicker(members.map { it.uid to it.name }, chosen) }
+                item { OwnerHeading("2. When") }
+                item { WhenPicker(today, days, weekly) { weekly = it } }
                 item {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        SectionTitle("3. Workout", Modifier.weight(1f))
-                        TextButton(onClick = { showTemplates = true }) { Text("Templates") }
+                        Column(Modifier.weight(1f)) { OwnerHeading("3. Workout") }
+                        PlainButton("Templates", { showTemplates = true }, Modifier.padding(top = 10.dp))
                     }
                 }
                 item {
@@ -157,54 +133,113 @@ fun AssignScreen(memberUid: String, gvm: GymViewModel, nav: NavHostController) {
                 exercises.forEachIndexed { i, e ->
                     item(key = "e$i${e.exerciseId}") {
                         val ex = ExerciseRepo.get(e.exerciseId) ?: return@item
-                        JkCard(Modifier.fillMaxWidth()) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                ExerciseDemo(ex, Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)), animate = false)
-                                Spacer(Modifier.width(10.dp))
-                                Text(ex.name, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 2)
-                                if (i > 0) IconButton(onClick = { exercises.add(i - 1, exercises.removeAt(i)) }) { Icon(Icons.Filled.ArrowUpward, "Move up") }
-                                IconButton(onClick = { exercises.removeAt(i) }) { Icon(Icons.Filled.Close, "Remove") }
-                            }
-                            val step = if (ex.equipment == "dumbbell" || ex.equipment == "kettlebells") 1f else 2.5f
-                            Spacer(Modifier.height(6.dp))
-                            e.sets.forEachIndexed { si, s ->
-                                SetEditorRow(si, s, step,
-                                    onChange = { ns ->
-                                        // Editing a set also updates the sets after it that were the same, so
-                                        // "3 × 12 @ 60kg" is one change instead of three.
-                                        exercises[i] = e.copy(sets = e.sets.mapIndexed { k, x -> if (k == si || (k > si && x == s)) ns else x })
-                                    },
-                                    onDelete = { exercises[i] = e.copy(sets = e.sets.toMutableList().also { it.removeAt(si) }) }.takeIf { e.sets.size > 1 })
-                            }
-                            TextButton(onClick = { exercises[i] = e.copy(sets = e.sets + (e.sets.lastOrNull() ?: SetSpec(12))) }) {
-                                Icon(Icons.Filled.Add, null); Text("Add set")
-                            }
-                        }
+                        ExerciseEditorCard(ex, e, canMoveUp = i > 0,
+                            onMoveUp = { exercises.add(i - 1, exercises.removeAt(i)) },
+                            onRemove = { exercises.removeAt(i) },
+                            onChange = { exercises[i] = it })
                     }
                 }
-                item {
-                    OutlinedButton(onClick = { picking = true }, Modifier.fillMaxWidth().height(52.dp)) {
-                        Icon(Icons.Filled.Add, null); Spacer(Modifier.width(6.dp)); Text("Add exercise")
-                    }
-                }
+                item { PlainButton("Add exercise", { picking = true }, Modifier.fillMaxWidth().height(52.dp), icon = Icons.Filled.Add) }
                 if (exercises.isNotEmpty()) item {
-                    TextButton(onClick = { gvm.saveTemplate(title.ifBlank { autoTitle(exercises) }, exercises.toList()) }, Modifier.fillMaxWidth()) {
-                        Text("Save as template")
-                    }
+                    PlainButton("Save as template", { gvm.saveTemplate(title.ifBlank { autoTitle(exercises) }, exercises.toList()) }, Modifier.fillMaxWidth())
                 }
             }
         }
-        Button(
-            onClick = { gvm.assign(title.ifBlank { autoTitle(exercises) }, chosen.toList(), finalDays, exercises.toList()) { nav.popBackStack() } },
-            enabled = !busy && count > 0 && exercises.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(56.dp),
-        ) {
-            Text(when {
+        RedButton(
+            when {
                 chosen.isEmpty() -> "Choose who"
                 days.isEmpty() -> "Choose a day"
                 exercises.isEmpty() -> "Add exercises"
-                else -> "Assign to ${chosen.size} member${if (chosen.size == 1) "" else "s"} · ${finalDays.size} day${if (finalDays.size == 1) "" else "s"}"
-            }, style = MaterialTheme.typography.titleMedium)
+                else -> "Assign to ${plural(chosen.size, "member")} · ${plural(finalDays.size, "day")}"
+            },
+            onClick = { gvm.assign(title.ifBlank { autoTitle(exercises) }, chosen.toList(), finalDays, exercises.toList()) { nav.popBackStack() } },
+            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(56.dp),
+            enabled = !busy && count > 0 && exercises.isNotEmpty(),
+        )
+    }
+}
+
+/** The trainer's saved workouts: tap one to load it, or delete it. */
+@Composable
+private fun TemplatesDialog(templates: List<Template>, onDismiss: () -> Unit, onDelete: (Template) -> Unit, onLoad: (Template) -> Unit) {
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Load a template") },
+        text = {
+            Column {
+                if (templates.isEmpty()) Text("No templates yet. Build a workout and tap \"Save as template\".")
+                templates.forEach { t ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = { onLoad(t) }, Modifier.weight(1f)) { Text("${t.title} (${t.exercises.size})", Modifier.fillMaxWidth()) }
+                        IconButton(onClick = { onDelete(t) }) { Icon(Icons.Filled.Close, "Delete template ${t.title}") }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } })
+}
+
+/** Chips for each of the trainer's members ([members] as uid to name), plus "Everyone" when there are several. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun WhoPicker(members: List<Pair<String, String>>, chosen: SnapshotStateList<String>) {
+    Column {
+        if (members.isEmpty()) Text("You don't have members yet. Share your member code from the Members tab.",
+            style = plex(15.sp, line = 21.sp), color = Owner.Muted)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (members.size > 1) FilterChip(chosen.size == members.size, {
+                if (chosen.size == members.size) chosen.clear() else { chosen.clear(); chosen.addAll(members.map { it.first }) }
+            }, label = { Text("Everyone") })
+            members.forEach { (uid, name) ->
+                FilterChip(uid in chosen, { if (uid in chosen) chosen.remove(uid) else chosen.add(uid) }, label = { Text(name) })
+            }
+        }
+    }
+}
+
+/** The next two weeks as day chips, and whether to repeat weekly for four weeks. */
+@Composable
+private fun WhenPicker(today: Long, days: SnapshotStateList<Long>, weekly: Boolean, onWeekly: (Boolean) -> Unit) {
+    Column {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(14) { i ->
+                val d = today + i
+                FilterChip(d in days, { if (d in days) days.remove(d) else days.add(d) },
+                    label = { Text(if (i == 0) "Today" else LocalDate.ofEpochDay(d).format(chipDay)) })
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            Text("Repeat every week for 4 weeks", Modifier.weight(1f), style = plex(15.sp), color = Owner.Ink)
+            Switch(weekly, onWeekly)
+        }
+    }
+}
+
+/** One exercise being prescribed: reorder or remove it, and edit its sets. */
+@Composable
+private fun ExerciseEditorCard(
+    ex: Exercise, e: AssignedExercise, canMoveUp: Boolean,
+    onMoveUp: () -> Unit, onRemove: () -> Unit, onChange: (AssignedExercise) -> Unit,
+) {
+    OwnerCardBox(padding = 16.dp) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ExerciseDemo(ex, Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)), animate = false)
+                Spacer(Modifier.width(10.dp))
+                Text(ex.name, Modifier.weight(1f), style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 2)
+                if (canMoveUp) IconButton(onClick = onMoveUp) { Icon(Icons.Filled.ArrowUpward, "Move ${ex.name} up", tint = Owner.Ink) }
+                IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, "Remove ${ex.name}", tint = Owner.Ink) }
+            }
+            val step = if (ex.equipment == "dumbbell" || ex.equipment == "kettlebells") 1f else 2.5f
+            Spacer(Modifier.height(6.dp))
+            e.sets.forEachIndexed { si, s ->
+                SetEditorRow(si, s, step,
+                    onChange = { ns ->
+                        // Editing a set also updates the sets after it that were the same, so
+                        // "3 × 12 @ 60kg" is one change instead of three.
+                        onChange(e.copy(sets = e.sets.mapIndexed { k, x -> if (k == si || (k > si && x == s)) ns else x }))
+                    },
+                    onDelete = { onChange(e.copy(sets = e.sets.toMutableList().also { it.removeAt(si) })) }.takeIf { e.sets.size > 1 })
+            }
+            PlainButton("Add set", { onChange(e.copy(sets = e.sets + (e.sets.lastOrNull() ?: SetSpec(12)))) }, Modifier.padding(top = 6.dp), icon = Icons.Filled.Add)
         }
     }
 }

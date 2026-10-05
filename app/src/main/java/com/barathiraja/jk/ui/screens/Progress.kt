@@ -34,10 +34,9 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.LineChart
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Calm
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -74,20 +73,20 @@ fun ProgressScreen(vm: JkViewModel, nav: androidx.navigation.NavHostController) 
         action = { Avatar(avatar, profile.name, 44.dp) { nav.navigate(com.barathiraja.jk.ui.Routes.PROFILE) } }) {
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Summary("${sessions.size}", "workouts", Ember, Modifier.weight(1f))
-                Summary("${sessions.sumOf { it.durationSec } / 60}", "minutes", Violet, Modifier.weight(1f))
-                Summary("$streak", "day streak", Leaf, Modifier.weight(1f))
+                Summary("${sessions.size}", "workouts", Accent, Modifier.weight(1f))
+                Summary("${sessions.sumOf { it.durationSec } / 60}", "minutes", Calm, Modifier.weight(1f))
+                Summary("$streak", "day streak", Good, Modifier.weight(1f))
             }
         }
-        item { ChartCard("Workout minutes", "${minutes.sum().toInt()} min this week") { BarChart(minutes, labels, Ember) } }
+        item { ChartCard("Workout minutes", "${minutes.sum().toInt()} min this week") { BarChart(minutes, labels, Accent) } }
         item {
             ChartCard("Steps", "%,d this week".format(steps.sum().toInt())) {
-                BarChart(steps, labels, Leaf, goal = settings.stepGoal.toFloat())
+                BarChart(steps, labels, Good, goal = settings.stepGoal.toFloat())
             }
         }
         item {
             ChartCard("Water", "${water.sum().toInt()} glasses this week") {
-                BarChart(water, labels, Aqua, goal = settings.waterGoalGlasses.toFloat())
+                BarChart(water, labels, Accent, goal = settings.waterGoalGlasses.toFloat())
             }
         }
         item {
@@ -105,7 +104,7 @@ fun ProgressScreen(vm: JkViewModel, nav: androidx.navigation.NavHostController) 
                     }
                 }
                 if (weights.size >= 2) {
-                    LineChart(weights.takeLast(30).map { it.kg }, Violet)
+                    LineChart(weights.takeLast(30).map { it.kg }, Calm)
                     val change = weights.last().kg - weights.first().kg
                     Text("%+.1f kg since %s".format(change, LocalDate.ofEpochDay(weights.first().epochDay)),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -117,14 +116,14 @@ fun ProgressScreen(vm: JkViewModel, nav: androidx.navigation.NavHostController) 
         }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Summary("${walks.size}", "walks", Leaf, Modifier.weight(1f))
-                Summary("${mind.sumOf { it.durationSec } / 60}", "mindful min", Violet, Modifier.weight(1f))
-                Summary("${photos.size}", "photos", Aqua, Modifier.weight(1f))
+                Summary("${walks.size}", "walks", Good, Modifier.weight(1f))
+                Summary("${mind.sumOf { it.durationSec } / 60}", "mindful min", Calm, Modifier.weight(1f))
+                Summary("${photos.size}", "photos", Accent, Modifier.weight(1f))
             }
         }
         item {
             NavRow(androidx.compose.material.icons.Icons.Outlined.PhotoCamera, "Transformation photos",
-                if (photos.size >= 2) "Compare before and after" else "Add progress photos", Ember) {
+                if (photos.size >= 2) "Compare before and after" else "Add progress photos", Accent) {
                 nav.navigate(com.barathiraja.jk.ui.Routes.PHOTOS)
             }
         }

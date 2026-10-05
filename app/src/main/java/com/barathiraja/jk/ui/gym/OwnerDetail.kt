@@ -1,10 +1,10 @@
 package com.barathiraja.jk.ui.gym
 
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -26,7 +27,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -37,7 +37,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -53,7 +52,8 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
-import com.barathiraja.jk.ui.theme.HeroBlue
+import com.barathiraja.jk.ui.components.LocalNavBarInset
+import com.barathiraja.jk.ui.theme.HeroFill
 import com.barathiraja.jk.ui.theme.Red
 import com.barathiraja.jk.ui.theme.Yellow
 
@@ -70,7 +70,7 @@ internal fun PersonPage(backLabel: String, onBack: () -> Unit, content: LazyList
     LazyColumn(
         Modifier.fillMaxSize().background(cs.background).windowInsetsPadding(WindowInsets.statusBars).imePadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp,
-            bottom = 32.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current),
+            bottom = 32.dp + LocalNavBarInset.current),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
@@ -95,7 +95,7 @@ internal fun PersonHero(
     p: Person, chip: Pair<String, Tone>, fraction: Float?, line: String, strip: String, rank: String?,
 ) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(HeroBlue).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(HeroFill).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -135,10 +135,10 @@ internal data class Tile(val value: String, val label: String, val note: String,
 @Composable
 internal fun StatTiles(tiles: List<Tile>) {
     val cs = MaterialTheme.colorScheme
-    Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         tiles.forEach { t ->
             Column(
-                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(18.dp)).background(if (t.dark) HeroBlue else cs.surfaceContainer)
+                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(18.dp)).background(if (t.dark) HeroFill else cs.surfaceContainer)
                     .padding(14.dp),
             ) {
                 Text(t.value, style = plex(21.sp, FontWeight.SemiBold, tracking = (-0.5).sp), color = if (t.dark) Color.White else cs.onSurface, maxLines = 1)
@@ -184,10 +184,6 @@ internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
     }
 }
 
-/** The page's main action. */
-@Composable
-internal fun WideAction(text: String, icon: ImageVector, onClick: () -> Unit) = RedButton(text, onClick, Modifier.fillMaxWidth(), icon)
-
 @Composable
 internal fun PageHeading(title: String, explain: String) {
     Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp)) {
@@ -207,8 +203,9 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
     val context = LocalContext.current
     val d = digest
     val trainer = people.firstOrNull { it.uid == uid }?.takeIf { it.active }
-    if (d == null || trainer == null) {
-        PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(15.sp)) } }
+    if (d == null || (trainer == null && people.isEmpty())) { GymLoading(); return }
+    if (trainer == null) {
+        PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(15.sp), color = Owner.Muted) } }
         return
     }
     val row = d.trainers.firstOrNull { it.trainer.uid == uid }

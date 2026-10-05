@@ -58,11 +58,10 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.WaterBottle
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
+import com.barathiraja.jk.ui.theme.Calm
 
 @Composable
 fun TrackScreen(vm: JkViewModel, nav: NavHostController) {
@@ -99,7 +98,7 @@ fun TrackScreen(vm: JkViewModel, nav: NavHostController) {
                             FilledTonalIconButton(onClick = { vm.addWater(1) }) { Icon(Icons.Filled.Add, "Add glass") }
                         }
                         if (water >= settings.waterGoalGlasses) {
-                            Text("Goal reached 💧", color = Aqua, style = MaterialTheme.typography.labelLarge)
+                            Text("Goal reached 💧", color = Accent, style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -110,7 +109,7 @@ fun TrackScreen(vm: JkViewModel, nav: NavHostController) {
         item {
             JkCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Ring(steps / settings.stepGoal.toFloat(), Leaf, size = 84.dp) {
+                    Ring(steps / settings.stepGoal.toFloat(), Good, size = 84.dp) {
                         Text("%,d".format(steps), style = MaterialTheme.typography.titleSmall)
                     }
                     Spacer(Modifier.width(16.dp))
@@ -146,14 +145,14 @@ fun TrackScreen(vm: JkViewModel, nav: NavHostController) {
             val target = Health.targetCalories(profile)
             JkCard(Modifier.fillMaxWidth(), onClick = { nav.navigate(Routes.DIET) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconTile(Icons.Outlined.Restaurant, Ember)
+                    IconTile(Icons.Outlined.Restaurant, Accent)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Diet & calories", style = MaterialTheme.typography.titleMedium)
                         Text("$eaten eaten · ${(target - eaten).coerceAtLeast(0)} kcal left",
                             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(6.dp))
-                        LinearProgressIndicator(progress = { eaten / target.toFloat() }, Modifier.fillMaxWidth(), color = Ember)
+                        LinearProgressIndicator(progress = { eaten / target.toFloat() }, Modifier.fillMaxWidth(), color = Accent)
                     }
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null)
                 }
@@ -163,15 +162,15 @@ fun TrackScreen(vm: JkViewModel, nav: NavHostController) {
         item { SectionTitle("Mind & body") }
         item {
             NavRow(Icons.Outlined.Timer, "Intermittent fasting",
-                if (fast != null) "Fast in progress — tap to view" else "Start a 13–20 hour fast", Sun) { nav.navigate(Routes.FASTING) }
+                if (fast != null) "Fast in progress — tap to view" else "Start a 13–20 hour fast", Watch) { nav.navigate(Routes.FASTING) }
         }
-        item { NavRow(Icons.Outlined.SelfImprovement, "Meditate", "Guided sessions with calming sounds", Violet) { nav.navigate(Routes.MEDITATE) } }
-        item { NavRow(Icons.Outlined.Air, "Breathing", "Box, 4-7-8 and relax patterns", Aqua) { nav.navigate(Routes.BREATHING) } }
+        item { NavRow(Icons.Outlined.SelfImprovement, "Meditate", "Guided sessions with calming sounds", Calm) { nav.navigate(Routes.MEDITATE) } }
+        item { NavRow(Icons.Outlined.Air, "Breathing", "Box, 4-7-8 and relax patterns", Accent) { nav.navigate(Routes.BREATHING) } }
 
         item { SectionTitle("Tools & learning") }
-        item { NavRow(Icons.Outlined.Calculate, "Health calculators", "BMI, BMR, TDEE, ideal weight, macros", Leaf) { nav.navigate(Routes.CALCULATORS) } }
-        item { NavRow(Icons.Outlined.WatchLater, "Stopwatch & interval timer", "Laps, Tabata and custom intervals", Ember) { nav.navigate(Routes.TOOLS) } }
-        item { NavRow(Icons.AutoMirrored.Outlined.MenuBook, "Guides & articles", "Training, nutrition and recovery basics", Sun) { nav.navigate(Routes.ARTICLES) } }
+        item { NavRow(Icons.Outlined.Calculate, "Health calculators", "BMI, BMR, TDEE, ideal weight, macros", Good) { nav.navigate(Routes.CALCULATORS) } }
+        item { NavRow(Icons.Outlined.WatchLater, "Stopwatch & interval timer", "Laps, Tabata and custom intervals", Accent) { nav.navigate(Routes.TOOLS) } }
+        item { NavRow(Icons.AutoMirrored.Outlined.MenuBook, "Guides & articles", "Training, nutrition and recovery basics", Watch) { nav.navigate(Routes.ARTICLES) } }
     }
 }
 

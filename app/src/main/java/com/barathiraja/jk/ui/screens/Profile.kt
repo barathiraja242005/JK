@@ -12,10 +12,9 @@ import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.SlowMotionVideo
 import androidx.compose.material.icons.outlined.Share
 import com.barathiraja.jk.ui.components.shareText
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Calm
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -155,11 +154,11 @@ fun ProfileScreen(vm: JkViewModel, nav: NavHostController, gvm: com.barathiraja.
         }
 
         item { SectionTitle("More") }
-        if (gvm?.me?.value != null) item { NavRow(Icons.Outlined.SlowMotionVideo, "Shorts", "Swipe through exercise demos", Violet) { nav.navigate(Routes.SHORTS) } }
-        item { NavRow(Icons.Outlined.PhotoCamera, "Transformation photos", "Before/after progress pictures", Ember) { nav.navigate(Routes.PHOTOS) } }
-        item { NavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & about", "User guide, FAQ, credits", Aqua) { nav.navigate(Routes.HELP) } }
+        if (gvm?.me?.value != null) item { NavRow(Icons.Outlined.SlowMotionVideo, "Shorts", "Swipe through exercise demos", Calm) { nav.navigate(Routes.SHORTS) } }
+        item { NavRow(Icons.Outlined.PhotoCamera, "Transformation photos", "Before/after progress pictures", Accent) { nav.navigate(Routes.PHOTOS) } }
+        item { NavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Help & about", "User guide, FAQ, credits", Accent) { nav.navigate(Routes.HELP) } }
         item {
-            NavRow(Icons.Outlined.Share, "Share JK", "Invite a friend to train with you", Leaf) {
+            NavRow(Icons.Outlined.Share, "Share JK", "Invite a friend to train with you", Good) {
                 context.shareText("I'm training with JK — workouts, challenges, diet and meditation in one app. Join me!")
             }
         }

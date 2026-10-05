@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.gym
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,25 +38,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role as A11yRole
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barathiraja.jk.gym.Person
+import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
 
 /*
  * The owner's people tools, at the bottom of a trainer's or member's page: move a member to another trainer,
  * or take someone out of the gym. Every step says in words what will happen before anything changes.
  */
-
-/** A full-width outlined button; [danger] makes its words red, for removing. */
-@Composable
-internal fun ManageButton(text: String, icon: ImageVector, danger: Boolean = false, onClick: () -> Unit) =
-    PlainButton(text, onClick, Modifier.fillMaxWidth(), icon, ink = if (danger) Owner.RedText else Owner.Ink)
 
 /** A tappable trainer choice with a round tick: 56dp tall, name in full. */
 @Composable
@@ -85,7 +83,8 @@ private fun TrainerOption(p: Person, note: String, selected: Boolean, onClick: (
 /** Pick which trainer a member trains with. */
 @Composable
 internal fun ChangeTrainerDialog(member: Person, gvm: GymViewModel, onDismiss: () -> Unit) {
-    val trainers = gvm.people.value.filter { it.role == com.barathiraja.jk.gym.Role.TRAINER && it.active }
+    val people by gvm.people.collectAsStateWithLifecycle()
+    val trainers = people.filter { it.role == Role.TRAINER && it.active }
     var pick by remember { mutableStateOf(member.trainerUid?.takeIf { uid -> trainers.any { it.uid == uid } }) }
     val chosen = trainers.firstOrNull { it.uid == pick }
     AlertDialog(
@@ -117,10 +116,12 @@ internal fun ChangeTrainerDialog(member: Person, gvm: GymViewModel, onDismiss: (
  */
 @Composable
 internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> Unit, onRemoved: () -> Unit) {
-    val isTrainer = p.role == com.barathiraja.jk.gym.Role.TRAINER
+    val isTrainer = p.role == Role.TRAINER
     val theirs = if (isTrainer) gvm.membersOf(p.uid) else emptyList()
-    val others = if (isTrainer) gvm.people.value.filter { it.role == com.barathiraja.jk.gym.Role.TRAINER && it.active && it.uid != p.uid } else emptyList()
-    val ranked = gvm.trainerRanking.value.map { it.uid }
+    val people by gvm.people.collectAsStateWithLifecycle()
+    val ranking by gvm.trainerRanking.collectAsStateWithLifecycle()
+    val others = if (isTrainer) people.filter { it.role == Role.TRAINER && it.active && it.uid != p.uid } else emptyList()
+    val ranked = ranking.map { it.uid }
     var pick by remember { mutableStateOf(others.minByOrNull { t -> ranked.indexOf(t.uid).let { if (it < 0) Int.MAX_VALUE else it } }?.uid) }
     val moveTo = others.firstOrNull { it.uid == pick }
     AlertDialog(
@@ -157,16 +158,16 @@ internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> U
  */
 @Composable
 internal fun OwnerPersonActions(p: Person, gvm: GymViewModel, onRemoved: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     var changing by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
-    val member = p.role == com.barathiraja.jk.gym.Role.MEMBER
+    val member = p.role == Role.MEMBER
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         RedButton("Message", { context.whatsApp("Hi ${p.firstName}, ") }, Modifier.weight(1f),
             Icons.AutoMirrored.Outlined.Send)
         if (member) PlainButton("Trainer", { changing = true }, Modifier.weight(1f), Icons.Outlined.SwapHoriz)
         Surface(onClick = { removing = true }, shape = CircleShape, color = Owner.Card, contentColor = Owner.RedText,
-            border = androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
+            border = BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PersonRemove, "Remove ${p.firstName} from the gym", Modifier.size(20.dp)) }
         }
     }

@@ -30,7 +30,7 @@ import com.barathiraja.jk.ui.theme.JkTheme
 
 class MainActivity : ComponentActivity() {
     private val container get() = (application as JkApp).container
-    private val vm: JkViewModel by viewModels { JkViewModel.factory(container, application) }
+    private val vm: JkViewModel by viewModels { JkViewModel.factory(container) }
     private val tvm: TrainingViewModel by viewModels { TrainingViewModel.factory(container) }
     private val gvm: GymViewModel by viewModels { GymViewModel.factory(container) }
 
@@ -63,7 +63,9 @@ class MainActivity : ComponentActivity() {
         val granted = Build.VERSION.SDK_INT < 29 ||
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
         if (granted) container.steps.start()
-        tvm.refreshToday() // a new day may have started while the app was in the background
+        // A new day may have started while the app was in the background.
+        container.today()
+        tvm.refreshToday()
     }
 
     override fun onStop() {

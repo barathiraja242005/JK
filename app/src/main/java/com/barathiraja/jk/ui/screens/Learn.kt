@@ -56,7 +56,7 @@ import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.Pill
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.theme.Sun
+import com.barathiraja.jk.ui.theme.Watch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -66,7 +66,7 @@ fun ArticlesScreen(nav: NavHostController) {
         items(Articles.all, key = { it.id }) { a ->
             JkCard(Modifier.fillMaxWidth(), onClick = { nav.navigate(Routes.article(a.id)) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconTile(Icons.AutoMirrored.Outlined.MenuBook, Sun)
+                    IconTile(Icons.AutoMirrored.Outlined.MenuBook, Watch)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(a.title, style = MaterialTheme.typography.titleMedium)

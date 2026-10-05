@@ -67,7 +67,7 @@ import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.SectionTitle
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Calm
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -86,7 +86,7 @@ fun MeditateScreen(vm: JkViewModel, nav: NavHostController) {
         items(Meditations.all, key = { it.id }) { m ->
             JkCard(Modifier.fillMaxWidth(), onClick = { nav.navigate(Routes.meditation(m.id)) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconTile(Icons.Outlined.SelfImprovement, Violet)
+                    IconTile(Icons.Outlined.SelfImprovement, Calm)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
                         Text(m.title, style = MaterialTheme.typography.titleMedium)
@@ -194,8 +194,8 @@ fun MeditationPlayerScreen(id: String, vm: JkViewModel, nav: NavHostController) 
             }
             Spacer(Modifier.weight(1f))
             Box(contentAlignment = Alignment.Center) {
-                Box(Modifier.size(260.dp).scale(if (s.paused || s.done) 0.9f else pulse).background(Violet.copy(alpha = 0.18f), CircleShape))
-                Box(Modifier.size(190.dp).scale(if (s.paused || s.done) 0.9f else pulse).background(Violet.copy(alpha = 0.32f), CircleShape))
+                Box(Modifier.size(260.dp).scale(if (s.paused || s.done) 0.9f else pulse).background(Calm.copy(alpha = 0.18f), CircleShape))
+                Box(Modifier.size(190.dp).scale(if (s.paused || s.done) 0.9f else pulse).background(Calm.copy(alpha = 0.32f), CircleShape))
                 Text(formatDuration((mvm.total - s.elapsed).coerceAtLeast(0).toLong()), color = Color.White,
                     style = MaterialTheme.typography.displaySmall)
             }

@@ -18,14 +18,14 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.barathiraja.jk.data.BodyPart
-import com.barathiraja.jk.ui.theme.Ember
+import com.barathiraja.jk.ui.theme.Accent
 
 /**
  * Simplified front/back body silhouettes with the targeted muscle groups highlighted.
  * Drawn in a 100×220 virtual grid so it scales to any size.
  */
 @Composable
-fun BodyMap(parts: Collection<BodyPart>, modifier: Modifier = Modifier, height: Dp = 150.dp, highlight: Color = Ember) {
+fun BodyMap(parts: Collection<BodyPart>, modifier: Modifier = Modifier, height: Dp = 150.dp, highlight: Color = Accent) {
     val base = MaterialTheme.colorScheme.surfaceVariant
     val skin = MaterialTheme.colorScheme.outlineVariant
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

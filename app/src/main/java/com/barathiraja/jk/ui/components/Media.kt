@@ -7,6 +7,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -33,11 +34,10 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import coil3.compose.AsyncImage
 import com.barathiraja.jk.data.Exercise
-import com.barathiraja.jk.ui.theme.Aqua
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
-import com.barathiraja.jk.ui.theme.Violet
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
+import com.barathiraja.jk.ui.theme.Calm
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
@@ -76,7 +76,7 @@ fun ExerciseDemo(
 /** Burst of falling confetti; drawn on a Canvas so no animation assets are needed. */
 @Composable
 fun Confetti(modifier: Modifier = Modifier, count: Int = 120) {
-    val colors = listOf(Ember, Sun, Leaf, Aqua, Violet, Color.White)
+    val colors = listOf(Accent, Watch, Good, Accent, Calm, Color.White)
     val pieces = remember {
         List(count) {
             floatArrayOf(
@@ -110,11 +110,11 @@ fun Confetti(modifier: Modifier = Modifier, count: Int = 120) {
 
 /** Water bottle that fills to [fraction] with an animated wave surface. */
 @Composable
-fun WaterBottle(fraction: Float, modifier: Modifier = Modifier, color: Color = Aqua) {
+fun WaterBottle(fraction: Float, modifier: Modifier = Modifier, color: Color = Accent) {
     val phase by rememberInfiniteTransition(label = "wave").animateFloat(
         0f, (2 * PI).toFloat(), infiniteRepeatable(tween(2200, easing = LinearEasing), RepeatMode.Restart), label = "phase",
     )
-    val level by androidx.compose.animation.core.animateFloatAsState(fraction.coerceIn(0f, 1f), tween(800), label = "level")
+    val level by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(800), label = "level")
     Canvas(modifier) {
         val w = size.width
         val h = size.height

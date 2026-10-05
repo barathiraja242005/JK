@@ -1,16 +1,6 @@
 package com.barathiraja.jk.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import com.barathiraja.jk.ui.theme.Ember
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.draw.clip
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Icon
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.border
-import androidx.compose.foundation.background
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -26,37 +16,45 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
 
-/** Plain card: white (dark grey in dark mode) with a fine border. [black] is kept for callers and looks the same. */
+/** Plain card on the page: white (dark grey in dark mode), large rounds. [onClick] makes the whole card a button. */
 @Composable
 fun JkCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    @Suppress("UNUSED_PARAMETER") black: Boolean = false,
     padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(24.dp)
-    Surface(
-        onClick = onClick ?: {}, enabled = onClick != null, modifier = modifier, shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainer, contentColor = MaterialTheme.colorScheme.onSurface,
-    ) {
-        Column(Modifier.padding(padding), content = content)
+    val color = MaterialTheme.colorScheme.surfaceContainer
+    val ink = MaterialTheme.colorScheme.onSurface
+    // The non-clickable overload, so a plain card isn't announced as a disabled button.
+    if (onClick != null) {
+        Surface(onClick = onClick, modifier = modifier, shape = shape, color = color, contentColor = ink) {
+            Column(Modifier.padding(padding), content = content)
+        }
+    } else {
+        Surface(modifier = modifier, shape = shape, color = color, contentColor = ink) {
+            Column(Modifier.padding(padding), content = content)
+        }
     }
 }
 
@@ -65,57 +63,7 @@ fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = MaterialTheme.typography.titleMedium, modifier = modifier.padding(top = 10.dp, bottom = 4.dp))
 }
 
-/** Small muted line above a heading (date, gym name). */
-@Composable
-fun Eyebrow(text: String, modifier: Modifier = Modifier) {
-    Text(text, modifier, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
-/** Compact button: filled (primary) or outlined ([ghost]); [icon] sits after the text. */
-@Composable
-fun SmallButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ghost: Boolean = false) {
-    val shape = RoundedCornerShape(50)
-    Surface(
-        onClick = onClick, modifier = modifier.heightIn(min = 44.dp), shape = shape,
-        color = if (ghost) Color.Transparent else MaterialTheme.colorScheme.primary,
-        contentColor = if (ghost) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-        border = if (ghost) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
-    ) {
-        Row(Modifier.padding(horizontal = 18.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center) {
-            Text(text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-            if (icon != null) {
-                Spacer(Modifier.width(6.dp))
-                Icon(icon, null, Modifier.size(16.dp))
-            }
-        }
-    }
-}
-
-/** Thin progress ring in the accent colour. */
-@Composable
-fun ProgressRing(fraction: Float, modifier: Modifier = Modifier) {
-    val value by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(700), label = "ring")
-    val track = MaterialTheme.colorScheme.outlineVariant
-    val accent = Ember
-    Canvas(modifier) {
-        val w = 8.dp.toPx()
-        val inset = w / 2
-        val arcSize = Size(size.width - w, size.height - w)
-        drawArc(track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(w))
-        drawArc(accent, -90f, 360f * value, false, Offset(inset, inset), arcSize, style = Stroke(w, cap = StrokeCap.Round))
-    }
-}
-
-/** Thin horizontal progress bar. */
-@Composable
-fun ProgressLine(fraction: Float, color: Color, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.outlineVariant)) {
-        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).height(4.dp).clip(RoundedCornerShape(2.dp)).background(color))
-    }
-}
-
-/** Circular progress ring with centered content. */
+/** Circular progress ring with centred content; [track] defaults to the theme's quiet grey. */
 @Composable
 fun Ring(
     progress: Float,
@@ -123,16 +71,17 @@ fun Ring(
     modifier: Modifier = Modifier,
     size: Dp = 96.dp,
     stroke: Dp = 10.dp,
+    track: Color = Color.Unspecified,
     content: @Composable () -> Unit = {},
 ) {
     val animated by animateFloatAsState(progress.coerceIn(0f, 1f), tween(700), label = "ring")
-    val track = MaterialTheme.colorScheme.surfaceVariant
+    val trackColor = track.takeOrElse { MaterialTheme.colorScheme.surfaceVariant }
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val s = stroke.toPx()
             val arcSize = Size(this.size.width - s, this.size.height - s)
             val topLeft = Offset(s / 2, s / 2)
-            drawArc(track, 0f, 360f, false, topLeft, arcSize, style = Stroke(s))
+            drawArc(trackColor, 0f, 360f, false, topLeft, arcSize, style = Stroke(s))
             drawArc(color, -90f, 360f * animated, false, topLeft, arcSize, style = Stroke(s, cap = StrokeCap.Round))
         }
         content()
@@ -178,7 +127,7 @@ fun BarChart(
                     c,
                     topLeft = Offset(i * slot + (slot - barW) / 2, size.height - h),
                     size = Size(barW, h.coerceAtLeast(3f)),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(barW / 3),
+                    cornerRadius = CornerRadius(barW / 3),
                 )
             }
             goal?.let {
@@ -235,7 +184,7 @@ fun LineChart(points: List<Float>, color: Color, modifier: Modifier = Modifier) 
 
 @Composable
 fun Pill(text: String, color: Color, modifier: Modifier = Modifier) {
-    androidx.compose.material3.Surface(
+    Surface(
         modifier = modifier,
         color = color.copy(alpha = 0.15f),
         contentColor = color,

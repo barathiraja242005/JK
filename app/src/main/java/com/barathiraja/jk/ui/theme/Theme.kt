@@ -6,9 +6,9 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
@@ -40,12 +40,13 @@ import com.barathiraja.jk.data.ThemeMode
  * colour alone; a word always goes with it. In dark mode red text lightens to coral so it stays readable, and red
  * buttons carry black text there.
  */
-private object Palette {
-    var dark by mutableStateOf(false)
-}
+/** Whether the dark scheme is showing; provided by [JkTheme] so every colour below follows it. */
+val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /** A colour that follows light/dark mode. */
-internal fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else Color(light)
+@Composable
+@ReadOnlyComposable
+internal fun pick(light: Long, dark: Long) = if (LocalDarkTheme.current) Color(dark) else Color(light)
 
 /** Brand red as a fill (buttons, the open tab). White text on it is 5.2:1. */
 val Red: Color = Color(0xFFD7141E)
@@ -53,24 +54,22 @@ val Red: Color = Color(0xFFD7141E)
 val Yellow: Color = Color(0xFFFFC629)
 /** Near-black ink, for text. */
 val Ink: Color = Color(0xFF0A0A0A)
-/** Charcoal: hero cards and the bottom bar. White text on it is 15:1. */
+/** Charcoal: the bottom bar, and hero cards in light mode. White text on it is 15:1. */
 val Charcoal: Color = Color(0xFF232529)
 
-/** Solid fill for hero cards; white text on it in both modes. */
-val HeroBlue: Color get() = pick(0xFF232529, 0xFF2A2C31)
+/** Hero card fill: charcoal, a step lighter in dark mode so it still lifts off the page. White text on it. */
+val HeroFill: Color @Composable @ReadOnlyComposable get() = pick(0xFF232529, 0xFF2A2C31)
 
 /** The accent for text, icons and progress: red on white, coral on black. */
-val Ember: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
-/** Good / done: ink, with a tick or a word next to it. */
-val Leaf: Color get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
-/** Watch / in progress: dark gold on white, yellow on black. */
-val Sun: Color get() = pick(0xFF8A6100, 0xFFFFC629)
+val Accent: Color @Composable @ReadOnlyComposable get() = pick(0xFFD7141E, 0xFFFF5A5F)
+/** Good / done: ink, always next to a tick or a word. */
+val Good: Color @Composable @ReadOnlyComposable get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
+/** Worth watching / in progress: dark gold on white, yellow on black. */
+val Watch: Color @Composable @ReadOnlyComposable get() = pick(0xFF8A6100, 0xFFFFC629)
 /** Bad / missed. */
-val Alert: Color get() = pick(0xFFB3121B, 0xFFFF8A8E)
-/** Information, water: the accent. */
-val Aqua: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
+val Bad: Color @Composable @ReadOnlyComposable get() = pick(0xFFB3121B, 0xFFFF8A8E)
 /** Calm: meditation, sleep. A quiet grey, so calm screens stay calm. */
-val Violet: Color get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
+val Calm: Color @Composable @ReadOnlyComposable get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
 
 private val Light = lightColorScheme(
     primary = Color(0xFFD7141E),
@@ -95,6 +94,9 @@ private val Light = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE6E6E3),
     outline = Color(0xFF8F8F8C),
     outlineVariant = Color(0xFFE6E6E3),
+    inverseSurface = Color(0xFF232529),
+    inverseOnSurface = Color.White,
+    inversePrimary = Color(0xFFFFC629),
 )
 
 private val Dark = darkColorScheme(
@@ -120,6 +122,9 @@ private val Dark = darkColorScheme(
     surfaceContainerHighest = Color(0xFF2A2A2A),
     outline = Color(0xFF6E6E6E),
     outlineVariant = Color(0xFF262626),
+    inverseSurface = Color(0xFF2A2C31),
+    inverseOnSurface = Color.White,
+    inversePrimary = Color(0xFFFFC629),
 )
 
 /*
@@ -164,7 +169,7 @@ fun JkTheme(mode: ThemeMode, content: @Composable () -> Unit) {
         ThemeMode.LIGHT -> false
         ThemeMode.DARK -> true
     }
-    // Written before any child reads the accents in this pass, so they always match the scheme.
-    if (Palette.dark != dark) Palette.dark = dark
-    MaterialTheme(colorScheme = if (dark) Dark else Light, typography = JkType, content = content)
+    CompositionLocalProvider(LocalDarkTheme provides dark) {
+        MaterialTheme(colorScheme = if (dark) Dark else Light, typography = JkType, content = content)
+    }
 }

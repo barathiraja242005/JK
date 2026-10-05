@@ -24,9 +24,11 @@ android {
 
     buildTypes {
         release {
+            // R8 shrinks and optimises the app; keep rules for our own code are in proguard-rules.pro.
             optimization {
-                enable = false
+                enable = true
             }
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Signed with the local debug key for testing on your phone. Use a real upload key for Play Store.
             signingConfig = signingConfigs.getByName("debug")
         }

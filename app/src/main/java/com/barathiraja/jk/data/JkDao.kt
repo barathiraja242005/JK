@@ -14,6 +14,17 @@ interface JkDao {
     @Insert
     suspend fun insertSession(session: WorkoutSession)
 
+    /** Removes the sessions logged for one workout (e.g. "gym:{id}"), so re-finishing it never counts twice. */
+    @Query("DELETE FROM workout_sessions WHERE workoutId = :workoutId")
+    suspend fun deleteSessionsFor(workoutId: String)
+
+    /** Logs [session] as the only session for its workout. */
+    @androidx.room.Transaction
+    suspend fun replaceSession(session: WorkoutSession) {
+        deleteSessionsFor(session.workoutId)
+        insertSession(session)
+    }
+
     @Query("SELECT * FROM workout_sessions ORDER BY finishedAt DESC")
     fun sessions(): Flow<List<WorkoutSession>>
 
@@ -32,6 +43,16 @@ interface JkDao {
 
     @Query("SELECT * FROM water_days WHERE epochDay >= :fromDay ORDER BY epochDay")
     fun waterSince(fromDay: Long): Flow<List<WaterDay>>
+
+    @Query("SELECT * FROM water_days WHERE epochDay = :day")
+    suspend fun waterNow(day: Long): WaterDay?
+
+    /** Adds [delta] glasses in one transaction, so quick taps never overwrite each other. */
+    @androidx.room.Transaction
+    suspend fun addWater(day: Long, delta: Int, max: Int) {
+        val current = waterNow(day)?.glasses ?: 0
+        upsertWater(WaterDay(day, (current + delta).coerceIn(0, max)))
+    }
 
     // Weight
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -189,6 +210,13 @@ interface JkDao {
 
     @Query("DELETE FROM set_logs WHERE epochDay = :day AND exerciseId = :exerciseId AND setIndex = :setIndex")
     suspend fun deleteSetLog(day: Long, exerciseId: String, setIndex: Int)
+
+    /** Logs a set as the only row for its day, exercise and index, so a double tap never logs it twice. */
+    @androidx.room.Transaction
+    suspend fun replaceSetLog(log: SetLog) {
+        deleteSetLog(log.epochDay, log.exerciseId, log.setIndex)
+        insertSetLog(log)
+    }
 
     @Query("SELECT * FROM set_logs WHERE exerciseId = :exerciseId ORDER BY loggedAt DESC LIMIT 60")
     suspend fun setLogs(exerciseId: String): List<SetLog>

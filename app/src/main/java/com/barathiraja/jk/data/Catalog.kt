@@ -4,7 +4,8 @@ enum class Level(val label: String) { BEGINNER("Beginner"), INTERMEDIATE("Interm
 
 /** One block in a workout: either timed ([seconds]) or counted ([reps]). */
 data class Block(val exerciseId: String, val seconds: Int = 0, val reps: Int = 0) {
-    val exercise: Exercise get() = ExerciseRepo.require(exerciseId)
+    /** Falls back to a bare placeholder if the id is missing from the database, instead of crashing the screen. */
+    val exercise: Exercise get() = ExerciseRepo.get(exerciseId) ?: missingExercise(exerciseId)
     val isTimed get() = seconds > 0
     val label get() = if (isTimed) "${seconds}s" else "x$reps"
 
@@ -39,8 +40,14 @@ data class Workout(
             return rounds * (work + restSec * blocks.size)
         }
     val estimatedMin get() = (estimatedSec + 59) / 60
-    val cover: Exercise get() = blocks.first().exercise
+    val cover: Exercise get() = blocks.firstOrNull()?.exercise ?: missingExercise(id)
 }
+
+/** Stand-in for an exercise id the bundled database doesn't know (e.g. a failed load or an old saved workout). */
+private fun missingExercise(id: String) = Exercise(
+    id = id, name = id.replace('_', ' '), category = "", equipment = "", level = "", force = null, mechanic = null,
+    primary = emptyList(), secondary = emptyList(), instructions = emptyList(),
+)
 
 data class Challenge(
     val id: String,
@@ -214,8 +221,8 @@ object Catalog {
             val pool = listOf("home_starter", "home_fatburn", "home_legs", "home_upper", "home_abs", "home_glutes", "home_hiit")
             when {
                 d % 7 == 0 -> null
-                d % 7 == 4 -> byId("home_mobility")!!.copy(id = "challenge:transform30:$d", title = "Transform · Day $d")
-                else -> byId(pool[(d - 1) % pool.size])!!.copy(id = "challenge:transform30:$d", title = "Transform · Day $d")
+                d % 7 == 4 -> byId("home_mobility")?.copy(id = "challenge:transform30:$d", title = "Transform · Day $d")
+                else -> byId(pool[(d - 1) % pool.size])?.copy(id = "challenge:transform30:$d", title = "Transform · Day $d")
             }
         },
         Challenge("hiit21", "21-Day HIIT Shred", "Short, intense, every day",
@@ -241,7 +248,7 @@ object Catalog {
     fun todayFor(place: Place, level: Level, epochDay: Long): Workout {
         val pool = workouts.filter { it.place == place && it.focus != "Warm-up" }
         val preferred = pool.filter { it.level == level }.ifEmpty { pool }
-        if (place == Place.HOME && epochDay % 7 == 6L) return byId("home_mobility")!!
+        if (place == Place.HOME && epochDay % 7 == 6L) byId("home_mobility")?.let { return it }
         return preferred[(epochDay % preferred.size).toInt()]
     }
 

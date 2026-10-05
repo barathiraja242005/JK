@@ -82,12 +82,14 @@ import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.Pill
 import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.openUrl
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
-import com.barathiraja.jk.ui.theme.Sun
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
+import com.barathiraja.jk.ui.theme.Watch
 
-fun Level.color(): Color = when (this) { Level.BEGINNER -> Leaf; Level.INTERMEDIATE -> Sun; Level.ADVANCED -> Ember }
-fun levelColor(level: String) = when (level) { "beginner" -> Leaf; "intermediate" -> Sun; else -> Ember }
+@Composable @androidx.compose.runtime.ReadOnlyComposable
+fun Level.color(): Color = when (this) { Level.BEGINNER -> Good; Level.INTERMEDIATE -> Watch; Level.ADVANCED -> Accent }
+@Composable @androidx.compose.runtime.ReadOnlyComposable
+fun levelColor(level: String) = when (level) { "beginner" -> Good; "intermediate" -> Watch; else -> Accent }
 
 private val trainTabs = listOf("Today", "Programs", "Challenges", "Exercises", "My workouts")
 
@@ -222,7 +224,7 @@ fun ChallengeDetailScreen(id: String, vm: JkViewModel, nav: NavHostController) {
                                     val isDone = d in done
                                     val isNext = d == next
                                     val bg = when {
-                                        isDone -> Leaf
+                                        isDone -> Good
                                         isNext -> MaterialTheme.colorScheme.primary
                                         else -> MaterialTheme.colorScheme.surfaceContainerHigh
                                     }

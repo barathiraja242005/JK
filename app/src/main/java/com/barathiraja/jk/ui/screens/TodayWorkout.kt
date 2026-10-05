@@ -83,7 +83,7 @@ import com.barathiraja.jk.ui.TrainingViewModel
 import com.barathiraja.jk.ui.components.BodyMap
 import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.components.Pill
-import com.barathiraja.jk.ui.theme.Leaf
+import com.barathiraja.jk.ui.theme.Good
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
@@ -250,8 +250,8 @@ fun TodayWorkoutTab(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostControl
                 }
             } else {
                 item {
-                    Surface(color = Leaf.copy(alpha = 0.15f), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                        Text("🏆 ALL WORKOUTS DONE! Great work today.", Modifier.padding(16.dp), color = Leaf,
+                    Surface(color = Good.copy(alpha = 0.15f), shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text("🏆 ALL WORKOUTS DONE! Great work today.", Modifier.padding(16.dp), color = Good,
                             style = MaterialTheme.typography.titleMedium)
                     }
                 }
@@ -317,7 +317,7 @@ fun WeekStrip(tvm: TrainingViewModel, selected: Long, plans: Map<Long, com.barat
                     style = MaterialTheme.typography.labelMedium)
                 Text("${date.dayOfMonth}", color = fg, style = MaterialTheme.typography.titleMedium)
                 Box(Modifier.size(6.dp).clip(CircleShape).background(
-                    when { done -> Leaf; rest -> Color.Transparent; isSel -> fg; else -> MaterialTheme.colorScheme.outline }))
+                    when { done -> Good; rest -> Color.Transparent; isSel -> fg; else -> MaterialTheme.colorScheme.outline }))
             }
         }
     }
@@ -331,7 +331,7 @@ private fun ExerciseRow(item: PlanItem, readOnly: Boolean, onOpen: () -> Unit, o
     Row {
         // Timeline check.
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.width(32.dp).padding(top = 16.dp)) {
-            Box(Modifier.size(24.dp).clip(CircleShape).background(if (item.done) Leaf else MaterialTheme.colorScheme.surfaceVariant),
+            Box(Modifier.size(24.dp).clip(CircleShape).background(if (item.done) Good else MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center) {
                 if (item.done) Icon(Icons.Filled.Check, null, Modifier.size(16.dp), tint = Color.White)
             }
@@ -339,7 +339,7 @@ private fun ExerciseRow(item: PlanItem, readOnly: Boolean, onOpen: () -> Unit, o
         Card(
             onClick = onOpen, modifier = Modifier.weight(1f), shape = RoundedCornerShape(18.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            border = if (item.done) BorderStroke(1.5.dp, Leaf) else null,
+            border = if (item.done) BorderStroke(1.5.dp, Good) else null,
         ) {
             Row(Modifier.padding(12.dp)) {
                 ExerciseDemo(ex, Modifier.size(88.dp).clip(RoundedCornerShape(12.dp)), animate = false)
@@ -381,7 +381,7 @@ fun SetTable(sets: List<com.barathiraja.jk.data.SetSpec>) {
     sets.take(5).forEachIndexed { i, s ->
         Row {
             Text("${i + 1}", Modifier.weight(0.6f), style = MaterialTheme.typography.bodySmall,
-                color = if (s.done) Leaf else MaterialTheme.colorScheme.onSurface)
+                color = if (s.done) Good else MaterialTheme.colorScheme.onSurface)
             Text(if (s.timed) formatDuration(s.seconds.toLong()) else "${s.reps}", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
             if (!timed) Text(if (s.weightKg > 0f) "%s KG".format(s.weightKg.trimZero()) else if (weighted) "—" else "BW",
                 Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)

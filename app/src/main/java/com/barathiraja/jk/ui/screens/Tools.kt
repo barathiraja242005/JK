@@ -45,8 +45,8 @@ import androidx.navigation.NavHostController
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.Ring
-import com.barathiraja.jk.ui.theme.Ember
-import com.barathiraja.jk.ui.theme.Leaf
+import com.barathiraja.jk.ui.theme.Accent
+import com.barathiraja.jk.ui.theme.Good
 import kotlinx.coroutines.delay
 
 @Composable
@@ -139,8 +139,8 @@ private fun IntervalTimer() {
                 Text("Start · ${formatDuration(((work + rest) * rounds).toLong())}")
             }
         } else {
-            Text(if (isWork) "WORK" else "REST", style = MaterialTheme.typography.headlineMedium, color = if (isWork) Ember else Leaf)
-            Ring(left / (if (isWork) work else rest).coerceAtLeast(1).toFloat(), if (isWork) Ember else Leaf, size = 260.dp, stroke = 16.dp) {
+            Text(if (isWork) "WORK" else "REST", style = MaterialTheme.typography.headlineMedium, color = if (isWork) Accent else Good)
+            Ring(left / (if (isWork) work else rest).coerceAtLeast(1).toFloat(), if (isWork) Accent else Good, size = 260.dp, stroke = 16.dp) {
                 Text("$left", fontSize = 84.sp, style = MaterialTheme.typography.displaySmall)
             }
             Text("Round $round of $rounds", style = MaterialTheme.typography.titleMedium)

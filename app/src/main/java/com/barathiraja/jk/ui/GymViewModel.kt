@@ -1,6 +1,9 @@
 package com.barathiraja.jk.ui
 
 import android.content.Context
+import android.util.Log
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
@@ -15,17 +18,23 @@ import com.barathiraja.jk.gym.AssignedExercise
 import com.barathiraja.jk.gym.Assignment
 import com.barathiraja.jk.gym.GivenAward
 import com.barathiraja.jk.gym.Gym
+import com.barathiraja.jk.gym.GymException
 import com.barathiraja.jk.gym.MonthAwards
 import com.barathiraja.jk.gym.OwnerStats
+import com.barathiraja.jk.gym.PartialSave
 import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.gym.PersonStatus
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
-import com.barathiraja.jk.ui.gym.plural
 import com.barathiraja.jk.gym.Template
+import com.barathiraja.jk.ui.gym.plural
 import com.google.firebase.auth.FirebaseUser
+import java.time.LocalDate
+import java.time.YearMonth
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -39,8 +48,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.LocalDate
-import java.time.YearMonth
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Where the signed-in user stands with the gym; drives which screens JkRoot shows. */
 sealed interface GymState {
@@ -54,7 +62,7 @@ sealed interface GymState {
     data class Ready(val gym: Gym, val me: Person) : GymState
 }
 
-@OptIn(ExperimentalCoroutinesApi::class, kotlinx.coroutines.FlowPreview::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class GymViewModel(private val c: AppContainer) : ViewModel() {
     private val repo get() = c.gym
     val today: Long get() = LocalDate.now().toEpochDay()
@@ -64,8 +72,14 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     /** True while this account's saved profile is being fetched after sign-in (JkRoot waits before onboarding). */
     val restoring = MutableStateFlow(false)
 
+    private val _message = MutableStateFlow<String?>(null)
     /** Short error/confirmation messages for a snackbar. */
-    val message = MutableStateFlow<String?>(null)
+    val message: StateFlow<String?> = _message
+
+    /** Shows [text] in the snackbar. */
+    fun showMessage(text: String) { _message.value = text }
+    /** Called once the snackbar has shown the message (or a screen wants an old error gone). */
+    fun clearMessage() { _message.value = null }
     val busy = MutableStateFlow(false)
 
     /** Becomes true once Firebase has told us whether someone is signed in. */
@@ -161,8 +175,10 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     /** A member's current trainer; null when they have none or their trainer has left the gym. */
     fun trainerOf(member: Person): Person? = person(member.trainerUid)?.takeIf { it.active }
 
+    private val _ranksTab = MutableStateFlow(0)
     /** Which section the Ranks tab shows (0 members, 1 trainers, 2 awards); kept here so other screens can open it. */
-    val ranksTab = MutableStateFlow(0)
+    val ranksTab: StateFlow<Int> = _ranksTab
+    fun showRanksTab(index: Int) { _ranksTab.value = index }
 
     init {
         // After sign-in: bring back this account's profile and settings if the phone doesn't have them.
@@ -207,18 +223,18 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         val key = last.toString()
         if (awardsSavedFor == key) return
         if (saved.any { it.month == key }) { awardsSavedFor = key; return }
-        if (java.time.LocalDate.now().dayOfMonth < AWARDS_GRACE_DAYS + 1) return
+        if (LocalDate.now().dayOfMonth < AWARDS_GRACE_DAYS + 1) return
         try {
             val from = last.minusMonths(1).atDay(1).toEpochDay()
             val list = repo.fetchAssignments(gymId, from, last.atEndOfMonth().toEpochDay())
             val winners = Scoring.awards(repo.fetchPeople(gymId), list, last)
             if (winners.isNotEmpty()) repo.saveAwards(gymId, key, winners)
             awardsSavedFor = key
-        } catch (e: kotlinx.coroutines.CancellationException) {
+        } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             // Offline or refused: try again the next time the gym data changes.
-            android.util.Log.w("GymViewModel", "Saving $key awards failed", e)
+            Log.w("GymViewModel", "Saving $key awards failed", e)
         }
     }
 
@@ -234,26 +250,26 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         busy.value = true
         try {
             if (queuedOk) {
-                val finished = kotlinx.coroutines.withTimeoutOrNull(OFFLINE_WAIT_MS) { block() } != null
-                message.value = if (finished) success else "Saved on this phone. It will sync when you're back online."
+                val finished = withTimeoutOrNull(OFFLINE_WAIT_MS) { block() } != null
+                _message.value = if (finished) success else "Saved on this phone. It will sync when you're back online."
             } else {
                 block()
-                message.value = success
+                _message.value = success
             }
-        } catch (e: kotlinx.coroutines.CancellationException) {
+        } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            message.value = friendly(e)
+            _message.value = friendly(e)
         } finally {
             busy.value = false
         }
     }
 
     private fun friendly(e: Exception): String = when {
-        e is com.barathiraja.jk.gym.GymException -> e.message.orEmpty()
-        e is com.barathiraja.jk.gym.PartialSave -> "Only ${e.saved} of ${e.total} were saved. Check your connection and assign the rest again."
-        e is androidx.credentials.exceptions.GetCredentialCancellationException -> "Sign-in cancelled"
-        e is androidx.credentials.exceptions.NoCredentialException -> "No Google account found on this phone"
+        e is GymException -> e.message.orEmpty()
+        e is PartialSave -> "Only ${e.saved} of ${e.total} were saved. Check your connection and assign the rest again."
+        e is GetCredentialCancellationException -> "Sign-in cancelled"
+        e is NoCredentialException -> "No Google account found on this phone"
         e is com.google.firebase.firestore.FirebaseFirestoreException &&
             e.code == com.google.firebase.firestore.FirebaseFirestoreException.Code.PERMISSION_DENIED -> "You don't have permission to do that"
         e is com.google.firebase.FirebaseNetworkException -> "No internet connection"
