@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -318,17 +319,119 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
                 style = plex(14.sp, line = 19.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
-        if (trainersTab) {
-            if (trainers.isEmpty()) item { Empty("No trainers yet. Share your gym code from the Me tab so they can join.") }
-            items(trainers.size, key = { "t" + trainers[it].trainer.uid }) { i ->
-                val t = trainers[i]
-                TrainerRow(t, i + 1, top = i == 0 && t.due > 0) { nav.navigate(Routes.gymTrainer(t.trainer.uid)) }
+        // Both tabs become the same kind of entries, so members and trainers look exactly alike.
+        val entries = if (trainersTab) trainers.mapIndexed { i, t ->
+            RankEntry(
+                key = "t" + t.trainer.uid, person = t.trainer, ranked = t.due > 0,
+                status = trainerStatus(t, top = i == 0 && t.due > 0),
+                pct = if (t.due > 0) Math.round(t.rate * 100) else null,
+                detail = if (t.due > 0) "${t.done} of ${t.due} done · ${plural(t.members, "member")}" else "${plural(t.members, "member")} · no workouts yet",
+                onClick = { nav.navigate(Routes.gymTrainer(t.trainer.uid)) },
+            )
+        } else members.mapIndexed { i, (p, sc) ->
+            val trainer = gvm.trainerOf(p)
+            val away = idle[p.uid]
+            RankEntry(
+                key = "m" + p.uid, person = p, ranked = sc.points > 0,
+                status = memberStatus(sc, top = i == 0 && sc.points > 0, away, trainer != null),
+                pct = if (sc.due > 0) Math.round(sc.rate * 100) else null,
+                detail = when {
+                    away != null -> "No workout for ${if (away.days > 30) "30+ days" else plural(away.days, "day")}"
+                    sc.due == 0 -> "No workouts yet"
+                    else -> "${sc.completed} of ${sc.due} done"
+                } + (trainer?.let { " · ${it.firstName}" } ?: ""),
+                onClick = { nav.navigate(Routes.gymMember(p.uid)) },
+            )
+        }
+        if (entries.isEmpty()) item {
+            Empty(if (trainersTab) "No trainers yet. Share your gym code from the Me tab so they can join."
+                else "No members yet. Trainers add members with their own code.")
+        }
+        // The top three (who have done something) stand on a podium; everyone else is one tidy list.
+        val podium = entries.take(3).filter { it.ranked }
+        if (podium.isNotEmpty()) item(key = "podium-$trainersTab") { Podium(podium) }
+        val rest = entries.drop(podium.size)
+        if (rest.isNotEmpty()) item(key = "list-$trainersTab") { RankList(rest, firstRank = podium.size + 1) }
+    }
+}
+
+/** One person on the People tab, the same shape for members and trainers. [pct] is null when nothing was due. */
+private class RankEntry(
+    val key: String, val person: Person, val ranked: Boolean, val status: Pair<String, Tone>,
+    val pct: Int?, val detail: String, val onClick: () -> Unit,
+)
+
+/**
+ * The top three as a podium on a white card: first in the middle, larger, with a yellow ring and a yellow rank
+ * badge on the photo; second and third either side with charcoal badges. Each shows first name and percentage.
+ */
+@Composable
+private fun Podium(top: List<RankEntry>) {
+    // Visual order: 2nd, 1st, 3rd.
+    val order = listOfNotNull(top.getOrNull(1)?.let { 2 to it }, top.getOrNull(0)?.let { 1 to it }, top.getOrNull(2)?.let { 3 to it })
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card).padding(horizontal = 8.dp, vertical = 18.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom,
+    ) {
+        order.forEach { (rank, e) ->
+            val first = rank == 1
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(onClickLabel = "Open ${e.person.firstName}", onClick = e.onClick)
+                    .padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val size = if (first) 72.dp else 56.dp
+                Box(Modifier.size(size + 10.dp), contentAlignment = Alignment.TopCenter) {
+                    Box(Modifier.size(size).clip(CircleShape).background(if (first) Owner.Yellow else Owner.Line).padding(3.dp)
+                        .clip(CircleShape).background(Owner.Card).padding(2.dp)) {
+                        OwnerAvatar(e.person.photoUrl, e.person.name, size - 10.dp)
+                    }
+                    RankBadge(rank, Modifier.align(Alignment.BottomCenter))
+                }
+                Spacer(Modifier.height(6.dp))
+                Text(e.person.firstName, style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(e.pct?.let { "$it%" } ?: "–", style = plex(if (first) 20.sp else 17.sp, FontWeight.Bold), color = Owner.Ink)
+                Text(e.status.first, style = plex(11.sp, FontWeight.SemiBold), color = Owner.Muted, maxLines = 1)
             }
-        } else {
-            if (members.isEmpty()) item { Empty("No members yet. Trainers add members with their own code.") }
-            items(members.size, key = { "m" + members[it].first.uid }) { i ->
-                val (p, s) = members[i]
-                MemberRow(p, s, i + 1, top = i == 0 && s.points > 0, idle[p.uid], gvm.trainerOf(p)) { nav.navigate(Routes.gymMember(p.uid)) }
+        }
+    }
+}
+
+/** A small round rank number with a white ring, sitting on the bottom edge of a photo. Yellow for first. */
+@Composable
+private fun RankBadge(rank: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier.size(24.dp).clip(CircleShape).background(Owner.Card).padding(2.dp).clip(CircleShape)
+            .background(if (rank == 1) Owner.Yellow else com.barathiraja.jk.ui.theme.Charcoal),
+        contentAlignment = Alignment.Center,
+    ) { Text("$rank", style = plex(11.sp, FontWeight.Bold), color = if (rank == 1) Owner.Black else Color.White) }
+}
+
+/** Everyone after the podium in one card: rank number, photo, name with status and numbers, percentage. */
+@Composable
+private fun RankList(entries: List<RankEntry>, firstRank: Int) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)) {
+        entries.forEachIndexed { i, e ->
+            if (i > 0) Box(Modifier.padding(start = 92.dp).fillMaxWidth().height(1.dp).background(Owner.Line))
+            Row(
+                Modifier.fillMaxWidth().clickable(onClickLabel = "Open ${e.person.firstName}", onClick = e.onClick)
+                    .padding(start = 8.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(if (e.ranked) "${firstRank + i}" else "–", Modifier.width(32.dp), style = plex(15.sp, FontWeight.Bold),
+                    color = Owner.Muted, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                OwnerAvatar(e.person.photoUrl, e.person.name, 44.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text(e.person.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OwnerChip(e.status.first, e.status.second, small = true)
+                        Spacer(Modifier.width(6.dp))
+                        Text(e.detail, style = plex(12.sp), color = Owner.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(e.pct?.let { "$it%" } ?: "–", style = plex(16.sp, FontWeight.Bold), color = Owner.Ink)
             }
         }
     }
@@ -414,29 +517,6 @@ private fun PersonRow(
             Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
         }
     }
-}
-
-@Composable
-private fun TrainerRow(t: OwnerStats.TrainerRow, rank: Int, top: Boolean, onClick: () -> Unit) {
-    PersonRow(
-        rank, t.due > 0, t.trainer.photoUrl, t.trainer.name, trainerStatus(t, top),
-        if (t.due == 0) "${plural(t.members, "member")} · no workouts given yet"
-        else "${t.done} of ${t.due} done · ${plural(t.members, "member")}",
-        t.rate.takeIf { t.due > 0 }, onClick,
-    )
-}
-
-@Composable
-private fun MemberRow(p: Person, s: Scoring.MemberScore, rank: Int, top: Boolean, idle: OwnerStats.Idle?, trainer: Person?, onClick: () -> Unit) {
-    PersonRow(
-        rank, s.points > 0, p.photoUrl, p.name, memberStatus(s, top, idle, trainer != null),
-        when {
-            idle != null -> "No workout for ${if (idle.days > 30) "30+ days" else plural(idle.days, "day")}"
-            s.due == 0 -> "No workouts yet"
-            else -> "${s.completed} of ${s.due} done"
-        },
-        s.rate.takeIf { s.due > 0 }, onClick,
-    )
 }
 
 /** A member row for other pages (a trainer's members): same look as the People tab, without the rank. */
