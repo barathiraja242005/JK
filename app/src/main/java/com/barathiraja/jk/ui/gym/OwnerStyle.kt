@@ -56,58 +56,62 @@ import com.barathiraja.jk.ui.theme.Plex
 import com.barathiraja.jk.ui.theme.pick
 
 /*
- * The owner's look, built on the app's red / black / yellow / white palette (see Theme.kt for the reasoning).
- * One red thing per screen: the action the owner should take next. Black carries text and the one hero card.
- * Yellow marks reward and the top spot. Everything else is white space, so the owner's eye has few places to go.
- * Status is always a word in a chip ([Tone]); the colour only backs the word up.
+ * The owner's look, built on the app's athletic red palette (see Theme.kt for the reasoning). One red thing per
+ * screen: the action the owner should take next. Charcoal carries text and the one hero card; bright red marks the
+ * key number on it. Green, amber and red only ever mean a state. Status is always a word in a chip ([Tone]).
  */
 internal object Owner {
-    val Paper get() = pick(0xFFF6F6F4, 0xFF0B0B0B)
-    /** Plain cards on the paper. */
-    val Card get() = pick(0xFFFFFFFF, 0xFF161616)
+    val Paper get() = pick(0xFFFAFAFA, 0xFF0B0C0F)
+    /** Cards on the page. */
+    val Card get() = pick(0xFFFFFFFF, 0xFF17181C)
     /** A panel or strip inside a card. */
-    val Well get() = pick(0xFFF1F1EE, 0xFF1F1F1F)
-    /** Text, icons and lines on paper and cards. */
-    val Ink get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
-    val OnInk get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
+    val Well get() = pick(0xFFF0F1F3, 0xFF1F2126)
+    /** Text, icons and lines on the page and cards. */
+    val Ink get() = pick(0xFF0B0C0F, 0xFFF5F5F6)
+    val OnInk get() = pick(0xFFFFFFFF, 0xFF0B0C0F)
     /** The dark hero card; white text on it in both modes. */
-    val Hero get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
-    /** Text on yellow, in both modes. */
-    val Black = Color(0xFF0A0A0A)
-    /** Red as a fill: the main action. White text on it (5.2:1). */
-    val Red = Color(0xFFD7141E)
-    /** Red as text or an icon on paper and cards. */
-    val RedText get() = pick(0xFFD7141E, 0xFFFF5A5F)
-    val Yellow = Color(0xFFFFC629)
-    val Muted get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
-    val Line get() = pick(0xFFE6E6E3, 0xFF262626)
+    val Hero get() = pick(0xFF17181C, 0xFF1F2126)
+    /** Dark text on bright fills, in both modes. */
+    val Black = Color(0xFF0B0C0F)
+    /** Deep red as a fill: the main action. White text on it (4.8:1). */
+    val Red = Color(0xFFD92D20)
+    /** Removing, rejecting, signing out: the error red, as text or an icon. */
+    val RedText get() = pick(0xFFDC2626, 0xFFF87171)
+    /** Bright red: emphasis on the hero card (5.4:1 on charcoal). */
+    val Accent = Color(0xFFFF4B4B)
+    /** Ticks and "done": success green fill with a dark icon. */
+    val Success = Color(0xFF22C55E)
+    /** Waiting and medals: amber fill with dark text. */
+    val Amber = Color(0xFFF59E0B)
+    val Muted get() = pick(0xFF667085, 0xFF98A2B3)
+    val Line get() = pick(0xFFE1E3E6, 0xFF2A2D33)
     /** On the hero card. */
-    val OnDarkMuted = Color(0xFFA3A3A3)
-    val OnDarkSoft = Color(0xFFD4D4D4)
-    val DarkTrack = Color(0xFF333333)
-    val DarkStrip get() = pick(0xFF1F1F1F, 0xFF2A2A2A)
+    val OnDarkMuted = Color(0xFF98A2B3)
+    val OnDarkSoft = Color(0xFFD0D5DD)
+    val DarkTrack = Color(0xFF33363C)
+    val DarkStrip get() = pick(0xFF25272D, 0xFF2A2D33)
 }
 
 /**
- * A status word's look. [TOP]: yellow, the best. [GOOD]: quiet grey, all fine (the usual case, so it stays calm).
- * [WARN]: pale yellow, worth a look. [BAD]: pale red, needs the owner. [NONE]: outlined, nothing yet.
+ * A status word's look. [TOP]: red tint, the best. [GOOD]: green tint, all fine. [WARN]: amber tint, worth a look.
+ * [BAD]: error tint, needs the owner. [NONE]: outlined, nothing yet.
  */
 internal enum class Tone {
     TOP, GOOD, WARN, BAD, NONE;
 
     val fill: Color get() = when (this) {
-        TOP -> Owner.Yellow
-        GOOD -> pick(0xFFEFEFEC, 0xFF262626)
-        WARN -> pick(0xFFFFF2C7, 0xFF2A2410)
-        BAD -> pick(0xFFFDE4E4, 0xFF2A1214)
+        TOP -> pick(0xFFFDECEA, 0xFF2D1214)
+        GOOD -> pick(0xFFDCFCE7, 0xFF0F2A1A)
+        WARN -> pick(0xFFFEF3C7, 0xFF2D2110)
+        BAD -> pick(0xFFFEE2E2, 0xFF2D1214)
         NONE -> Color.Transparent
     }
     val ink: Color get() = when (this) {
-        TOP -> Owner.Black
-        GOOD -> Owner.Ink
-        WARN -> pick(0xFF0A0A0A, 0xFFFFD966)
-        BAD -> pick(0xFF9E0F16, 0xFFFFB4B6)
-        NONE -> pick(0xFF3D3D3D, 0xFFD4D4D4)
+        TOP -> pick(0xFFB42318, 0xFFFF6B6B)
+        GOOD -> pick(0xFF15803D, 0xFF4ADE80)
+        WARN -> pick(0xFF92400E, 0xFFFBBF24)
+        BAD -> pick(0xFFB91C1C, 0xFFF87171)
+        NONE -> pick(0xFF667085, 0xFFD0D5DD)
     }
 }
 
@@ -148,7 +152,7 @@ internal fun OwnerHeading(title: String, explain: String? = null) {
 internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
     Surface(
         onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
-        color = if (enabled) Owner.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Owner.Muted,
+        color = if (enabled) Owner.Red else Owner.Line, contentColor = if (enabled) Color.White else Owner.Muted,
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text(text, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -191,7 +195,7 @@ internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? 
 /** Round photo, or the first letter on grey. */
 @Composable
 internal fun OwnerAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDark: Boolean = false) {
-    val fill = if (onDark) Owner.DarkStrip else Tone.GOOD.fill
+    val fill = if (onDark) Owner.DarkStrip else Owner.Well
     Box(Modifier.size(size).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
         if (photoUrl != null) {
             coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)

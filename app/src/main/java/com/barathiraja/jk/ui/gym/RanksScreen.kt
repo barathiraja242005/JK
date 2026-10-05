@@ -114,7 +114,7 @@ private fun RankRow(rank: Int, photo: String?, name: String, sub: String, value:
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             val (disc, ink) = when (rank) {
-                1 -> com.barathiraja.jk.ui.theme.Yellow to androidx.compose.ui.graphics.Color.Black
+                1 -> com.barathiraja.jk.ui.theme.Red to androidx.compose.ui.graphics.Color.White
                 2, 3 -> cs.onSurface to cs.surface
                 else -> androidx.compose.ui.graphics.Color.Transparent to cs.onSurfaceVariant
             }

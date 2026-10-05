@@ -52,10 +52,10 @@ import com.barathiraja.jk.gym.Award
 internal data class AwardLook(val icon: ImageVector, val fill: Color)
 
 /** Medal discs: fixed light colours so the black icon and ring read the same in light and dark mode. */
-private val Gold = Color(0xFFFFC629)
-private val Silver = Color(0xFFE6E6E3)
-private val Rose = Color(0xFFFFD0D2)
-private val Cream = Color(0xFFFFF2C7)
+private val Gold = Color(0xFFF59E0B)
+private val Silver = Color(0xFFE1E3E6)
+private val Rose = Color(0xFFFFB4B0)
+private val Cream = Color(0xFFFEF3C7)
 
 internal fun awardLook(emoji: String, title: String = ""): AwardLook = when {
     emoji == Award.BEST_MEMBER.emoji || title == Award.BEST_MEMBER.label -> AwardLook(Icons.Outlined.Star, Gold)

@@ -85,7 +85,7 @@ private fun Logo(size: Int = 56, onDark: Boolean = false) {
         contentAlignment = Alignment.Center) {
         Row {
             Text("J", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Black else Color.White)
-            Text("K", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Red else Color(0xFFE5212B))
+            Text("K", style = plex((size * 0.42f).sp, FontWeight.Bold), color = if (onDark) Owner.Red else Owner.Accent)
         }
     }
 }
@@ -139,7 +139,7 @@ fun SignInScreen(gvm: GymViewModel) {
 @Composable
 private fun Point(text: String) {
     Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(22.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(22.dp).clip(CircleShape).background(Owner.Success), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Owner.Black)
         }
         Spacer(Modifier.width(12.dp))
@@ -244,7 +244,7 @@ private fun RoleCard(icon: ImageVector, title: String, sub: String, onClick: () 
 fun WaitingScreen(gvm: GymViewModel, gym: Gym?, removed: Boolean) {
     JoinColumn {
         Spacer(Modifier.height(48.dp))
-        Box(Modifier.size(72.dp).clip(CircleShape).background(if (removed) Tone.BAD.fill else Owner.Yellow).align(Alignment.CenterHorizontally),
+        Box(Modifier.size(72.dp).clip(CircleShape).background(if (removed) Tone.BAD.fill else Owner.Amber).align(Alignment.CenterHorizontally),
             contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.HourglassTop, null, Modifier.size(40.dp), tint = if (removed) Tone.BAD.ink else Owner.Black)
         }
