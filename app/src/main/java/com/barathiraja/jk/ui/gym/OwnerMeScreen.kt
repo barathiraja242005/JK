@@ -19,8 +19,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -71,8 +80,6 @@ import com.barathiraja.jk.ui.components.TabScreen
 import com.barathiraja.jk.ui.theme.CodeFont
 import com.barathiraja.jk.ui.theme.Sun
 
-private const val AWARDS_PREVIEW = 5
-
 /** The owner's Me tab: their gym, the awards they hand out, appearance and account. Nothing about personal training. */
 @Composable
 fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
@@ -83,8 +90,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
     val s by vm.settings.collectAsStateWithLifecycle()
     val demo by gvm.demo.collectAsStateWithLifecycle()
     var renaming by remember { mutableStateOf(false) }
-    var removing by remember { mutableStateOf<GivenAward?>(null) }
-    var showAll by rememberSaveable { mutableStateOf(false) }
+    var renamingMe by remember { mutableStateOf(false) }
     var signingOut by remember { mutableStateOf(false) }
 
     val trainers = people.count { it.role == Role.TRAINER && it.active }
@@ -100,6 +106,10 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                 Column(Modifier.weight(1f)) {
                     Text(me?.name ?: "Owner", style = MaterialTheme.typography.titleLarge, maxLines = 2)
                     Text("Owner", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Surface(onClick = { renamingMe = true }, shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(48.dp)) {
+                    Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.Edit, "Change your name", Modifier.size(20.dp)) }
                 }
             }
         }
@@ -117,25 +127,6 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                 onAwards = { gvm.ranksTab.value = RANKS_AWARDS; nav.switchTab(Routes.RANKS) },
                 onRename = { renaming = true },
             )
-        }
-
-        item {
-            OwnerCard("Awards", explain = "Reward your best members and trainers. Everyone in the gym sees them on the Ranks tab.") {
-                Spacer(Modifier.height(8.dp))
-                Button(onClick = { nav.navigate(Routes.GIVE_AWARD) }, Modifier.fillMaxWidth().height(56.dp)) {
-                    Icon(Icons.Outlined.EmojiEvents, null, Modifier.size(20.dp)); Spacer(Modifier.width(8.dp))
-                    Text("Give an award", style = MaterialTheme.typography.titleMedium)
-                }
-                (if (showAll) given else given.take(AWARDS_PREVIEW)).forEach { a ->
-                    HorizontalDivider(Modifier.padding(top = 12.dp))
-                    AwardLine(a, gvm.person(a.uid), onRemove = { removing = a })
-                }
-                if (given.size > AWARDS_PREVIEW) {
-                    TextButton(onClick = { showAll = !showAll }, Modifier.fillMaxWidth()) {
-                        Text(if (showAll) "Show less" else "Show all ${given.size}", style = MaterialTheme.typography.titleSmall)
-                    }
-                }
-            }
         }
 
         item {
@@ -180,17 +171,45 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
             },
             dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } })
     }
+    if (renamingMe) {
+        var name by remember { mutableStateOf(me?.name.orEmpty()) }
+        AlertDialog(onDismissRequest = { renamingMe = false },
+            title = { Text("Your name") },
+            text = {
+                Column {
+                    Text("Trainers and members see this name.", style = plex(16.sp, line = 23.sp), modifier = Modifier.padding(bottom = 12.dp))
+                    OutlinedTextField(name, { name = it.take(40) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = name.isNotBlank(), onClick = { renamingMe = false; gvm.renameMe(name) }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renamingMe = false }) { Text("Cancel") } })
+    }
     if (signingOut) AlertDialog(onDismissRequest = { signingOut = false },
         title = { Text("Sign out?") },
         text = { Text("Your gym stays safe. Sign in again with the same Google account to come back.") },
         confirmButton = { TextButton(onClick = { signingOut = false; gvm.signOut() }) { Text("Sign out") } },
         dismissButton = { TextButton(onClick = { signingOut = false }) { Text("Cancel") } })
+}
+
+/** Edit sheet for a given award, then a confirm step before taking it back. Shown while [editing] is set. */
+@Composable
+internal fun GivenAwardEditor(editing: GivenAward?, gvm: GymViewModel, onClose: () -> Unit) {
+    var removing by remember { mutableStateOf<GivenAward?>(null) }
+    editing?.let { a ->
+        AwardSheet(a, gvm.person(a.uid), onDismiss = onClose,
+            onSave = { title, note -> onClose(); gvm.editGivenAward(a, title, note) },
+            onRemove = { onClose(); removing = a })
+    }
     removing?.let { a ->
         AlertDialog(onDismissRequest = { removing = null },
             title = { Text("Take back this award?") },
-            text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.") },
-            confirmButton = { TextButton(onClick = { removing = null; gvm.removeGivenAward(a) }) { Text("Remove") } },
-            dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep") } })
+            text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.", style = plex(17.sp, line = 25.sp)) },
+            confirmButton = { TextButton(onClick = { removing = null; gvm.removeGivenAward(a) }) {
+                Text("Take it back", style = plex(16.sp, FontWeight.SemiBold), color = MaterialTheme.colorScheme.error) } },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep it", style = plex(16.sp, FontWeight.SemiBold)) } })
     }
 }
 
@@ -238,8 +257,8 @@ private fun MeBento(
         }
         // People tiles
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PeopleTile(trainers, if (trainers.size == 1) "Trainer" else "Trainers", Owner.Mint, onTrainers, Modifier.weight(1f).fillMaxHeight())
             PeopleTile(members, if (members.size == 1) "Member" else "Members", Owner.Lavender, onMembers, Modifier.weight(1f).fillMaxHeight())
+            PeopleTile(trainers, if (trainers.size == 1) "Trainer" else "Trainers", Owner.Mint, onTrainers, Modifier.weight(1f).fillMaxHeight())
         }
         // Small tiles
         Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -260,7 +279,7 @@ private fun PeopleTile(people: List<Person>, label: String, fill: Color, onClick
                 Row(Modifier.weight(1f)) {
                     people.take(3).forEachIndexed { i, p ->
                         Box(Modifier.padding(start = if (i == 0) 0.dp else 0.dp).offset(x = (-10 * i).dp)) {
-                            OwnerAvatar(p.photoUrl, p.name, p.uid, 34.dp)
+                            OwnerAvatar(p.photoUrl, p.name, p.uid, 34.dp, ring = Owner.Black)
                         }
                     }
                     if (people.size > 3) Box(
@@ -300,38 +319,55 @@ private fun LineTile(icon: androidx.compose.ui.graphics.vector.ImageVector, valu
     }
 }
 
-/** A given award as one row inside the owner's Awards card. */
+/** Bottom sheet for one given award: rename it, change the gift, or take it back. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AwardLine(a: GivenAward, person: Person?, onRemove: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        AwardBadge(awardLook(a.emoji, a.title), 42.dp)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(person?.name ?: "Former member", style = MaterialTheme.typography.titleMedium, maxLines = 1)
-            Text(a.title + if (a.note.isNotBlank()) " · ${a.note}" else "", style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+private fun AwardSheet(a: GivenAward, person: Person?, onDismiss: () -> Unit, onSave: (String, String) -> Unit, onRemove: () -> Unit) {
+    var title by rememberSaveable(a.id) { mutableStateOf(a.title) }
+    var note by rememberSaveable(a.id) { mutableStateOf(a.note) }
+    val changed = title.trim() != a.title || note.trim() != a.note
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp).navigationBarsPadding().imePadding(),
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AwardBadge(awardLook(a.emoji, title), 52.dp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Edit award", style = MaterialTheme.typography.titleLarge)
+                    Text("For ${person?.name ?: "a former member"} · ${monthLabel(a.month)}", style = MaterialTheme.typography.bodyMedium, maxLines = 2,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            OutlinedTextField(title, { title = it.take(32) }, Modifier.fillMaxWidth(), label = { Text("Award name") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
+            OutlinedTextField(note, { note = it.take(60) }, Modifier.fillMaxWidth(), label = { Text("Gift (optional)") },
+                placeholder = { Text("e.g. Free PT session") }, singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences))
+            Button(onClick = { onSave(title, note) }, Modifier.fillMaxWidth().height(56.dp), enabled = title.isNotBlank() && changed) {
+                Text("Save changes", style = MaterialTheme.typography.titleMedium)
+            }
+            TextButton(onClick = onRemove, Modifier.fillMaxWidth().height(52.dp)) {
+                Icon(Icons.Outlined.Close, null, Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error); Spacer(Modifier.width(8.dp))
+                Text("Take back award", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+            }
         }
-        IconButton(onClick = onRemove) { Icon(Icons.Outlined.Close, "Take back award") }
     }
 }
 
-/** One hand-given award; [onRemove] shows a remove button (owner only). */
+/** One hand-given award: medal, award, who and when, and the gift. [onClick] (owner only) opens the edit sheet. */
 @Composable
-fun GivenAwardRow(a: GivenAward, person: Person?, onRemove: (() -> Unit)? = null) {
+fun GivenAwardRow(a: GivenAward, person: Person?, onClick: (() -> Unit)? = null) {
     val cs = MaterialTheme.colorScheme
-    JkCard(Modifier.fillMaxWidth()) {
+    JkCard(Modifier.fillMaxWidth(), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AwardBadge(awardLook(a.emoji, a.title), 58.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(a.title, style = plex(14.sp), color = cs.onSurfaceVariant)
+                Text("${a.title} · ${monthLabel(a.month)}", style = plex(14.sp), color = cs.onSurfaceVariant)
                 Text(person?.name ?: "Former member", style = plex(18.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (a.note.isNotBlank()) OwnerChip("Gift · ${a.note}", Owner.Cream)
-                    Text(monthLabel(a.month), style = plex(13.sp), color = cs.onSurfaceVariant, maxLines = 1)
-                }
+                if (a.note.isNotBlank()) OwnerChip("Gift · ${a.note}", Owner.Cream, modifier = Modifier.padding(top = 3.dp))
             }
-            if (onRemove != null) IconButton(onClick = onRemove) { Icon(Icons.Outlined.Close, "Remove award") }
+            if (onClick != null) Icon(Icons.Outlined.Edit, "Edit or take back", Modifier.padding(start = 8.dp).size(22.dp), tint = cs.onSurfaceVariant)
         }
     }
 }

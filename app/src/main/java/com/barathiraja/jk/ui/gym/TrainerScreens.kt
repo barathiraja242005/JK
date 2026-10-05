@@ -114,7 +114,7 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
     val ranking by gvm.memberRanking.collectAsStateWithLifecycle()
     val digest by gvm.ownerDigest.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    val member = people.firstOrNull { it.uid == uid }
+    val member = people.firstOrNull { it.uid == uid }?.takeIf { it.active }
     val isTrainer = me?.role == Role.TRAINER && member?.trainerUid == me?.uid
     val today = gvm.today
     var confirmRemove by remember { mutableStateOf(false) }
@@ -129,7 +129,7 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
     val rank = ranking.indexOfFirst { it.uid == uid } + 1
 
     PersonPage("Back", onBack = { nav.popBackStack() }) {
-        memberOverview(member, s, rank, digest?.idle?.firstOrNull { it.member.uid == uid }, gvm.person(member.trainerUid), list, today)
+        memberOverview(member, s, rank, digest?.idle?.firstOrNull { it.member.uid == uid }, gvm.trainerOf(member), list, today)
         if (me?.role == Role.OWNER) item {
             Spacer(Modifier.height(4.dp))
             WideAction("Message ${member.firstName}", Icons.AutoMirrored.Outlined.Send) { context.whatsApp("Hi ${member.firstName}, ") }
@@ -149,6 +149,10 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
                     if (!a.done && a.setsDone == 0) TextButton(onClick = { gvm.deleteAssignment(a) }) { Text("Delete") }
                 }
             }
+        }
+        if (me?.role == Role.OWNER) item {
+            Spacer(Modifier.height(8.dp))
+            MemberManage(member, gvm, onRemoved = { nav.popBackStack() })
         }
         if (isTrainer) item {
             TextButton(onClick = { confirmRemove = true }, Modifier.fillMaxWidth().padding(top = 16.dp)) {

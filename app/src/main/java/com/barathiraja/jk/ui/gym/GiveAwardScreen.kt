@@ -14,6 +14,14 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import kotlinx.coroutines.delay
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.ui.semantics.Role as A11yRole
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +42,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.RadioButton
@@ -134,30 +143,44 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
     var rewardIndex by rememberSaveable { mutableStateOf(-1) }
     var customReward by rememberSaveable { mutableStateOf("") }
     var showEveryone by rememberSaveable { mutableStateOf(false) }
+    var trainerTab by rememberSaveable { mutableStateOf(false) }
     val memberScores by gvm.monthScores.collectAsStateWithLifecycle()
     val trainerScores by gvm.trainerRanking.collectAsStateWithLifecycle()
 
     val option = awardOptions.getOrNull(optionIndex)
     val leaders = remember(people, assignments) { Scoring.awards(people, assignments, YearMonth.now(), gvm.today) }
     val suggested = option?.award?.let { leaders[it] }
-    val candidates = people.filter { it.active && (it.role == Role.MEMBER || it.role == Role.TRAINER) }
-        .filter { option == null || !option.trainersOnly || it.role == Role.TRAINER }
-        .filter { option?.award == null || option.trainersOnly || it.role == Role.MEMBER }
-        .sortedWith(compareByDescending<Person> { it.uid == suggested }.thenBy { it.role != Role.MEMBER }
+    // Automatic categories belong to one side: trainer awards to trainers, the rest to members. Others suit anyone.
+    val membersAllowed = option == null || !option.trainersOnly
+    val trainersAllowed = option == null || option.trainersOnly || option.award == null
+    val candidates = people.filter { it.active && (it.role == Role.MEMBER && membersAllowed || it.role == Role.TRAINER && trainersAllowed) }
+        .sortedWith(compareByDescending<Person> { it.uid == suggested }
             .thenByDescending { p -> memberScores[p.uid]?.points ?: trainerScores.firstOrNull { it.uid == p.uid }?.score ?: 0 }
             .thenBy { it.name.lowercase() })
+    if (trainerTab && !trainersAllowed) trainerTab = false
+    if (!trainerTab && !membersAllowed) trainerTab = true
+    val tabPeople = candidates.filter { (it.role == Role.TRAINER) == trainerTab }
     val title = if (option?.custom == true) customTitle.trim() else option?.title.orEmpty()
     val person = candidates.firstOrNull { it.uid == chosenUid }
-    // Rewards follow who gets the award: the chosen person, else what the award is for.
-    val forTrainer = person?.role == Role.TRAINER || (person == null && option?.trainersOnly == true)
+    // Rewards follow who gets the award: the chosen person, else the side the owner is looking at.
+    val forTrainer = person?.role == Role.TRAINER || (person == null && trainerTab)
     val rewardOptions = if (forTrainer) trainerRewards else memberRewards
     var rewardsFor by rememberSaveable { mutableStateOf(forTrainer) }
     if (rewardsFor != forTrainer) { rewardsFor = forTrainer; rewardIndex = -1; customReward = "" }
     val reward = rewardOptions.getOrNull(rewardIndex)
     val rewardText = when { reward == null -> null; reward.custom -> customReward.trim().ifBlank { null }; reward.text.startsWith("No gift") -> ""; else -> reward.text }
     val ready = title.isNotBlank() && person != null && rewardText != null
+    // Leaving a half-filled form asks first, so a stray Back doesn't lose the owner's choices.
+    val started = optionIndex >= 0 || chosenUid != null || rewardIndex >= 0
+    var leaving by remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = started && !busy) { leaving = true }
+    if (leaving) androidx.compose.material3.AlertDialog(onDismissRequest = { leaving = false },
+        title = { Text("Leave without giving the award?") },
+        text = { Text("What you picked here will be lost.", style = plex(17.sp, line = 25.sp)) },
+        confirmButton = { TextButton(onClick = { leaving = false; nav.popBackStack() }) { Text("Leave", style = plex(16.sp, FontWeight.SemiBold)) } },
+        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Stay", style = plex(16.sp, FontWeight.SemiBold)) } })
 
-    PersonPage("Back", onBack = { nav.popBackStack() }) {
+    PersonPage("Back", onBack = { if (started) leaving = true else nav.popBackStack() }) {
         item {
             Column(Modifier.padding(horizontal = 4.dp)) {
                 Text("Give an award", style = plex(30.sp, FontWeight.SemiBold, tracking = (-0.6).sp), color = MaterialTheme.colorScheme.onSurface)
@@ -171,7 +194,10 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                 val o = awardOptions[i]
                 AwardTile(awardLook(o.emoji, o.title), o.title, i == optionIndex, m) {
                     optionIndex = i
-                    if (candidates.none { it.uid == chosenUid }) chosenUid = null
+                    val chosenRole = people.firstOrNull { it.uid == chosenUid }?.role
+                    val keep = when (chosenRole) { Role.TRAINER -> o.trainersOnly || o.award == null; Role.MEMBER -> !o.trainersOnly; else -> false }
+                    if (!keep) chosenUid = null
+                    if (o.trainersOnly) trainerTab = true else if (o.award != null) trainerTab = false
                 }
             }
         }
@@ -181,16 +207,31 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
 
         if (option != null) {
             item { StepTitle(2, "Who gets it?", done = person != null) }
-            if (candidates.isEmpty()) item {
-                Text(if (option.trainersOnly) "No trainers yet." else "No members yet.", style = plex(17.sp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            item {
+                val active = people.filter { it.active }
+                WhoTabs(
+                    trainerTab = trainerTab,
+                    members = active.count { it.role == Role.MEMBER }, trainers = active.count { it.role == Role.TRAINER },
+                    membersAllowed = membersAllowed, trainersAllowed = trainersAllowed,
+                    pickedIn = person?.let { it.role == Role.TRAINER },
+                    onPick = { trainerTab = it; showEveryone = false },
+                )
+                if (!membersAllowed || !trainersAllowed) Text(
+                    "${option.title} is only for ${if (trainersAllowed) "trainers" else "members"}.",
+                    style = plex(14.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp, top = 10.dp),
+                )
             }
-            if (candidates.isNotEmpty()) item {
+            if (tabPeople.isEmpty()) item {
+                Text(if (trainerTab) "No trainers yet. Share your gym code from the Me tab to add one." else "No members yet. Trainers add members from their Gym tab.",
+                    style = plex(16.sp, line = 22.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 6.dp))
+            }
+            if (tabPeople.isNotEmpty()) item {
                 val cs = MaterialTheme.colorScheme
                 Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     // Best this month first; the rest stay folded so the reward step is one short scroll away.
-                    val shown = if (showEveryone) candidates else candidates.take(PEOPLE_PREVIEW).let { top ->
-                        if (chosenUid != null && top.none { it.uid == chosenUid }) top + candidates.filter { it.uid == chosenUid } else top
+                    val shown = if (showEveryone) tabPeople else tabPeople.take(PEOPLE_PREVIEW).let { top ->
+                        if (chosenUid != null && top.none { it.uid == chosenUid }) top + tabPeople.filter { it.uid == chosenUid } else top
                     }
                     shown.forEach { p ->
                         val selected = p.uid == chosenUid
@@ -205,8 +246,9 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                                 Text(
                                     when {
                                         p.uid == suggested -> "Leading this month"
-                                        p.role == Role.TRAINER -> "Trainer · score ${trainerScores.firstOrNull { it.uid == p.uid }?.score ?: 0}"
-                                        else -> "${memberScores[p.uid]?.points ?: 0} points · trainer ${gvm.person(p.trainerUid)?.firstName ?: "–"}"
+                                        p.role == Role.TRAINER -> trainerScores.firstOrNull { it.uid == p.uid }?.takeIf { it.members > 0 }
+                                            ?.let { "Members finished ${Math.round(it.rate * 100)}% of workouts" } ?: "No members' workouts yet"
+                                        else -> "${memberScores[p.uid]?.points ?: 0} points · trainer ${gvm.trainerOf(p)?.firstName ?: "–"}"
                                     },
                                     style = plex(14.sp, if (p.uid == suggested) FontWeight.SemiBold else FontWeight.Normal),
                                     color = if (p.uid == suggested) Leaf else cs.onSurfaceVariant,
@@ -215,9 +257,9 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                             CheckDisc(selected)
                         }
                     }
-                    if (candidates.size > PEOPLE_PREVIEW) {
+                    if (tabPeople.size > PEOPLE_PREVIEW) {
                         TextButton(onClick = { showEveryone = !showEveryone }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                            Text(if (showEveryone) "Show fewer" else "Show everyone (${candidates.size})", style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface)
+                            Text(if (showEveryone) "Show fewer" else "Show all ${if (trainerTab) "trainers" else "members"} (${tabPeople.size})", style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface)
                         }
                     }
                 }
@@ -283,6 +325,59 @@ private fun FocusedField(value: String, onChange: (String) -> Unit, label: Strin
         keyboardOptions = KeyboardOptions(capitalization = caps, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
     )
+}
+
+/**
+ * Members | Trainers switch for "Who gets it?": an ink pill slides under the open side. Each side shows its
+ * head count; a mustard dot marks the side holding the chosen person, and a side the award isn't for is greyed out.
+ */
+@Composable
+private fun WhoTabs(
+    trainerTab: Boolean, members: Int, trainers: Int, membersAllowed: Boolean, trainersAllowed: Boolean,
+    pickedIn: Boolean?, onPick: (trainer: Boolean) -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    BoxWithConstraints(Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).padding(5.dp)) {
+        val half = maxWidth / 2
+        val x by animateDpAsState(if (trainerTab) half else 0.dp, spring(dampingRatio = 0.8f, stiffness = 500f), label = "tab")
+        Box(Modifier.offset(x = x).width(half).fillMaxHeight().clip(RoundedCornerShape(50)).background(cs.onSurface))
+        Row(Modifier.fillMaxSize()) {
+            WhoTab("Members", Icons.Outlined.Groups, members, !trainerTab, membersAllowed, pickedIn == false, Modifier.weight(1f)) { onPick(false) }
+            WhoTab("Trainers", Icons.Outlined.FitnessCenter, trainers, trainerTab, trainersAllowed, pickedIn == true, Modifier.weight(1f)) { onPick(true) }
+        }
+    }
+}
+
+@Composable
+private fun WhoTab(
+    label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, count: Int, selected: Boolean, enabled: Boolean,
+    picked: Boolean, modifier: Modifier, onClick: () -> Unit,
+) {
+    val cs = MaterialTheme.colorScheme
+    val fg by animateColorAsState(when { selected -> cs.surface; enabled -> cs.onSurface; else -> cs.onSurface.copy(alpha = 0.35f) }, label = "fg")
+    Row(
+        modifier.fillMaxHeight().clip(RoundedCornerShape(50))
+            .clickable(enabled = enabled && !selected, role = A11yRole.Tab, onClickLabel = "Show $label".lowercase()) { onClick() }
+            .semantics { this.selected = selected },
+        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, Modifier.size(19.dp), tint = fg)
+        Spacer(Modifier.width(8.dp))
+        Text(label, style = plex(16.sp, FontWeight.SemiBold), color = fg, maxLines = 1)
+        Spacer(Modifier.width(8.dp))
+        Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50))
+            .background(if (selected) com.barathiraja.jk.ui.theme.Mustard else cs.surfaceContainerHighest)
+            .padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
+            Text("$count", style = plex(12.sp, FontWeight.SemiBold), color = if (selected) Color.Black else fg)
+        }
+        if (picked && !selected) {
+            Spacer(Modifier.width(6.dp))
+            Box(Modifier.size(20.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Mustard).border(1.5.dp, Color.Black, CircleShape),
+                contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Check, "Your pick is here", Modifier.size(13.dp), tint = Color.Black)
+            }
+        }
+    }
 }
 
 /** Step number in a disc (a tick once that step is done) and the step's question. */
@@ -370,7 +465,7 @@ private fun AwardPreview(look: AwardLook, title: String, person: Person, reward:
         Spacer(Modifier.height(14.dp))
         Text(title, style = plex(22.sp, FontWeight.SemiBold), color = Color.Black, textAlign = TextAlign.Center)
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(person.photoUrl, person.name, person.uid, 30.dp)
+            OwnerAvatar(person.photoUrl, person.name, person.uid, 30.dp, ring = Owner.Black)
             Spacer(Modifier.width(8.dp))
             Text(person.name, style = plex(17.sp, FontWeight.SemiBold), color = Color.Black)
         }

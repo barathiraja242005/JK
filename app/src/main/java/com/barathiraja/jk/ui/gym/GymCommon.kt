@@ -124,17 +124,13 @@ fun GymAccountCard(gvm: com.barathiraja.jk.ui.GymViewModel) {
         is com.barathiraja.jk.ui.GymState.Ready -> JkCard(Modifier.fillMaxWidth()) {
             Text(s.gym.name, style = MaterialTheme.typography.titleLarge)
             val role = when (s.me.role) { Role.OWNER -> "Owner"; Role.TRAINER -> "Trainer"; Role.MEMBER -> "Member" }
-            Text(role + (gvm.person(s.me.trainerUid)?.let { " · Coach ${it.name}" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(role + (gvm.trainerOf(s.me)?.let { " · Coach ${it.name}" } ?: ""), color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (s.me.role == Role.TRAINER && !s.me.trainerCode.isNullOrBlank()) Text("Member code: ${s.me.trainerCode}", Modifier.padding(top = 4.dp))
             if (s.me.role == Role.OWNER) Text("Gym code: ${s.gym.gymCode}", Modifier.padding(top = 4.dp))
             Row(Modifier.padding(top = 8.dp)) {
                 if (s.me.role != Role.OWNER) TextButton(onClick = { confirmLeave = true }) { Text("Leave gym") }
                 TextButton(onClick = { confirmSignOut = true }) { Text("Sign out") }
             }
-        }
-        com.barathiraja.jk.ui.GymState.SignedOut -> JkCard(Modifier.fillMaxWidth(), onClick = { gvm.skipped = false }) {
-            Text("Join your gym", style = MaterialTheme.typography.titleMedium)
-            Text("Sign in with Google to get workouts from your trainer and join the leaderboard.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         else -> {}
     }

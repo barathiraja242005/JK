@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.barathiraja.jk.gym.Award
@@ -55,6 +56,8 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
     val me by gvm.me.collectAsStateWithLifecycle()
     val tab by gvm.ranksTab.collectAsStateWithLifecycle()
     val month = YearMonth.now()
+    val owner = me?.role == com.barathiraja.jk.gym.Role.OWNER
+    var editing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.barathiraja.jk.gym.GivenAward?>(null) }
 
     TabScreen("Leaderboard", subtitle = month.format(monthFmt)) {
         item {
@@ -83,9 +86,26 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
                 }
             }
             else -> {
+                if (owner) item {
+                    androidx.compose.material3.Surface(
+                        onClick = { nav.navigate(com.barathiraja.jk.ui.Routes.GIVE_AWARD) },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+                        color = com.barathiraja.jk.ui.theme.HeroBlue, contentColor = androidx.compose.ui.graphics.Color.White,
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp),
+                    ) {
+                        Row(Modifier.padding(start = 22.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("Give an award", Modifier.weight(1f), style = plex(17.sp, androidx.compose.ui.text.font.FontWeight.SemiBold))
+                            androidx.compose.foundation.layout.Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(com.barathiraja.jk.ui.theme.Mustard), contentAlignment = Alignment.Center) {
+                                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.EmojiEvents, null, Modifier.size(20.dp),
+                                    tint = androidx.compose.ui.graphics.Color.Black)
+                            }
+                        }
+                    }
+                }
                 if (given.isNotEmpty()) {
-                    item { SectionTitle("From the owner") }
-                    items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid)) }
+                    item { SectionTitle(if (owner) "Awards you gave · tap one to change it" else "From the owner") }
+                    items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid), onClick = if (owner) ({ editing = a }) else null) }
                     if (awards.isNotEmpty()) item { SectionTitle("Monthly awards") }
                 }
                 if (awards.isEmpty() && given.isEmpty()) item {
@@ -98,6 +118,7 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
             }
         }
     }
+    if (owner) GivenAwardEditor(editing, gvm) { editing = null }
 }
 
 /**

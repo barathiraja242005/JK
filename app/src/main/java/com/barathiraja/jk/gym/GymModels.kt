@@ -24,7 +24,11 @@ data class Person(
     val joinedAt: Long = 0,
 ) {
     val active get() = status == PersonStatus.ACTIVE
-    val firstName get() = name.substringBefore(' ').ifBlank { name }
+    /** What to call them: the first real word of the name, skipping initials ("S. Janarthanan" -> "Janarthanan"). */
+    val firstName: String get() {
+        val words = name.split(' ').filter { it.isNotBlank() }
+        return words.firstOrNull { it.trimEnd('.').length > 1 } ?: words.firstOrNull() ?: name
+    }
 }
 
 data class AssignedExercise(val exerciseId: String, val bodyPart: String, val sets: List<SetSpec>) {

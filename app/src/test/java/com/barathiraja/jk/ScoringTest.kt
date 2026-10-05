@@ -75,6 +75,15 @@ class ScoringTest {
         assertEquals("S. Janarthanan", com.barathiraja.jk.ui.GymViewModel.tidyName("_S. Janarthanan_"))
         assertEquals("Koundar Barathiraja", com.barathiraja.jk.ui.GymViewModel.tidyName("KOUNDAR  BARATHIRAJA"))
         assertEquals("Ravi Kumar", com.barathiraja.jk.ui.GymViewModel.tidyName("Ravi Kumar"))
+        assertEquals("Barathiraja K", com.barathiraja.jk.ui.GymViewModel.tidyName("BARATHIRAJA K 2023-2027"))
+        assertEquals("Sanjay M", com.barathiraja.jk.ui.GymViewModel.tidyName("Sanjay M (2021 - 25)"))
+    }
+
+    @Test fun firstNameSkipsInitials() {
+        fun p(name: String) = Person("u", name, null, Role.MEMBER, PersonStatus.ACTIVE)
+        assertEquals("Janarthanan", p("S. Janarthanan").firstName)
+        assertEquals("Ravi", p("Ravi Kumar").firstName)
+        assertEquals("K", p("K").firstName)
     }
 
     @Test fun missedWorkoutBreaksPerfectWeek() {

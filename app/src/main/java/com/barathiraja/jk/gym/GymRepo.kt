@@ -120,6 +120,22 @@ class GymRepo {
         peopleCol(gymId).document(uid).update("status", status.name.lowercase()).await()
     }
 
+    /** Owner: moves members to another trainer ([trainerUid] null = no trainer for now). */
+    suspend fun setTrainer(gymId: String, memberUids: List<String>, trainerUid: String?) {
+        if (memberUids.isEmpty()) return
+        val batch = db.batch()
+        memberUids.forEach { batch.update(peopleCol(gymId).document(it), "trainerUid", trainerUid) }
+        batch.commit().await()
+    }
+
+    /** Owner: takes someone out of the gym; a trainer's members move to [moveTo] in the same write. */
+    suspend fun removeFromGym(gymId: String, uid: String, members: List<String>, moveTo: String?) {
+        val batch = db.batch()
+        members.forEach { batch.update(peopleCol(gymId).document(it), "trainerUid", moveTo) }
+        batch.update(peopleCol(gymId).document(uid), "status", PersonStatus.REMOVED.name.lowercase())
+        batch.commit().await()
+    }
+
     /** Leaving only unlinks the account from the gym; the gym keeps the history and the user keeps their backup. */
     suspend fun leave(uid: String) {
         db.collection("users").document(uid).update("gymId", FieldValue.delete()).await()
@@ -188,6 +204,10 @@ class GymRepo {
     suspend fun giveAward(gymId: String, a: GivenAward) {
         givenCol(gymId).add(mapOf("title" to a.title, "emoji" to a.emoji, "uid" to a.uid, "note" to a.note,
             "month" to a.month, "givenAt" to a.givenAt)).await()
+    }
+
+    suspend fun editGivenAward(gymId: String, id: String, title: String, note: String) {
+        givenCol(gymId).document(id).update(mapOf("title" to title, "note" to note)).await()
     }
 
     suspend fun deleteGivenAward(gymId: String, id: String) {

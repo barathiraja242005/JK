@@ -37,33 +37,51 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.luminance
 import com.barathiraja.jk.ui.theme.Plex
+import com.barathiraja.jk.ui.theme.pick
 
 /*
  * The owner's look: warm off-white paper, black ink, one mustard accent and soft pastels for people.
  * Cards carry a curved cut-out in their top-right corner that holds a round button. Status colours
  * always sit next to a word. Every text colour here is at least 4.5:1 on the surface it is used on.
+ *
+ * Dark mode: paper and cards turn near-black and ink turns off-white, so ink pills become light pills
+ * ([OnInk] text). Mustard and the pastels stay as they are and always carry [Black] text. Hero cards
+ * ([Hero]) stay dark in both modes and always carry white text.
  */
 internal object Owner {
-    val Paper = Color(0xFFEEECE7)
-    val Ink = Color(0xFF000000)
+    val Paper get() = pick(0xFFEEECE7, 0xFF0F0F0E)
+    /** Plain cards on the paper. */
+    val Card get() = pick(0xFFFFFFFF, 0xFF1C1B19)
+    /** A panel inside a card. */
+    val Well get() = pick(0xFFFFFFFF, 0xFF26251F)
+    /** Text, icons and lines on paper and cards; also the fill of ink pills (with [OnInk] on them). */
+    val Ink get() = pick(0xFF000000, 0xFFF5F3EE)
+    val OnInk get() = pick(0xFFFFFFFF, 0xFF000000)
+    /** Big dark cards (top trainer, people's pages); white text in both modes. */
+    val Hero get() = pick(0xFF000000, 0xFF26251F)
+    /** Text on mustard and pastels, in both modes. */
+    val Black = Color(0xFF000000)
     val Mustard = Color(0xFFF0D68C)
     val Cream = Color(0xFFF8E9C0)
-    val CardCream = Color(0xFFFFF9EA)
+    val CardCream get() = pick(0xFFFFF9EA, 0xFF1C1B19)
     val Lavender = Color(0xFFE4DCF4)
     val Mint = Color(0xFFCDE5DF)
     val Coral = Color(0xFFF2CDC7)
     val Butter = Color(0xFFF3E3B6)
-    val Muted = Color(0xFF5A5A57)
+    /** Neutral chip for "nothing yet" states. */
+    val Stone = Color(0xFFE7E4DD)
+    val Muted get() = pick(0xFF5A5A57, 0xFFABABAB)
+    /** Secondary text on mustard and pastels. */
     val Warm = Color(0xFF3D3A33)
-    val Faint = Color(0xFFA3A3A0)
-    val Line = Color(0xFFE5E3DE)
+    val Faint get() = pick(0xFFA3A3A0, 0xFF6B6A66)
+    val Line get() = pick(0xFFE5E3DE, 0xFF2A2927)
     val OnDarkMuted = Color(0xFFABABAB)
     val OnDarkSoft = Color(0xFFD4D4D2)
-    val DarkTrack = Color(0xFF2A2A2A)
-    val DarkStrip = Color(0xFF1A1A1A)
-    val Good = Color(0xFF0F766E)
-    val Behind = Color(0xFFC2410C)
+    val DarkTrack = Color(0xFF3A3A36)
+    val DarkStrip get() = pick(0xFF1A1A1A, 0xFF33322D)
+    val Behind get() = pick(0xFFC2410C, 0xFFFB923C)
 
     private val pastels = listOf(Lavender, Mint, Butter, Coral)
     fun pastel(key: String): Color = pastels[Math.floorMod(key.hashCode(), pastels.size)]
@@ -134,24 +152,25 @@ internal class FolderTabShape(
     }
 }
 
-/** Round photo or initial on a pastel, with a fine black ring. */
+/** Round photo or initial on a pastel, with a fine ring ([ring]: black on mustard and pastels). */
 @Composable
-internal fun OwnerAvatar(photoUrl: String?, name: String, key: String, size: Dp = 48.dp, fill: Color = Owner.pastel(key)) {
+internal fun OwnerAvatar(photoUrl: String?, name: String, key: String, size: Dp = 48.dp, fill: Color = Owner.pastel(key), ring: Color = Owner.Ink) {
     Box(
-        Modifier.size(size).clip(CircleShape).background(fill).border(1.5.dp, Owner.Ink, CircleShape),
+        Modifier.size(size).clip(CircleShape).background(fill).border(1.5.dp, ring, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
         if (photoUrl != null) {
             coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
         } else {
-            Text(name.take(1).uppercase().ifBlank { "J" }, style = plex((size.value * 0.38f).sp, FontWeight.SemiBold), color = Owner.Ink)
+            Text(name.take(1).uppercase().ifBlank { "J" }, style = plex((size.value * 0.38f).sp, FontWeight.SemiBold),
+                color = if (fill.luminance() > 0.4f) Owner.Black else Color.White)
         }
     }
 }
 
-/** A small rounded label: always a word, never colour alone. */
+/** A small rounded label: always a word, never colour alone. Fills are light, so the text is black. */
 @Composable
-internal fun OwnerChip(text: String, fill: Color, ink: Color = Owner.Ink, modifier: Modifier = Modifier) {
+internal fun OwnerChip(text: String, fill: Color, ink: Color = Owner.Black, modifier: Modifier = Modifier) {
     Text(
         text, modifier.clip(RoundedCornerShape(50)).background(fill).padding(horizontal = 12.dp, vertical = 5.dp),
         style = plex(13.sp, FontWeight.SemiBold), color = ink, maxLines = 1,

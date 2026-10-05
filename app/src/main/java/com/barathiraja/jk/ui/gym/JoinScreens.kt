@@ -63,7 +63,7 @@ private fun JoinColumn(content: @Composable ColumnScope.() -> Unit) {
     ) { content() }
 }
 
-/** First screen: sign in with the Google account on the phone, or use JK alone. */
+/** First screen: sign in with the Google account on the phone. */
 @Composable
 fun SignInScreen(gvm: GymViewModel) {
     val busy by gvm.busy.collectAsStateWithLifecycle()
@@ -83,9 +83,6 @@ fun SignInScreen(gvm: GymViewModel) {
             else Text("Continue with Google", style = MaterialTheme.typography.titleMedium)
         }
         message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        TextButton(onClick = { gvm.skipped = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Not in a gym? Use JK on my own")
-        }
     }
 }
 

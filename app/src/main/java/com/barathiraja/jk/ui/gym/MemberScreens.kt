@@ -72,7 +72,7 @@ fun AssignedTodayCard(gvm: GymViewModel, nav: NavHostController) {
     val ranking by gvm.memberRanking.collectAsStateWithLifecycle()
     val m = me ?: return
     if (m.role != Role.MEMBER) return
-    val coach = gvm.person(m.trainerUid)
+    val coach = gvm.trainerOf(m)
     val rank = ranking.indexOfFirst { it.uid == m.uid }
     Column {
         a?.let { w ->
@@ -129,7 +129,7 @@ fun MemberGymScreen(gvm: GymViewModel, nav: NavHostController) {
     val upcoming = mine.filter { it.epochDay >= today }.sortedBy { it.epochDay }
     val past = mine.filter { it.epochDay < today }.sortedByDescending { it.epochDay }
     val s = scores[m.uid]
-    val coach = gvm.person(m.trainerUid)
+    val coach = gvm.trainerOf(m)
     val myAwards = awards.flatMap { a -> a.winners.filterValues { it == m.uid }.keys.map { a.month to it } }
 
     TabScreen(gym?.name ?: "My gym", subtitle = "Gym", action = { Avatar(m.photoUrl, m.name, 44.dp) { nav.navigate(Routes.PROFILE) } }) {

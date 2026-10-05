@@ -212,9 +212,10 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
     val people by gvm.people.collectAsStateWithLifecycle()
     val assignments by gvm.assignments.collectAsStateWithLifecycle()
     val scores by gvm.monthScores.collectAsStateWithLifecycle()
+    val me by gvm.me.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val d = digest
-    val trainer = people.firstOrNull { it.uid == uid }
+    val trainer = people.firstOrNull { it.uid == uid }?.takeIf { it.active }
     if (d == null || trainer == null) {
         PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(17.sp)) } }
         return
@@ -228,16 +229,15 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
     val today = gvm.today
     val todays = assignments.filter { it.trainerUid == uid && it.epochDay == today }
     val mine = assignments.filter { it.trainerUid == uid }
-    val pct = row?.let { Math.round(it.rate * 100) } ?: 0
 
     PersonPage("Back", { nav.popBackStack() }) {
         item {
             PersonHero(
                 trainer,
-                chip = row?.let { trainerStatus(it, rank == 1) } ?: ("No workouts yet" to Owner.Paper),
+                chip = row?.let { trainerStatus(it, rank == 1) } ?: ("No workouts yet" to Owner.Stone),
                 fraction = row?.takeIf { it.due > 0 }?.rate,
                 line = if (row == null || row.due == 0) "No workouts given to members yet this month"
-                    else "Members finished $pct of every 100 workouts this month",
+                    else "Members finished ${row.done} of ${plural(row.due, "workout")} this month",
                 strip = "Trains ${plural(members.size, "member")}" + if (row != null && row.idle > 0) " · ${row.idle} away" else "",
                 corner = if (rank > 0) "#$rank" else null,
             )
@@ -263,6 +263,10 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
             MemberCard(m, scores[m.uid] ?: Scoring.MemberScore(m.uid, 0, 0, 0, 0, 0.0), top = false, idle[m.uid], trainer) {
                 nav.navigate(Routes.gymMember(m.uid))
             }
+        }
+        if (me?.role == Role.OWNER) item {
+            Spacer(Modifier.height(8.dp))
+            TrainerManage(trainer, gvm, onRemoved = { nav.popBackStack() })
         }
     }
 }

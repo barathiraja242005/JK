@@ -116,11 +116,6 @@ class UserPrefs(context: Context) {
         )
     }
 
-    /** True when the user chose to use JK on their own instead of signing in to a gym. */
-    var gymSkipped: Boolean
-        get() = sp.getBoolean("gymSkipped", false)
-        set(v) = sp.edit().putBoolean("gymSkipped", v).apply()
-
     /**
      * Profile, settings and training preferences as typed strings ("i:25"), for the signed-in account's private
      * cloud backup. Phone-specific keys (step counter baselines, photo URI, popups) stay on the phone.
@@ -155,7 +150,7 @@ class UserPrefs(context: Context) {
         _training.value = readTraining()
     }
 
-    private val deviceKeys = setOf("stepBaselineDay", "stepBaseline", "avatarUri", "planDialogDay", "gymSkipped")
+    private val deviceKeys = setOf("stepBaselineDay", "stepBaseline", "avatarUri", "planDialogDay")
 
     /** Wipes everything stored on this phone (used when a gym account signs out). */
     fun clearAll() {

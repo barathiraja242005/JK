@@ -30,7 +30,8 @@ private object Palette {
     var dark by mutableStateOf(false)
 }
 
-private fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else Color(light)
+/** A colour that follows light/dark mode. */
+internal fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else Color(light)
 
 /** Solid fill for hero cards; white text on it is 21:1 (light) and 15:1 (dark). */
 val HeroBlue: Color get() = pick(0xFF000000, 0xFF26251F)

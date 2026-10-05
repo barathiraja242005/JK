@@ -16,7 +16,10 @@ object OwnerStats {
      */
     data class Idle(val member: Person, val days: Int, val assignedRecently: Boolean)
 
-    data class TrainerRow(val trainer: Person, val members: Int, val rate: Float, val due: Int, val idle: Int)
+    data class TrainerRow(val trainer: Person, val members: Int, val rate: Float, val due: Int, val idle: Int) {
+        /** Workouts their members finished out of [due]. */
+        val done: Int get() = Math.round(rate * due)
+    }
 
     data class Digest(
         val members: Int,

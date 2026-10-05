@@ -68,11 +68,6 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     val message = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
 
-    var skipped: Boolean
-        get() = c.prefs.gymSkipped
-        set(v) { c.prefs.gymSkipped = v; skippedFlow.value = v }
-    val skippedFlow = MutableStateFlow(c.prefs.gymSkipped)
-
     /** Becomes true once Firebase has told us whether someone is signed in. */
     private val authKnown = MutableStateFlow(!c.gymEnabled)
     private val user: StateFlow<FirebaseUser?> =
@@ -178,6 +173,9 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
 
     fun person(uid: String?): Person? = people.value.firstOrNull { it.uid == uid }
 
+    /** A member's current trainer; null when they have none or their trainer has left the gym. */
+    fun trainerOf(member: Person): Person? = person(member.trainerUid)?.takeIf { it.active }
+
     /** Which section the Ranks tab shows (0 members, 1 trainers, 2 awards); kept here so other screens can open it. */
     val ranksTab = MutableStateFlow(0)
 
@@ -256,7 +254,6 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
 
     fun signIn(activity: Context) = act {
         c.auth.signIn(activity)
-        skipped = false
     }
 
     /** Signs out and removes this account's data from the phone so the next person starts clean. */
@@ -265,7 +262,6 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         c.auth.signOut()
         withContext(Dispatchers.IO) { c.db.clearAllTables() }
         c.prefs.clearAll()
-        skippedFlow.value = false
     }
 
     fun createGym(name: String) = act("Gym created!") { repo.createGym(name.trim(), uid, myName, myPhoto) }
@@ -282,6 +278,44 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         act { repo.setStatus(gymIdOrThrow, p.uid, PersonStatus.REMOVED) }
     }
     fun removeMember(p: Person) = act("${p.firstName} removed") { repo.setStatus(gymIdOrThrow, p.uid, PersonStatus.REMOVED) }
+
+    /** Active members a trainer looks after. */
+    fun membersOf(trainerUid: String): List<Person> = people.value.filter { it.role == Role.MEMBER && it.active && it.trainerUid == trainerUid }
+
+    /** Owner: moves one member to another trainer. */
+    fun changeTrainer(member: Person, trainer: Person) {
+        val done = "${member.firstName} now trains with ${trainer.firstName}"
+        if (demo.value != null) return editDemo(done) { g -> g.copy(people = g.people.map { if (it.uid == member.uid) it.copy(trainerUid = trainer.uid) else it }) }
+        act(done) { repo.setTrainer(gymIdOrThrow, listOf(member.uid), trainer.uid) }
+    }
+
+    /**
+     * Owner: takes a trainer or member out of the gym. A trainer's members move to [moveTo] (null leaves them
+     * without a trainer until the owner picks one). Their past workouts stay in the records.
+     */
+    fun removeFromGym(p: Person, moveTo: Person?) {
+        val theirs = if (p.role == Role.TRAINER) membersOf(p.uid).map { it.uid }.toSet() else emptySet()
+        val done = "${p.firstName} removed from the gym"
+        if (demo.value != null) return editDemo(done) { g ->
+            g.copy(people = g.people.map {
+                when {
+                    it.uid == p.uid -> it.copy(status = PersonStatus.REMOVED)
+                    it.uid in theirs -> it.copy(trainerUid = moveTo?.uid)
+                    else -> it
+                }
+            })
+        }
+        act(done) { repo.removeFromGym(gymIdOrThrow, p.uid, theirs.toList(), moveTo?.uid) }
+    }
+
+    /** Your own display name, as everyone in the gym sees it. */
+    fun renameMe(name: String) {
+        val n = tidyName(name)
+        if (n.isBlank()) return
+        if (demo.value != null) { message.value = "Demo data is on, so this isn't saved"; return }
+        val p = me.value ?: return
+        launchAct("Name saved") { repo.setName(gymIdOrThrow, p.uid, n) }
+    }
 
     /** Creates one assignment per member per day. */
     fun assign(title: String, members: Collection<String>, days: Collection<Long>, exercises: List<AssignedExercise>, onDone: () -> Unit) {
@@ -309,6 +343,11 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
             repo.giveAward(gymIdOrThrow, GivenAward("", title.trim(), emoji, person.uid, note.trim(), month.toString(), System.currentTimeMillis()))
             onDone()
         }
+    }
+    fun editGivenAward(a: GivenAward, title: String, note: String) {
+        val t = title.trim(); val n = note.trim()
+        if (demo.value != null) return editDemo("Award updated") { g -> g.copy(given = g.given.map { if (it.id == a.id) it.copy(title = t, note = n) else it }) }
+        act("Award updated") { repo.editGivenAward(gymIdOrThrow, a.id, t, n) }
     }
     fun removeGivenAward(a: GivenAward) {
         if (demo.value != null) return editDemo("Award removed") { g -> g.copy(given = g.given.filter { it.id != a.id }) }
@@ -341,9 +380,15 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     }
 
     companion object {
-        /** "_S. Janarthanan_" -> "S. Janarthanan", "KOUNDAR BARATHIRAJA" -> "Koundar Barathiraja". */
+        /**
+         * "_S. Janarthanan_" -> "S. Janarthanan", "KOUNDAR BARATHIRAJA" -> "Koundar Barathiraja",
+         * "Barathiraja K 2023-2027" -> "Barathiraja K" (college accounts add the batch years).
+         */
         fun tidyName(raw: String): String {
             val trimmed = raw.trim().trim('_', '.', '-', ' ').replace(Regex("\\s+"), " ")
+                .replace(Regex("[\\s(\\[]*\\d{4}\\s*[-–]\\s*\\d{2,4}[)\\]]*$"), "")
+                .replace(Regex("\\s+\\d+$"), "")
+                .trim().trim('_', '.', '-', ' ')
             return if (trimmed.any { it.isLowerCase() }) trimmed
             else trimmed.split(' ').joinToString(" ") { w -> w.lowercase().replaceFirstChar { it.titlecase() } }
         }

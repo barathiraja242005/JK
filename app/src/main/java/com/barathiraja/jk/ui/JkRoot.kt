@@ -316,11 +316,10 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     val training by tvm.prefs.collectAsStateWithLifecycle()
     val gymState by gvm.state.collectAsStateWithLifecycle()
-    val skipped by gvm.skippedFlow.collectAsStateWithLifecycle()
     var pendingProfile by remember { mutableStateOf<com.barathiraja.jk.data.Profile?>(null) }
 
-    // Gym gate: sign in and join a gym first, unless JK is used on its own.
-    val solo = gymState == GymState.Disabled || (gymState == GymState.SignedOut && skipped)
+    // Gym gate: everyone signs in and joins a gym first (only builds without Firebase run solo).
+    val solo = gymState == GymState.Disabled
     if (!solo) when (val s = gymState) {
         GymState.Loading -> { GymLoading(); return }
         GymState.SignedOut -> { SignInScreen(gvm); return }
