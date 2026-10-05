@@ -111,39 +111,10 @@ internal fun ProfileButton(p: Person, onClick: () -> Unit) {
     ) { OwnerAvatar(p.photoUrl, p.name, 48.dp) }
 }
 
-/** Big, readable join code with a share button (WhatsApp etc.). */
-@Composable
-fun CodeCard(title: String, code: String, shareText: String) {
-    val context = LocalContext.current
-    OwnerCardBox {
-        Column {
-            Text(title, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.padding(vertical = 8.dp).clip(RoundedCornerShape(12.dp)).background(Owner.Well)) {
-                    Text(code, Modifier.padding(horizontal = 16.dp, vertical = 8.dp), fontSize = 32.sp, fontWeight = FontWeight.Bold,
-                        fontFamily = CodeFont, letterSpacing = 4.sp, color = Owner.Ink)
-                }
-                Spacer(Modifier.weight(1f))
-                PlainButton("Share", { context.shareText(shareText) }, icon = Icons.Filled.Share)
-            }
-        }
-    }
-}
-
 /** Completion rate as a percentage string, or "–" when nothing was due. */
 fun pct(done: Int, due: Int) = if (due == 0) "–" else "${Math.round(done * 100f / due)}%"
 
-/** Colour for a completion rate, always shown next to the number. */
-@Composable
-@ReadOnlyComposable
-fun rateColor(rate: Float, due: Int): Color = when {
-    due == 0 -> MaterialTheme.colorScheme.outline
-    rate >= 0.8f -> Good
-    rate >= 0.5f -> Watch
-    else -> Bad
-}
-
-/** Gym section on the Me screen: who you are in the gym, leave, sign out; or join a gym if using JK alone. */
+/** Gym section on a member's Me screen (staff have their own Me tab): who you are in the gym, leave, sign out; or join a gym if using JK alone. */
 @Composable
 fun GymAccountCard(gvm: GymViewModel) {
     val state by gvm.state.collectAsStateWithLifecycle()
@@ -155,9 +126,6 @@ fun GymAccountCard(gvm: GymViewModel) {
                 Text(s.gym.name, style = plex(17.sp, FontWeight.SemiBold), color = Owner.Ink)
                 val role = when (s.me.role) { Role.OWNER -> "Owner"; Role.TRAINER -> "Trainer"; Role.MEMBER -> "Member" }
                 Text(role + (gvm.trainerOf(s.me)?.let { " · Coach ${it.name}" } ?: ""), style = plex(15.sp), color = Owner.Muted)
-                val code = s.me.trainerCode
-                if (s.me.role == Role.TRAINER && !code.isNullOrBlank()) Text("Member code: $code", Modifier.padding(top = 4.dp), style = plex(15.sp), color = Owner.Ink)
-                if (s.me.role == Role.OWNER) Text("Gym code: ${s.gym.gymCode}", Modifier.padding(top = 4.dp), style = plex(15.sp), color = Owner.Ink)
                 Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (s.me.role != Role.OWNER) PlainButton("Leave gym", { confirmLeave = true }, ink = Owner.RedText)
                     PlainButton("Sign out", { confirmSignOut = true })

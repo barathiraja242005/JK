@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -25,7 +23,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,65 +33,8 @@ import com.barathiraja.jk.gym.Assignment
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
-import com.barathiraja.jk.ui.components.TabScreen
 import com.barathiraja.jk.ui.components.formatDuration
-import com.barathiraja.jk.ui.components.shareText
 import com.barathiraja.jk.ui.screens.trimZero
-
-/** Trainer's home: every member and whether they've done today's workout. */
-@Composable
-fun TrainerMembersScreen(gvm: GymViewModel, nav: NavHostController) {
-    val me by gvm.me.collectAsStateWithLifecycle()
-    val gym by gvm.gym.collectAsStateWithLifecycle()
-    val people by gvm.people.collectAsStateWithLifecycle()
-    val assignments by gvm.assignments.collectAsStateWithLifecycle()
-    val scores by gvm.monthScores.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val trainer = me ?: return
-    val today = gvm.today
-    val members = people.filter { it.role == Role.MEMBER && it.active && it.trainerUid == trainer.uid }.sortedBy { it.name }
-    val todays = assignments.filter { it.trainerUid == trainer.uid && it.epochDay == today }
-    val month = members.mapNotNull { scores[it.uid] }
-    val monthDue = month.sumOf { it.due }
-    val monthDone = month.sumOf { it.completed }
-    val code = trainer.trainerCode.orEmpty()
-    val invite = "Join me on the JK app at ${gym?.name ?: "the gym"}! Open JK → Sign in with Google → I'm a member → enter code $code"
-
-    TabScreen("My members", subtitle = gym?.name, action = { ProfileButton(trainer) { nav.navigate(Routes.PROFILE) } }) {
-        item {
-            OwnerCardBox {
-                Column {
-                    Text(if (todays.isEmpty()) "No workouts assigned for today" else "Today: ${todays.count { it.done }} of ${todays.size} done",
-                        style = plex(17.sp, FontWeight.SemiBold, line = 24.sp), color = Owner.Ink)
-                    Text(if (monthDue == 0) "Completion this month shows here once workouts are due"
-                        else "This month: ${pct(monthDone, monthDue)} of workouts completed", style = plex(15.sp, line = 21.sp), color = Owner.Muted)
-                }
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                RedButton("Assign workout", { nav.navigate(Routes.assign("")) }, Modifier.weight(1f).height(52.dp), icon = Icons.Filled.Add)
-                PlainButton("Add member", { context.shareText(invite) }, Modifier.weight(1f).height(52.dp), icon = Icons.Filled.PersonAdd)
-            }
-        }
-        if (members.isEmpty()) {
-            item { CodeCard("Your member code", code, invite) }
-            item { Text("Members sign in to JK and enter this code to join you. They'll appear here.", style = plex(15.sp, line = 21.sp), color = Owner.Muted) }
-        }
-        items(members, key = { it.uid }) { m ->
-            val a = todays.filter { it.memberUid == m.uid }.minByOrNull { if (it.done) 1 else 0 }
-            val s = scores[m.uid]
-            OwnerCardBox(onClick = { nav.navigate(Routes.gymMember(m.uid)) }, onClickLabel = "Open ${m.firstName}", padding = 16.dp) {
-                MemberLine(m, sub = {
-                    Text(a?.title ?: "No workout today", style = plex(13.sp), color = Owner.Muted, maxLines = 1)
-                    Text("Month ${pct(s?.completed ?: 0, s?.due ?: 0)} · ${s?.points ?: 0} pts", style = plex(13.sp),
-                        color = rateColor(s?.rate ?: 0f, s?.due ?: 0))
-                }, trailing = { StatusPill(a, today) })
-            }
-        }
-        if (members.isNotEmpty()) item { CodeCard("Your member code", code, invite) }
-    }
-}
 
 /** How many workouts a member's page lists before "Show all". */
 private const val WORKOUTS_PREVIEW = 5
@@ -130,10 +70,11 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
 
     PersonPage("Back", onBack = { nav.popBackStack() }) {
         memberOverview(member, s, rank, digest?.idle?.firstOrNull { it.member.uid == uid }, gvm.trainerOf(member), list, today,
-            actions = if (me?.role == Role.OWNER) ({ OwnerPersonActions(member, gvm, onRemoved = { nav.popBackStack() }) }) else null)
-        if (isTrainer) item {
-            RedButton("Assign workout to ${member.firstName}", { nav.navigate(Routes.assign(uid)) }, Modifier.fillMaxWidth().height(52.dp), icon = Icons.Filled.Add)
-        }
+            actions = when {
+                me?.role == Role.OWNER -> ({ OwnerPersonActions(member, gvm, onRemoved = { nav.popBackStack() }) })
+                isTrainer -> ({ TrainerPersonActions(member, onAssign = { nav.navigate(Routes.assign(uid)) }, onRemove = { confirmRemove = true }) })
+                else -> null
+            })
         item { PageHeading("Workouts", "Newest first.") }
         if (list.isEmpty()) item { Text("No workouts assigned yet.", style = plex(15.sp), color = Owner.Muted) }
         val shown = if (showAllWorkouts) list else list.take(WORKOUTS_PREVIEW)
@@ -145,10 +86,6 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
         }
         if (list.size > WORKOUTS_PREVIEW) item {
             PlainButton(if (showAllWorkouts) "Show fewer" else "Show all ${list.size} workouts", { showAllWorkouts = !showAllWorkouts }, Modifier.fillMaxWidth())
-        }
-        if (isTrainer) item {
-            PlainButton("Remove ${member.firstName} from my members", { confirmRemove = true },
-                Modifier.fillMaxWidth().padding(top = 16.dp), ink = Owner.RedText)
         }
     }
 
@@ -171,8 +108,9 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
         AlertDialog(onDismissRequest = { confirmRemove = false },
             title = { Text("Remove ${member.firstName}?") },
             text = { Text("They'll lose access to the gym in JK. Their past workouts stay in the records.") },
-            confirmButton = { TextButton(onClick = { confirmRemove = false; gvm.removeMember(member); nav.popBackStack() }) { Text("Remove") } },
-            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel") } })
+            confirmButton = { TextButton(onClick = { confirmRemove = false; gvm.removeMember(member); nav.popBackStack() }) {
+                Text("Remove", color = Owner.RedText) } },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel", color = Owner.Ink) } })
     }
 }
 

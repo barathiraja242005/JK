@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.SwapHoriz
@@ -173,4 +174,18 @@ internal fun OwnerPersonActions(p: Person, gvm: GymViewModel, onRemoved: () -> U
     }
     if (changing) ChangeTrainerDialog(p, gvm) { changing = false }
     if (removing) RemovePersonDialog(p, gvm, onDismiss = { removing = false }, onRemoved = onRemoved)
+}
+
+/** A trainer's actions for one of their members, under the summary card: Assign (red), Message, and Remove. */
+@Composable
+internal fun TrainerPersonActions(member: Person, onAssign: () -> Unit, onRemove: () -> Unit) {
+    val context = LocalContext.current
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        RedButton("Assign", onAssign, Modifier.weight(1f), Icons.Outlined.Add)
+        PlainButton("Message", { context.whatsApp("Hi ${member.firstName}, ") }, Modifier.weight(1f), Icons.AutoMirrored.Outlined.Send)
+        Surface(onClick = onRemove, shape = CircleShape, color = Owner.Card, contentColor = Owner.RedText,
+            border = BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
+            Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PersonRemove, "Remove ${member.firstName} from your members", Modifier.size(20.dp)) }
+        }
+    }
 }

@@ -28,7 +28,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.FitnessCenter
@@ -92,14 +91,15 @@ import com.barathiraja.jk.ui.gym.GiveAwardScreen
 import com.barathiraja.jk.ui.gym.GymLoading
 import com.barathiraja.jk.ui.gym.MemberDetailScreen
 import com.barathiraja.jk.ui.gym.MemberGymScreen
-import com.barathiraja.jk.ui.gym.OwnerAwardsScreen
 import com.barathiraja.jk.ui.gym.Owner
+import com.barathiraja.jk.ui.gym.OwnerAwardsScreen
 import com.barathiraja.jk.ui.gym.OwnerHomeScreen
-import com.barathiraja.jk.ui.gym.OwnerMeScreen
 import com.barathiraja.jk.ui.gym.OwnerPeopleScreen
 import com.barathiraja.jk.ui.gym.RanksScreen
 import com.barathiraja.jk.ui.gym.SignInScreen
+import com.barathiraja.jk.ui.gym.StaffMeScreen
 import com.barathiraja.jk.ui.gym.TrainerDetailScreen
+import com.barathiraja.jk.ui.gym.TrainerHomeScreen
 import com.barathiraja.jk.ui.gym.TrainerMembersScreen
 import com.barathiraja.jk.ui.gym.WaitingScreen
 import com.barathiraja.jk.ui.screens.ArticleScreen
@@ -169,7 +169,6 @@ object Routes {
     const val GYM = "gym"
     const val MEMBERS = "members"
     const val RANKS = "ranks"
-    const val ASSIGN_TAB = "assignTab"
     const val ASSIGN = "assign/{id}"
     const val GYM_MEMBER = "gymMember/{id}"
     const val GYM_TRAINER = "gymTrainer/{id}"
@@ -207,11 +206,11 @@ private val memberTabs = listOf(
     Tab(Routes.TRACK, "Health", Icons.Outlined.FavoriteBorder),
     Tab(Routes.PROGRESS, "Progress", Icons.Outlined.Insights),
 )
+/** Trainers coach and nothing else: today, their members, the gym's ranks, and their account. */
 private val trainerTabs = listOf(
+    Tab(Routes.GYM, "Home", Icons.Outlined.Home),
     Tab(Routes.MEMBERS, "Members", Icons.Outlined.Groups),
-    Tab(Routes.ASSIGN_TAB, "Assign", Icons.Outlined.AddTask),
     Tab(Routes.RANKS, "Ranks", Icons.Outlined.EmojiEvents),
-    Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
     Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
 )
 /** The owner gets one tab per job, each thing in one place: today, people, awards, and their gym and settings. */
@@ -413,10 +412,15 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
       CompositionLocalProvider(LocalNavBarInset provides barInset) {
         NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.fillMaxSize()) {
             composable(Routes.TODAY) { TodayScreen(vm, tvm, nav, gvm.takeIf { role == Role.MEMBER }) }
-            composable(Routes.GYM) { if (role == Role.OWNER) OwnerHomeScreen(gvm, nav) else MemberGymScreen(gvm, nav) }
+            composable(Routes.GYM) {
+                when (role) {
+                    Role.OWNER -> OwnerHomeScreen(gvm, nav)
+                    Role.TRAINER -> TrainerHomeScreen(gvm, nav)
+                    else -> MemberGymScreen(gvm, nav)
+                }
+            }
             composable(Routes.MEMBERS) { TrainerMembersScreen(gvm, nav) }
             composable(Routes.RANKS) { RanksScreen(gvm, nav) }
-            composable(Routes.ASSIGN_TAB) { AssignScreen("", gvm, nav) }
             composable(Routes.ASSIGN) { AssignScreen(it.arg("id").takeIf { a -> a != "-" }.orEmpty(), gvm, nav) }
             composable(Routes.GYM_MEMBER) { MemberDetailScreen(it.arg("id"), gvm, nav) }
             composable(Routes.GYM_TRAINER) { TrainerDetailScreen(it.arg("id"), gvm, nav) }
@@ -438,7 +442,9 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             composable(Routes.SHORTS) { ShortsScreen(vm, nav) }
             composable(Routes.TRACK) { TrackScreen(vm, nav) }
             composable(Routes.PROGRESS) { ProgressScreen(vm, nav) }
-            composable(Routes.PROFILE) { if (role == Role.OWNER) OwnerMeScreen(vm, gvm, nav) else ProfileScreen(vm, nav, gymVm) }
+            composable(Routes.PROFILE) {
+                if (role == Role.OWNER || role == Role.TRAINER) StaffMeScreen(vm, gvm, nav) else ProfileScreen(vm, nav, gymVm)
+            }
             composable(Routes.WORKOUT) { WorkoutDetailScreen(it.arg("id"), vm, nav) }
             composable(Routes.PLAYER) { WorkoutPlayerScreen(it.arg("id"), vm, nav) }
             composable(Routes.EXERCISE) { ExerciseDetailScreen(it.arg("id"), vm, nav) }

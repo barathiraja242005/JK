@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -47,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.ThemeMode
+import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.Routes
@@ -54,21 +56,24 @@ import com.barathiraja.jk.ui.components.shareText
 import com.barathiraja.jk.ui.theme.CodeFont
 
 /**
- * The owner's Me tab: who they are, their gym and its code (the only place the code is shown), how the app looks,
- * and the account. People and awards have their own tabs, so they are not repeated here.
+ * The Me tab for gym staff (owner and trainers): who they are, their gym, how the app looks, and the account.
+ * The owner's gym card carries the trainer code (the only place it shows); a trainer's member code lives on their
+ * Members tab instead. Nothing about personal training.
  */
 @Composable
-fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
+fun StaffMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
     val me by gvm.me.collectAsStateWithLifecycle()
     val gym by gvm.gym.collectAsStateWithLifecycle()
     val s by vm.settings.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val owner = me?.role == Role.OWNER
     var renamingGym by remember { mutableStateOf(false) }
     var renamingMe by remember { mutableStateOf(false) }
     var signingOut by remember { mutableStateOf(false) }
+    var leaving by remember { mutableStateOf(false) }
 
     OwnerPage {
-        item { PageTitle("Me", "Your gym, its code for new trainers, and the app's settings.") }
+        item { PageTitle("Me", if (owner) "Your gym, its code for new trainers, and the app's settings." else "Your name, your gym and the app's settings.") }
 
         item {
             OwnerCardBox(padding = 16.dp) {
@@ -78,7 +83,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                     Column(Modifier.weight(1f)) {
                         Text(me?.name ?: "Owner", style = plex(16.sp, FontWeight.Bold, line = 20.sp), color = Owner.Ink, maxLines = 2,
                             overflow = TextOverflow.Ellipsis)
-                        Text("Owner", style = plex(14.sp), color = Owner.Muted)
+                        Text(if (owner) "Owner" else "Trainer", style = plex(14.sp), color = Owner.Muted)
                     }
                     EditDisc("Change your name") { renamingMe = true }
                 }
@@ -86,26 +91,20 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         }
 
         gym?.let { g ->
-            item { OwnerHeading("Your gym", "New trainers join with this code. You approve each one on Home.") }
-            item {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(g.name, Modifier.weight(1f), style = plex(20.sp, FontWeight.Bold, line = 24.sp), color = Color.White, maxLines = 2)
-                        EditDisc("Rename gym", onDark = true) { renamingGym = true }
-                    }
-                    Text("Code for new trainers", style = plex(13.sp), color = Owner.OnDarkMuted, modifier = Modifier.padding(top = 18.dp))
-                    Text(g.gymCode, style = plex(29.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont), color = Owner.Yellow)
-                    Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        RedButton("Share code", {
-                            context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}")
-                        }, Modifier.weight(1.4f), Icons.Outlined.Share)
-                        Surface(onClick = { copy(context, g.gymCode); gvm.showMessage("Gym code copied") }, shape = RoundedCornerShape(50),
-                            color = Owner.DarkStrip, contentColor = Color.White, modifier = Modifier.weight(1f).height(48.dp)) {
-                            Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Copy", style = plex(15.sp, FontWeight.SemiBold))
-                            }
+            if (owner) {
+                item { OwnerHeading("Your gym", "New trainers join with this code. You approve each one on Home.") }
+                item {
+                    CodeHeroCard(g.name, "Code for new trainers", g.gymCode, onRename = { renamingGym = true },
+                        onShare = { context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}") },
+                        onCopy = { copyText(context, "Gym code", g.gymCode); gvm.showMessage("Gym code copied") })
+                }
+            } else {
+                item { OwnerHeading("Your gym", "Your member code is on the Members tab.") }
+                item {
+                    OwnerCardBox(padding = 16.dp) {
+                        Column {
+                            Text(g.name, style = plex(17.sp, FontWeight.Bold), color = Owner.Ink)
+                            Text("You train members here", style = plex(14.sp), color = Owner.Muted)
                         }
                     }
                 }
@@ -125,11 +124,21 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
 
         item { OwnerHeading("Account", "Signed in with Google.") }
         item { PlainButton("Help and questions", { nav.navigate(Routes.HELP) }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.HelpOutline) }
+        if (!owner) item {
+            PlainButton("Leave this gym", { leaving = true }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.ExitToApp, ink = Owner.RedText)
+        }
         item { PlainButton("Sign out", { signingOut = true }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.Logout, ink = Owner.RedText) }
     }
 
     if (renamingGym) NameDialog("Gym name", null, gym?.name.orEmpty(), { renamingGym = false }) { gvm.renameGym(it) }
-    if (renamingMe) NameDialog("Your name", "Trainers and members see this name.", me?.name.orEmpty(), { renamingMe = false }) { gvm.renameMe(it) }
+    if (leaving) AlertDialog(onDismissRequest = { leaving = false },
+        title = { Text("Leave ${gym?.name ?: "this gym"}?") },
+        text = { Text("Your members will need a new trainer, and you'll stop seeing them. You can join again with the gym code.",
+            style = plex(15.sp, line = 21.sp)) },
+        confirmButton = { TextButton(onClick = { leaving = false; gvm.leaveGym() }) {
+            Text("Leave", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
+        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Stay", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
+    if (renamingMe) NameDialog("Your name", if (owner) "Trainers and members see this name." else "Your members and the owner see this name.", me?.name.orEmpty(), { renamingMe = false }) { gvm.renameMe(it) }
     if (signingOut) AlertDialog(onDismissRequest = { signingOut = false },
         title = { Text("Sign out?") },
         text = { Text("Your gym stays safe. Sign in again with the same Google account to come back.", style = plex(15.sp, line = 21.sp)) },
@@ -138,9 +147,37 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         dismissButton = { TextButton(onClick = { signingOut = false }) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
 }
 
-private fun copy(context: Context, code: String) {
+/** Puts [text] on the clipboard under [label]. */
+internal fun copyText(context: Context, label: String, text: String) {
     val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-    cm.setPrimaryClip(ClipData.newPlainText("Gym code", code))
+    cm.setPrimaryClip(ClipData.newPlainText(label, text))
+}
+
+/**
+ * A charcoal card holding a join code: [title] (with a rename button when [onRename] is set), the code in big
+ * yellow letters, and Share (red, the page's main action) with Copy beside it.
+ */
+@Composable
+internal fun CodeHeroCard(title: String, codeLabel: String, code: String, onRename: (() -> Unit)?, onShare: () -> Unit, onCopy: () -> Unit) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(title, Modifier.weight(1f), style = plex(20.sp, FontWeight.Bold, line = 24.sp), color = Color.White, maxLines = 2)
+            if (onRename != null) EditDisc("Rename", onDark = true, onClick = onRename)
+        }
+        Text(codeLabel, style = plex(13.sp), color = Owner.OnDarkMuted, modifier = Modifier.padding(top = 18.dp))
+        Text(code, style = plex(29.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont), color = Owner.Yellow)
+        Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            RedButton("Share code", onShare, Modifier.weight(1.4f), Icons.Outlined.Share)
+            Surface(onClick = onCopy, shape = RoundedCornerShape(50), color = Owner.DarkStrip, contentColor = Color.White,
+                modifier = Modifier.weight(1f).height(48.dp)) {
+                Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Copy", style = plex(15.sp, FontWeight.SemiBold))
+                }
+            }
+        }
+    }
 }
 
 /** Round pencil button, 48dp. */
