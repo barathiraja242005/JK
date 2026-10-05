@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +22,8 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.KeyboardArrowDown
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -30,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,6 +61,7 @@ import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.theme.Charcoal
+import com.barathiraja.jk.ui.theme.Watch
 import java.time.LocalTime
 
 /*
@@ -106,16 +110,16 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
                 "${if (needs.size == 1) "1 person" else "${needs.size} people"} to say yes to or check on.")
         }
         if (needs.isEmpty()) item { AllClearCard() }
-        val shown = if (showAll) needs else needs.take(NEEDS_PREVIEW)
-        items(shown, key = { it.key }) { n ->
-            when (n) {
-                is Need.Joining -> JoiningCard(n.p, onApprove = { gvm.approve(n.p) }, onReject = { rejecting = n.p })
-                is Need.NoTrainer -> NoTrainerCard(n.p, onOpen = { nav.navigate(Routes.gymMember(n.p.uid)) }, onChoose = { choosingFor = n.p })
-                is Need.Away -> AwayCard(n.i, gvm.trainerOf(n.i.member), gymName, context, onOpen = { nav.navigate(Routes.gymMember(n.i.member.uid)) })
+        else item {
+            val rows = needs.map { n ->
+                when (n) {
+                    is Need.Joining -> joiningRow(n.p, onApprove = { gvm.approve(n.p) }, onReject = { rejecting = n.p })
+                    is Need.NoTrainer -> noTrainerRow(n.p, onOpen = { nav.navigate(Routes.gymMember(n.p.uid)) }, onChoose = { choosingFor = n.p })
+                    is Need.Away -> awayRow(n.i, gvm.trainerOf(n.i.member), gymName, context,
+                        onOpen = { nav.navigate(Routes.gymMember(n.i.member.uid)) })
+                }
             }
-        }
-        if (needs.size > NEEDS_PREVIEW) item {
-            PlainButton(if (showAll) "Show fewer" else "Show all ${needs.size}", { showAll = !showAll }, Modifier.fillMaxWidth())
+            NeedsList(rows, showAll) { showAll = !showAll }
         }
     }
 
@@ -199,56 +203,92 @@ private fun AllClearCard() {
     }
 }
 
+/** One "Needs you" row: who, their status word and reason, and the action(s) for the right-hand slot. */
+private class NeedRow(
+    val key: String, val person: Person, val status: String, val tone: Tone, val reason: String,
+    val onOpen: (() -> Unit)?, val action: @Composable () -> Unit,
+)
+
+/** Width of the action slot, so names and reasons line up down the list whatever the action is. */
+private val NEED_ACTION_SLOT = 96.dp
+
 /**
- * One person who needs the owner, as a compact row: face, name with a status word, one short reason, and a small
- * action on the right. Tapping the row opens them. Only "Approve" is red, so the one decision stands out.
+ * Everyone who needs the owner in one card, rows split by fine lines like the People list. Every row has the same
+ * three columns: photo, three short lines (name, status word, reason), and a fixed-width action slot on the right. Only the first
+ * [NEEDS_PREVIEW] show until "Show all" (the card's last row).
  */
 @Composable
-private fun NeedCard(
-    p: Person, chip: String, tone: Tone, line: String, onOpen: (() -> Unit)?, action: @Composable () -> Unit,
-) {
-    OwnerCardBox(onClick = onOpen, onClickLabel = "Open ${p.firstName}", padding = 12.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(p.photoUrl, p.name, 40.dp)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                ChipLine(chip, tone, line, lines = 2)
+private fun NeedsList(rows: List<NeedRow>, showAll: Boolean, onToggle: () -> Unit) {
+    val shown = if (showAll) rows else rows.take(NEEDS_PREVIEW)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)) {
+        shown.forEachIndexed { i, r ->
+            if (i > 0) RowDivider()
+            key(r.key) { NeedLine(r) }
+        }
+        if (rows.size > NEEDS_PREVIEW) {
+            RowDivider(inset = 0.dp)
+            Row(
+                Modifier.fillMaxWidth().clickable(onClick = onToggle).heightIn(min = 52.dp),
+                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(if (showAll) "Show fewer" else "Show all ${rows.size}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink)
+                Spacer(Modifier.width(4.dp))
+                Icon(if (showAll) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, Modifier.size(20.dp), tint = Owner.Ink)
             }
-            Spacer(Modifier.width(10.dp))
-            action()
         }
     }
 }
 
+/** A fine line between rows, starting under the text column (after the photo) unless [inset] says otherwise. */
 @Composable
-private fun JoiningCard(p: Person, onApprove: () -> Unit, onReject: () -> Unit) {
-    NeedCard(p, "New trainer", Tone.WARN, "Wants to join", onOpen = null) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            SmallAction(Icons.Outlined.Close, "Reject ${p.firstName}", red = false, onReject)
-            SmallAction(Icons.Outlined.Check, "Approve ${p.firstName}", red = true, onApprove)
+private fun RowDivider(inset: Dp = 68.dp) {
+    Box(Modifier.padding(start = inset).fillMaxWidth().height(1.dp).background(Owner.Line))
+}
+
+@Composable
+private fun NeedLine(r: NeedRow) {
+    Row(
+        Modifier.fillMaxWidth()
+            .then(if (r.onOpen != null) Modifier.clickable(onClickLabel = "Open ${r.person.firstName}", onClick = r.onOpen) else Modifier)
+            .heightIn(min = 72.dp).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OwnerAvatar(r.person.photoUrl, r.person.name, 44.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(r.person.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(r.status, style = plex(13.sp, FontWeight.SemiBold), color = if (r.tone == Tone.WARN) Watch else r.tone.ink, maxLines = 1)
+            Text(r.reason, style = plex(13.sp), color = Owner.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        Spacer(Modifier.width(8.dp))
+        Box(Modifier.width(NEED_ACTION_SLOT), contentAlignment = Alignment.CenterEnd) { r.action() }
     }
 }
 
 @Composable
-private fun NoTrainerCard(m: Person, onOpen: () -> Unit, onChoose: () -> Unit) {
-    NeedCard(m, "No trainer", Tone.BAD, "Their trainer left. Pick a new one.", onOpen) {
-        SmallPill("Choose", onChoose)
+private fun joiningRow(p: Person, onApprove: () -> Unit, onReject: () -> Unit) = NeedRow(
+    "j" + p.uid, p, "New trainer", Tone.WARN, "Wants to join", onOpen = null,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        SmallAction(Icons.Outlined.Close, "Reject ${p.firstName}", red = false, onReject)
+        SmallAction(Icons.Outlined.Check, "Approve ${p.firstName}", red = true, onApprove)
     }
 }
 
 @Composable
-private fun AwayCard(i: OwnerStats.Idle, trainer: Person?, gymName: String, context: Context, onOpen: () -> Unit) {
+private fun noTrainerRow(m: Person, onOpen: () -> Unit, onChoose: () -> Unit) = NeedRow(
+    "n" + m.uid, m, "No trainer", Tone.BAD, "Their trainer left", onOpen,
+) { SmallPill("Choose", onChoose) }
+
+@Composable
+private fun awayRow(i: OwnerStats.Idle, trainer: Person?, gymName: String, context: Context, onOpen: () -> Unit): NeedRow {
     val m = i.member
     // The trainer to nudge when they gave no workout lately; null means the member is simply away.
     val nudge = trainer?.takeIf { !i.assignedRecently }
     val days = if (i.days > 30) "30+ days" else plural(i.days, "day")
-    NeedCard(
-        m, if (nudge != null) "No plan" else "Away", if (nudge != null) Tone.WARN else Tone.BAD,
-        if (nudge != null) "No workout given for $days. Ask ${nudge.firstName}."
-        else "No workout for $days" + (trainer?.let { ". Trainer: ${it.firstName}" } ?: ""),
-        onOpen,
+    return NeedRow(
+        "a" + m.uid, m, if (nudge != null) "No plan" else "Away", if (nudge != null) Tone.WARN else Tone.BAD,
+        if (nudge != null) "No plan for $days" else "No workout in $days", onOpen,
     ) {
         SmallAction(Icons.AutoMirrored.Outlined.Send, if (nudge != null) "Message ${nudge.firstName}" else "Message ${m.firstName}", red = false) {
             if (nudge != null) context.whatsApp("Hi ${nudge.firstName}, ${m.name} hasn't had a workout for ${i.days} days. Please assign one in the JK app and check in with them. Thanks!")
