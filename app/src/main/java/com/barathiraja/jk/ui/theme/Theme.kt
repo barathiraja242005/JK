@@ -21,10 +21,23 @@ import com.barathiraja.jk.R
 import com.barathiraja.jk.data.ThemeMode
 
 /*
- * Paper and ink: warm off-white paper, black ink, one mustard accent and soft pastels for people (the look
- * first built for the owner's home). Cards are plain white with large rounds. Status colours are only used
- * next to a word, and every text colour is at least 4.5:1 on its surface. Dark mode swaps to near-black paper
- * with mustard as the accent, since black ink would vanish.
+ * Red, black, yellow on white: the "Ignite" palette.
+ *
+ * Why these four, and how much of each (60-30-10):
+ *  - White (60%): page and cards. Space and calm lower the effort of reading, which matters most for an older
+ *    owner scanning numbers. The page is a faint grey so white cards stand out without borders.
+ *  - Black (30%): text, the bottom bar and the one dark "hero" card per page. Black reads as strength and
+ *    authority, the core of gym culture, and black on white is the clearest text there is (19.8:1).
+ *  - Red (about 7%): only the main action on a screen and "needs attention". Red raises arousal and draws the eye
+ *    first (it is the colour people spot fastest), so it is kept for what the user should do or look at next.
+ *    Using it sparingly keeps it meaningful: one red thing per view stands out (the isolation effect).
+ *  - Yellow (about 3%): reward and celebration: awards, the top spot, done ticks. Yellow is the brightest hue and
+ *    reads as optimism and achievement; black on yellow is the high-visibility pairing of sports kit and signage
+ *    (12.6:1). Yellow is never used for text on white (too faint); it is a fill with black on it.
+ *
+ * Every text colour is at least 4.5:1 on its surface (WCAG AA); white on red is 5.2:1. Status is never shown by
+ * colour alone; a word always goes with it. In dark mode red text lightens to coral so it stays readable, and red
+ * buttons carry black text there.
  */
 private object Palette {
     var dark by mutableStateOf(false)
@@ -33,72 +46,77 @@ private object Palette {
 /** A colour that follows light/dark mode. */
 internal fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else Color(light)
 
-/** Solid fill for hero cards; white text on it is 21:1 (light) and 15:1 (dark). */
-val HeroBlue: Color get() = pick(0xFF000000, 0xFF26251F)
+/** Brand red as a fill (buttons, the open tab). White text on it is 5.2:1. */
+val Red: Color = Color(0xFFD7141E)
+/** Signal yellow, for fills only (awards, top spot, done). Always black text on it. */
+val Yellow: Color = Color(0xFFFFC629)
+/** Near-black ink; also the fill of hero cards and the bottom bar. */
+val Ink: Color = Color(0xFF0A0A0A)
 
-/** The accent: progress, links, highlights. Ink on paper; mustard on dark paper. */
-val Ember: Color get() = pick(0xFF000000, 0xFFF0D68C)
-/** Mustard, for fills only (never text on paper: too light). */
-val Mustard: Color = Color(0xFFF0D68C)
-/** Good / done. */
-val Leaf: Color get() = pick(0xFF0F766E, 0xFF2DD4BF)
-/** Watch / in progress. */
-val Sun: Color get() = pick(0xFFB45309, 0xFFFBBF24)
+/** Solid fill for hero cards; white text on it in both modes. */
+val HeroBlue: Color get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
+
+/** The accent for text, icons and progress: red on white, coral on black. */
+val Ember: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
+/** Good / done: ink, with a tick or a word next to it. */
+val Leaf: Color get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
+/** Watch / in progress: dark gold on white, yellow on black. */
+val Sun: Color get() = pick(0xFF8A6100, 0xFFFFC629)
 /** Bad / missed. */
-val Alert: Color get() = pick(0xFFB91C1C, 0xFFF87171)
-/** Information, water: same accent, to keep the palette to one colour. */
-val Aqua: Color get() = pick(0xFF000000, 0xFFF0D68C)
-/** Calm: meditation, sleep. */
-val Violet: Color get() = pick(0xFF6D28D9, 0xFFA78BFA)
+val Alert: Color get() = pick(0xFFB3121B, 0xFFFF8A8E)
+/** Information, water: the accent. */
+val Aqua: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
+/** Calm: meditation, sleep. A quiet grey, so calm screens stay calm. */
+val Violet: Color get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
 
 private val Light = lightColorScheme(
-    primary = Color(0xFF000000),
+    primary = Color(0xFFD7141E),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFF0D68C),
-    onPrimaryContainer = Color(0xFF000000),
-    secondary = Color(0xFF000000),
+    primaryContainer = Color(0xFFFDE4E4),
+    onPrimaryContainer = Color(0xFF9E0F16),
+    secondary = Color(0xFF0A0A0A),
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF8E9C0),
-    onSecondaryContainer = Color(0xFF000000),
-    tertiary = Color(0xFF0F766E),
-    onTertiary = Color.White,
-    error = Color(0xFFB91C1C),
-    background = Color(0xFFEEECE7),
-    onBackground = Color(0xFF000000),
-    surface = Color(0xFFEEECE7),
-    onSurface = Color(0xFF000000),
-    surfaceVariant = Color(0xFFF5F3EE),
-    onSurfaceVariant = Color(0xFF5A5A57),
+    secondaryContainer = Color(0xFFFFF2C7),
+    onSecondaryContainer = Color(0xFF0A0A0A),
+    tertiary = Color(0xFFFFC629),
+    onTertiary = Color(0xFF0A0A0A),
+    error = Color(0xFFB3121B),
+    background = Color(0xFFF6F6F4),
+    onBackground = Color(0xFF0A0A0A),
+    surface = Color(0xFFF6F6F4),
+    onSurface = Color(0xFF0A0A0A),
+    surfaceVariant = Color(0xFFEFEFEC),
+    onSurfaceVariant = Color(0xFF5C5C5C),
     surfaceContainer = Color(0xFFFFFFFF),
-    surfaceContainerHigh = Color(0xFFF5F3EE),
-    surfaceContainerHighest = Color(0xFFE7E4DD),
-    outline = Color(0xFF8A8780),
-    outlineVariant = Color(0xFFE5E3DE),
+    surfaceContainerHigh = Color(0xFFF1F1EE),
+    surfaceContainerHighest = Color(0xFFE6E6E3),
+    outline = Color(0xFF8F8F8C),
+    outlineVariant = Color(0xFFE6E6E3),
 )
 
 private val Dark = darkColorScheme(
-    primary = Color(0xFFF0D68C),
-    onPrimary = Color(0xFF000000),
-    primaryContainer = Color(0xFF3A3322),
-    onPrimaryContainer = Color(0xFFF8E9C0),
-    secondary = Color(0xFFF0D68C),
-    onSecondary = Color(0xFF000000),
-    secondaryContainer = Color(0xFF2E2A20),
-    onSecondaryContainer = Color(0xFFF8E9C0),
-    tertiary = Color(0xFF2DD4BF),
-    onTertiary = Color(0xFF000000),
-    error = Color(0xFFF87171),
-    background = Color(0xFF0F0F0E),
-    onBackground = Color(0xFFF5F3EE),
-    surface = Color(0xFF0F0F0E),
-    onSurface = Color(0xFFF5F3EE),
-    surfaceVariant = Color(0xFF242320),
-    onSurfaceVariant = Color(0xFFABABAB),
-    surfaceContainer = Color(0xFF1C1B19),
-    surfaceContainerHigh = Color(0xFF242320),
-    surfaceContainerHighest = Color(0xFF2E2D29),
-    outline = Color(0xFF6B6A66),
-    outlineVariant = Color(0xFF2A2927),
+    primary = Color(0xFFFF5A5F),
+    onPrimary = Color(0xFF0A0A0A),
+    primaryContainer = Color(0xFF2A1214),
+    onPrimaryContainer = Color(0xFFFFB4B6),
+    secondary = Color(0xFFF2F2F2),
+    onSecondary = Color(0xFF0A0A0A),
+    secondaryContainer = Color(0xFF2A2410),
+    onSecondaryContainer = Color(0xFFFFD966),
+    tertiary = Color(0xFFFFC629),
+    onTertiary = Color(0xFF0A0A0A),
+    error = Color(0xFFFF8A8E),
+    background = Color(0xFF0B0B0B),
+    onBackground = Color(0xFFF2F2F2),
+    surface = Color(0xFF0B0B0B),
+    onSurface = Color(0xFFF2F2F2),
+    surfaceVariant = Color(0xFF1F1F1F),
+    onSurfaceVariant = Color(0xFFA3A3A3),
+    surfaceContainer = Color(0xFF161616),
+    surfaceContainerHigh = Color(0xFF1F1F1F),
+    surfaceContainerHighest = Color(0xFF2A2A2A),
+    outline = Color(0xFF6E6E6E),
+    outlineVariant = Color(0xFF262626),
 )
 
 /*
@@ -115,14 +133,14 @@ val CodeFont = FontFamily(Font(R.font.plex_mono, FontWeight.SemiBold))
 private fun TextStyle.p(size: Int, line: Int, weight: FontWeight, tracking: Double = 0.0) =
     copy(fontFamily = Plex, fontSize = size.sp, lineHeight = line.sp, fontWeight = weight, letterSpacing = tracking.sp)
 
-/** Sentence case, semibold headings, regular body text never below 15sp. */
+/** Sentence case; bold headings for a confident, athletic voice; regular body text never below 15sp. */
 private val JkType = Typography().let { t ->
     Typography(
-        displayLarge = t.displayLarge.p(48, 56, FontWeight.SemiBold, -1.0),
-        displayMedium = t.displayMedium.p(40, 48, FontWeight.SemiBold, -0.8),
-        displaySmall = t.displaySmall.p(32, 40, FontWeight.SemiBold, -0.5),
-        headlineLarge = t.headlineLarge.p(28, 36, FontWeight.SemiBold, -0.4),
-        headlineMedium = t.headlineMedium.p(24, 32, FontWeight.SemiBold, -0.3),
+        displayLarge = t.displayLarge.p(48, 56, FontWeight.Bold, -1.0),
+        displayMedium = t.displayMedium.p(40, 48, FontWeight.Bold, -0.8),
+        displaySmall = t.displaySmall.p(32, 40, FontWeight.Bold, -0.5),
+        headlineLarge = t.headlineLarge.p(28, 36, FontWeight.Bold, -0.4),
+        headlineMedium = t.headlineMedium.p(24, 32, FontWeight.Bold, -0.3),
         headlineSmall = t.headlineSmall.p(20, 28, FontWeight.SemiBold, -0.2),
         titleLarge = t.titleLarge.p(18, 26, FontWeight.SemiBold),
         titleMedium = t.titleMedium.p(16, 24, FontWeight.SemiBold),

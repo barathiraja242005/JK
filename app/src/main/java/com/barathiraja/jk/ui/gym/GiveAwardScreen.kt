@@ -82,7 +82,6 @@ import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.Avatar
 import com.barathiraja.jk.ui.components.BackScreen
-import com.barathiraja.jk.ui.theme.Leaf
 import com.barathiraja.jk.ui.theme.Sun
 import java.time.YearMonth
 
@@ -239,7 +238,7 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                             .background(if (selected) cs.secondaryContainer else Color.Transparent)
                             .clickable { chosenUid = p.uid }.padding(horizontal = 10.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            OwnerAvatar(p.photoUrl, p.name, p.uid, 44.dp)
+                            OwnerAvatar(p.photoUrl, p.name, 44.dp)
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(p.name, style = plex(17.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
@@ -251,7 +250,7 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                                         else -> "${memberScores[p.uid]?.points ?: 0} points · trainer ${gvm.trainerOf(p)?.firstName ?: "–"}"
                                     },
                                     style = plex(14.sp, if (p.uid == suggested) FontWeight.SemiBold else FontWeight.Normal),
-                                    color = if (p.uid == suggested) Leaf else cs.onSurfaceVariant,
+                                    color = if (p.uid == suggested) Owner.RedText else cs.onSurfaceVariant,
                                 )
                             }
                             CheckDisc(selected)
@@ -279,23 +278,9 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
 
         if (ready) item { AwardPreview(awardLook(option!!.emoji, option.title), title, person!!, rewardText!!) }
         item {
-            val cs = MaterialTheme.colorScheme
-            Surface(
-                onClick = { if (ready) gvm.giveAward(title, option!!.emoji, person!!, rewardText!!) { nav.popBackStack() } },
-                enabled = ready && !busy, shape = RoundedCornerShape(50),
-                color = if (ready) com.barathiraja.jk.ui.theme.HeroBlue else cs.surfaceContainerHighest,
-                contentColor = if (ready) Color.White else cs.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
-            ) {
-                Row(Modifier.padding(start = 22.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(if (ready) "Give award to ${person!!.firstName}" else "Finish the three steps", Modifier.weight(1f),
-                        style = plex(17.sp, FontWeight.SemiBold), maxLines = 1)
-                    Box(Modifier.size(44.dp).clip(CircleShape).background(if (ready) com.barathiraja.jk.ui.theme.Mustard else cs.surfaceContainer),
-                        contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.EmojiEvents, null, Modifier.size(20.dp), tint = if (ready) Color.Black else cs.onSurfaceVariant)
-                    }
-                }
-            }
+            RedButton(if (ready) "Give award to ${person!!.firstName}" else "Finish the three steps",
+                { if (ready) gvm.giveAward(title, option!!.emoji, person!!, rewardText!!) { nav.popBackStack() } },
+                Modifier.fillMaxWidth().padding(top = 4.dp), Icons.Outlined.EmojiEvents, enabled = ready && !busy)
         }
     }
 }
@@ -366,13 +351,13 @@ private fun WhoTab(
         Text(label, style = plex(16.sp, FontWeight.SemiBold), color = fg, maxLines = 1)
         Spacer(Modifier.width(8.dp))
         Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50))
-            .background(if (selected) com.barathiraja.jk.ui.theme.Mustard else cs.surfaceContainerHighest)
+            .background(if (selected) com.barathiraja.jk.ui.theme.Yellow else cs.surfaceContainerHighest)
             .padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
             Text("$count", style = plex(12.sp, FontWeight.SemiBold), color = if (selected) Color.Black else fg)
         }
         if (picked && !selected) {
             Spacer(Modifier.width(6.dp))
-            Box(Modifier.size(20.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Mustard).border(1.5.dp, Color.Black, CircleShape),
+            Box(Modifier.size(20.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Yellow).border(1.5.dp, Color.Black, CircleShape),
                 contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Check, "Your pick is here", Modifier.size(13.dp), tint = Color.Black)
             }
@@ -385,7 +370,7 @@ private fun WhoTab(
 private fun StepTitle(n: Int, text: String, done: Boolean) {
     val cs = MaterialTheme.colorScheme
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 14.dp, start = 4.dp)) {
-        Box(Modifier.size(34.dp).clip(CircleShape).background(if (done) com.barathiraja.jk.ui.theme.Mustard else cs.onSurface),
+        Box(Modifier.size(34.dp).clip(CircleShape).background(if (done) com.barathiraja.jk.ui.theme.Yellow else cs.onSurface),
             contentAlignment = Alignment.Center) {
             if (done) Icon(Icons.Outlined.Check, "Done", Modifier.size(18.dp), tint = Color.Black)
             else Text("$n", style = plex(16.sp, FontWeight.SemiBold), color = cs.surface)
@@ -412,7 +397,7 @@ private fun TileGrid(count: Int, tile: @Composable (index: Int, modifier: Modifi
 @Composable
 private fun CheckDisc(on: Boolean) {
     val cs = MaterialTheme.colorScheme
-    Box(Modifier.size(28.dp).clip(CircleShape).background(if (on) com.barathiraja.jk.ui.theme.Mustard else Color.Transparent)
+    Box(Modifier.size(28.dp).clip(CircleShape).background(if (on) com.barathiraja.jk.ui.theme.Yellow else Color.Transparent)
         .border(1.5.dp, if (on) Color.Black else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
         if (on) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
     }
@@ -427,7 +412,7 @@ private fun AwardTile(look: AwardLook, label: String, selected: Boolean, modifie
         contentColor = if (selected) Color.White else cs.onSurface) {
         Box {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                AwardBadge(look, 58.dp, ribbon = if (selected) com.barathiraja.jk.ui.theme.Mustard else Owner.Ink)
+                AwardBadge(look, 58.dp)
                 Spacer(Modifier.height(10.dp))
                 Text(label, style = plex(15.sp, FontWeight.SemiBold, line = 19.sp), textAlign = TextAlign.Center)
             }
@@ -444,7 +429,7 @@ private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, la
         color = if (selected) com.barathiraja.jk.ui.theme.HeroBlue else cs.surfaceContainer,
         contentColor = if (selected) Color.White else cs.onSurface) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(if (selected) com.barathiraja.jk.ui.theme.Mustard else cs.surfaceContainerHigh),
+            Box(Modifier.size(38.dp).clip(CircleShape).background(if (selected) com.barathiraja.jk.ui.theme.Yellow else cs.surfaceContainerHigh),
                 contentAlignment = Alignment.Center) {
                 Icon(icon, null, Modifier.size(19.dp), tint = if (selected) Color.Black else cs.onSurface)
             }
@@ -457,18 +442,18 @@ private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, la
 /** What everyone will see: the medal, who it is for, the award and the gift, on a mustard card. */
 @Composable
 private fun AwardPreview(look: AwardLook, title: String, person: Person, reward: String) {
-    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(com.barathiraja.jk.ui.theme.Mustard).padding(22.dp),
+    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(com.barathiraja.jk.ui.theme.Yellow).padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Preview", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Warm)
+        Text("Preview", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Black)
         Spacer(Modifier.height(12.dp))
         AwardBadge(look, 92.dp)
         Spacer(Modifier.height(14.dp))
         Text(title, style = plex(22.sp, FontWeight.SemiBold), color = Color.Black, textAlign = TextAlign.Center)
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(person.photoUrl, person.name, person.uid, 30.dp, ring = Owner.Black)
+            OwnerAvatar(person.photoUrl, person.name, 30.dp)
             Spacer(Modifier.width(8.dp))
             Text(person.name, style = plex(17.sp, FontWeight.SemiBold), color = Color.Black)
         }
-        if (reward.isNotBlank()) OwnerChip("Gift · $reward", Owner.Cream, modifier = Modifier.padding(top = 12.dp))
+        if (reward.isNotBlank()) OwnerChip("Gift · $reward", Tone.GOOD, Modifier.padding(top = 12.dp))
     }
 }

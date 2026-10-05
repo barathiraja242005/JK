@@ -51,20 +51,10 @@ import com.barathiraja.jk.ui.GymViewModel
  * or take someone out of the gym. Every step says in words what will happen before anything changes.
  */
 
-/** A full-width outlined row button; [danger] makes it red for removing. */
+/** A full-width outlined button; [danger] makes its words red, for removing. */
 @Composable
-internal fun ManageButton(text: String, icon: ImageVector, danger: Boolean = false, onClick: () -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val ink = if (danger) cs.error else cs.onSurface
-    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = cs.surfaceContainer, contentColor = ink,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
-        Row(Modifier.padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, Modifier.size(22.dp))
-            Spacer(Modifier.width(12.dp))
-            Text(text, style = plex(17.sp, FontWeight.SemiBold), maxLines = 1)
-        }
-    }
-}
+internal fun ManageButton(text: String, icon: ImageVector, danger: Boolean = false, onClick: () -> Unit) =
+    PlainButton(text, onClick, Modifier.fillMaxWidth(), icon, ink = if (danger) Owner.RedText else Owner.Ink)
 
 /** A tappable trainer choice with a round tick: 56dp tall, name in full. */
 @Composable
@@ -78,15 +68,15 @@ private fun TrainerOption(p: Person, note: String, selected: Boolean, onClick: (
             .heightIn(min = 60.dp).padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OwnerAvatar(p.photoUrl, p.name, p.uid, 40.dp)
+        OwnerAvatar(p.photoUrl, p.name, 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(p.name, style = plex(17.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
             Text(note, style = plex(14.sp), color = cs.onSurfaceVariant, maxLines = 1)
         }
-        Box(Modifier.size(28.dp).clip(CircleShape).background(if (selected) Owner.Mustard else Color.Transparent)
-            .border(1.5.dp, if (selected) Owner.Black else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
-            if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Owner.Black)
+        Box(Modifier.size(28.dp).clip(CircleShape).background(if (selected) Owner.Red else Color.Transparent)
+            .border(1.5.dp, if (selected) Owner.Red else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
+            if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.White)
         }
     }
 }
@@ -153,7 +143,7 @@ internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> U
         },
         confirmButton = {
             TextButton(onClick = { onDismiss(); gvm.removeFromGym(p, moveTo); onRemoved() }) {
-                Text("Remove ${p.firstName}", style = plex(16.sp, FontWeight.SemiBold), color = MaterialTheme.colorScheme.error)
+                Text("Remove ${p.firstName}", style = plex(16.sp, FontWeight.SemiBold), color = Owner.RedText)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Keep ${p.firstName}", style = plex(16.sp, FontWeight.SemiBold)) } },

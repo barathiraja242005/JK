@@ -3,17 +3,35 @@ package com.barathiraja.jk.ui.gym
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,159 +39,178 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Density
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.graphics.luminance
+import com.barathiraja.jk.ui.components.LocalNavBarInset
 import com.barathiraja.jk.ui.theme.Plex
 import com.barathiraja.jk.ui.theme.pick
 
 /*
- * The owner's look: warm off-white paper, black ink, one mustard accent and soft pastels for people.
- * Cards carry a curved cut-out in their top-right corner that holds a round button. Status colours
- * always sit next to a word. Every text colour here is at least 4.5:1 on the surface it is used on.
- *
- * Dark mode: paper and cards turn near-black and ink turns off-white, so ink pills become light pills
- * ([OnInk] text). Mustard and the pastels stay as they are and always carry [Black] text. Hero cards
- * ([Hero]) stay dark in both modes and always carry white text.
+ * The owner's look, built on the app's red / black / yellow / white palette (see Theme.kt for the reasoning).
+ * One red thing per screen: the action the owner should take next. Black carries text and the one hero card.
+ * Yellow marks reward and the top spot. Everything else is white space, so the owner's eye has few places to go.
+ * Status is always a word in a chip ([Tone]); the colour only backs the word up.
  */
 internal object Owner {
-    val Paper get() = pick(0xFFEEECE7, 0xFF0F0F0E)
+    val Paper get() = pick(0xFFF6F6F4, 0xFF0B0B0B)
     /** Plain cards on the paper. */
-    val Card get() = pick(0xFFFFFFFF, 0xFF1C1B19)
-    /** A panel inside a card. */
-    val Well get() = pick(0xFFFFFFFF, 0xFF26251F)
-    /** Text, icons and lines on paper and cards; also the fill of ink pills (with [OnInk] on them). */
-    val Ink get() = pick(0xFF000000, 0xFFF5F3EE)
-    val OnInk get() = pick(0xFFFFFFFF, 0xFF000000)
-    /** Big dark cards (top trainer, people's pages); white text in both modes. */
-    val Hero get() = pick(0xFF000000, 0xFF26251F)
-    /** Text on mustard and pastels, in both modes. */
-    val Black = Color(0xFF000000)
-    val Mustard = Color(0xFFF0D68C)
-    val Cream = Color(0xFFF8E9C0)
-    val CardCream get() = pick(0xFFFFF9EA, 0xFF1C1B19)
-    val Lavender = Color(0xFFE4DCF4)
-    val Mint = Color(0xFFCDE5DF)
-    val Coral = Color(0xFFF2CDC7)
-    val Butter = Color(0xFFF3E3B6)
-    /** Neutral chip for "nothing yet" states. */
-    val Stone = Color(0xFFE7E4DD)
-    val Muted get() = pick(0xFF5A5A57, 0xFFABABAB)
-    /** Secondary text on mustard and pastels. */
-    val Warm = Color(0xFF3D3A33)
-    val Faint get() = pick(0xFFA3A3A0, 0xFF6B6A66)
-    val Line get() = pick(0xFFE5E3DE, 0xFF2A2927)
-    val OnDarkMuted = Color(0xFFABABAB)
-    val OnDarkSoft = Color(0xFFD4D4D2)
-    val DarkTrack = Color(0xFF3A3A36)
-    val DarkStrip get() = pick(0xFF1A1A1A, 0xFF33322D)
-    val Behind get() = pick(0xFFC2410C, 0xFFFB923C)
+    val Card get() = pick(0xFFFFFFFF, 0xFF161616)
+    /** A panel or strip inside a card. */
+    val Well get() = pick(0xFFF1F1EE, 0xFF1F1F1F)
+    /** Text, icons and lines on paper and cards. */
+    val Ink get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
+    val OnInk get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
+    /** The dark hero card; white text on it in both modes. */
+    val Hero get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
+    /** Text on yellow, in both modes. */
+    val Black = Color(0xFF0A0A0A)
+    /** Red as a fill: the main action. White text on it (5.2:1). */
+    val Red = Color(0xFFD7141E)
+    /** Red as text or an icon on paper and cards. */
+    val RedText get() = pick(0xFFD7141E, 0xFFFF5A5F)
+    val Yellow = Color(0xFFFFC629)
+    val Muted get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
+    val Line get() = pick(0xFFE6E6E3, 0xFF262626)
+    /** On the hero card. */
+    val OnDarkMuted = Color(0xFFA3A3A3)
+    val OnDarkSoft = Color(0xFFD4D4D4)
+    val DarkTrack = Color(0xFF333333)
+    val DarkStrip get() = pick(0xFF1F1F1F, 0xFF2A2A2A)
+}
 
-    private val pastels = listOf(Lavender, Mint, Butter, Coral)
-    fun pastel(key: String): Color = pastels[Math.floorMod(key.hashCode(), pastels.size)]
+/**
+ * A status word's look. [TOP]: yellow, the best. [GOOD]: black, all fine. [WARN]: pale yellow, worth a look.
+ * [BAD]: pale red, needs the owner. [NONE]: grey, nothing yet.
+ */
+internal enum class Tone {
+    TOP, GOOD, WARN, BAD, NONE;
+
+    val fill: Color get() = when (this) {
+        TOP -> Owner.Yellow
+        GOOD -> Owner.Ink
+        WARN -> pick(0xFFFFF2C7, 0xFF2A2410)
+        BAD -> pick(0xFFFDE4E4, 0xFF2A1214)
+        NONE -> pick(0xFFEFEFEC, 0xFF262626)
+    }
+    val ink: Color get() = when (this) {
+        TOP -> Owner.Black
+        GOOD -> Owner.OnInk
+        WARN -> pick(0xFF0A0A0A, 0xFFFFD966)
+        BAD -> pick(0xFF9E0F16, 0xFFFFB4B6)
+        NONE -> pick(0xFF3D3D3D, 0xFFD4D4D4)
+    }
 }
 
 internal fun plex(size: TextUnit, weight: FontWeight = FontWeight.Normal, line: TextUnit = TextUnit.Unspecified, tracking: TextUnit = 0.sp) =
     androidx.compose.ui.text.TextStyle(fontFamily = Plex, fontSize = size, fontWeight = weight, lineHeight = line, letterSpacing = tracking)
 
-/**
- * A rounded card with a square bite out of its top-right corner. The bite's inner corner is concave and the two
- * corners it makes on the card are rounded, so the outline reads as one smooth curve. Being a real shape, whatever
- * is behind the card shows through the bite.
- */
-internal class NotchedShape(
-    private val radius: Dp = 28.dp,
-    private val notch: Dp = 68.dp,
-    private val inner: Dp = 26.dp,
-    private val smooth: Dp = 22.dp,
-) : Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline = with(density) {
-        val r = radius.toPx(); val n = notch.toPx(); val r1 = inner.toPx(); val r2 = smooth.toPx()
-        val w = size.width; val h = size.height
-        Outline.Generic(Path().apply {
-            moveTo(0f, r)
-            arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
-            lineTo(w - n - r2, 0f)
-            arcTo(Rect(w - n - 2 * r2, 0f, w - n, 2 * r2), -90f, 90f, false)
-            lineTo(w - n, n - r1)
-            arcTo(Rect(w - n, n - 2 * r1, w - n + 2 * r1, n), 180f, -90f, false)
-            lineTo(w - r2, n)
-            arcTo(Rect(w - 2 * r2, n, w, n + 2 * r2), -90f, 90f, false)
-            lineTo(w, h - r)
-            arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
-            lineTo(r, h)
-            arcTo(Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
-            close()
-        })
-    }
-}
-
-/**
- * A folder tab that grows out of the panel under it: rounded on top, with concave flares at the bottom so it
- * blends into the panel. [left]/[right] turn each flare off when the tab sits on the panel's edge.
- */
-internal class FolderTabShape(
-    private val radius: Dp = 22.dp,
-    private val flare: Dp = 20.dp,
-    private val left: Boolean = true,
-    private val right: Boolean = true,
-) : Shape {
-    override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline = with(density) {
-        val r = radius.toPx(); val f = flare.toPx()
-        val w = size.width; val h = size.height
-        val lf = if (left) f else 0f; val rf = if (right) f else 0f
-        Outline.Generic(Path().apply {
-            moveTo(0f, h)
-            if (left) arcTo(Rect(-f, h - 2 * f, f, h), 90f, -90f, false)
-            lineTo(lf, r)
-            arcTo(Rect(lf, 0f, lf + 2 * r, 2 * r), 180f, 90f, false)
-            lineTo(w - rf - r, 0f)
-            arcTo(Rect(w - rf - 2 * r, 0f, w - rf, 2 * r), -90f, 90f, false)
-            if (right) {
-                lineTo(w - f, h - f)
-                arcTo(Rect(w - f, h - 2 * f, w + f, h), 180f, -90f, false)
-            } else lineTo(w, h)
-            close()
-        })
-    }
-}
-
-/** Round photo or initial on a pastel, with a fine ring ([ring]: black on mustard and pastels). */
+/** Owner page shell: paper background, status-bar padding and room for the bottom bar. */
 @Composable
-internal fun OwnerAvatar(photoUrl: String?, name: String, key: String, size: Dp = 48.dp, fill: Color = Owner.pastel(key), ring: Color = Owner.Ink) {
-    Box(
-        Modifier.size(size).clip(CircleShape).background(fill).border(1.5.dp, ring, CircleShape),
-        contentAlignment = Alignment.Center,
+internal fun OwnerPage(spacing: Dp = 12.dp, content: LazyListScope.() -> Unit) {
+    LazyColumn(
+        Modifier.fillMaxSize().background(Owner.Paper).windowInsetsPadding(WindowInsets.statusBars).imePadding(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp + LocalNavBarInset.current),
+        verticalArrangement = Arrangement.spacedBy(spacing),
+        content = content,
+    )
+}
+
+/** A tab's title and the one sentence that says what the page is for. */
+@Composable
+internal fun PageTitle(title: String, explain: String) {
+    Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)) {
+        Text(title, style = plex(32.sp, FontWeight.Bold, line = 38.sp, tracking = (-0.6).sp), color = Owner.Ink)
+        Text(explain, style = plex(17.sp, line = 25.sp), color = Owner.Muted, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+/** Section title with one plain sentence under it. */
+@Composable
+internal fun OwnerHeading(title: String, explain: String? = null) {
+    Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 20.dp, bottom = 2.dp)) {
+        Text(title, style = plex(21.sp, FontWeight.Bold), color = Owner.Ink)
+        if (explain != null) Text(explain, style = plex(16.sp, line = 23.sp), color = Owner.Muted, modifier = Modifier.padding(top = 4.dp))
+    }
+}
+
+/** The screen's main action: a red pill, white words, an optional icon after them. 56dp tall. */
+@Composable
+internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
+    Surface(
+        onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 56.dp), shape = RoundedCornerShape(50),
+        color = if (enabled) Owner.Red else Tone.NONE.fill, contentColor = if (enabled) Color.White else Owner.Muted,
     ) {
-        if (photoUrl != null) {
-            coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
-        } else {
-            Text(name.take(1).uppercase().ifBlank { "J" }, style = plex((size.value * 0.38f).sp, FontWeight.SemiBold),
-                color = if (fill.luminance() > 0.4f) Owner.Black else Color.White)
+        Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Text(text, style = plex(17.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (icon != null) {
+                Spacer(Modifier.width(10.dp))
+                Icon(icon, null, Modifier.size(20.dp))
+            }
         }
     }
 }
 
-/** A small rounded label: always a word, never colour alone. Fills are light, so the text is black. */
+/** A second action next to a red one: outlined, ink words. */
 @Composable
-internal fun OwnerChip(text: String, fill: Color, ink: Color = Owner.Black, modifier: Modifier = Modifier) {
+internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ink: Color = Owner.Ink) {
+    Surface(
+        onClick = onClick, modifier = modifier.heightIn(min = 56.dp), shape = RoundedCornerShape(50),
+        color = Owner.Card, contentColor = ink, border = BorderStroke(1.5.dp, Owner.Line),
+    ) {
+        Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(icon, null, Modifier.size(20.dp))
+                Spacer(Modifier.width(8.dp))
+            }
+            Text(text, style = plex(17.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** A white card with large rounds; [onClick] makes the whole card a button. */
+@Composable
+internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, onClickLabel: String? = null, padding: Dp = 18.dp,
+                          content: @Composable () -> Unit) {
+    Box(
+        modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Owner.Card)
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
+            .padding(padding),
+    ) { content() }
+}
+
+/** Round photo, or the first letter on grey. */
+@Composable
+internal fun OwnerAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDark: Boolean = false) {
+    val fill = if (onDark) Owner.DarkStrip else Tone.NONE.fill
+    Box(Modifier.size(size).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
+        if (photoUrl != null) {
+            coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
+        } else {
+            Text(name.trim().take(1).uppercase().ifBlank { "J" }, style = plex((size.value * 0.4f).sp, FontWeight.SemiBold),
+                color = if (onDark) Color.White else Owner.Ink)
+        }
+    }
+}
+
+/** A small rounded label: always a word, never colour alone. [onDark] adds a fine ring so a black chip shows on black. */
+@Composable
+internal fun OwnerChip(text: String, tone: Tone, modifier: Modifier = Modifier, onDark: Boolean = false) {
     Text(
-        text, modifier.clip(RoundedCornerShape(50)).background(fill).padding(horizontal = 12.dp, vertical = 5.dp),
-        style = plex(13.sp, FontWeight.SemiBold), color = ink, maxLines = 1,
+        text,
+        modifier.clip(RoundedCornerShape(50)).background(tone.fill)
+            .then(if (onDark && tone == Tone.GOOD) Modifier.border(1.dp, Owner.OnDarkMuted, RoundedCornerShape(50)) else Modifier)
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+        style = plex(14.sp, FontWeight.SemiBold), color = if (onDark && tone == Tone.GOOD) Color.White else tone.ink, maxLines = 1,
     )
 }
 

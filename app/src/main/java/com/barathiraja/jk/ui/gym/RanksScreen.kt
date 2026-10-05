@@ -44,9 +44,8 @@ import java.time.format.DateTimeFormatter
 private val monthFmt = DateTimeFormatter.ofPattern("MMMM yyyy")
 fun monthLabel(key: String): String = runCatching { YearMonth.parse(key).format(monthFmt) }.getOrDefault(key)
 
-internal const val RANKS_AWARDS = 2
 
-/** Live leaderboards for this month plus the wall of past monthly awards. */
+/** Trainers' and members' Ranks tab: live leaderboards for this month plus the wall of awards. (The owner has People and Awards tabs instead.) */
 @Composable
 fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
     val members by gvm.memberRanking.collectAsStateWithLifecycle()
@@ -56,8 +55,6 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
     val me by gvm.me.collectAsStateWithLifecycle()
     val tab by gvm.ranksTab.collectAsStateWithLifecycle()
     val month = YearMonth.now()
-    val owner = me?.role == com.barathiraja.jk.gym.Role.OWNER
-    var editing by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<com.barathiraja.jk.gym.GivenAward?>(null) }
 
     TabScreen("Leaderboard", subtitle = month.format(monthFmt)) {
         item {
@@ -86,26 +83,9 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
                 }
             }
             else -> {
-                if (owner) item {
-                    androidx.compose.material3.Surface(
-                        onClick = { nav.navigate(com.barathiraja.jk.ui.Routes.GIVE_AWARD) },
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
-                        color = com.barathiraja.jk.ui.theme.HeroBlue, contentColor = androidx.compose.ui.graphics.Color.White,
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp),
-                    ) {
-                        Row(Modifier.padding(start = 22.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("Give an award", Modifier.weight(1f), style = plex(17.sp, androidx.compose.ui.text.font.FontWeight.SemiBold))
-                            androidx.compose.foundation.layout.Box(Modifier.size(42.dp).clip(androidx.compose.foundation.shape.CircleShape)
-                                .background(com.barathiraja.jk.ui.theme.Mustard), contentAlignment = Alignment.Center) {
-                                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.EmojiEvents, null, Modifier.size(20.dp),
-                                    tint = androidx.compose.ui.graphics.Color.Black)
-                            }
-                        }
-                    }
-                }
                 if (given.isNotEmpty()) {
-                    item { SectionTitle(if (owner) "Awards you gave · tap one to change it" else "From the owner") }
-                    items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid), onClick = if (owner) ({ editing = a }) else null) }
+                    item { SectionTitle("From the owner") }
+                    items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid)) }
                     if (awards.isNotEmpty()) item { SectionTitle("Monthly awards") }
                 }
                 if (awards.isEmpty() && given.isEmpty()) item {
@@ -118,11 +98,10 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
             }
         }
     }
-    if (owner) GivenAwardEditor(editing, gvm) { editing = null }
 }
 
 /**
- * One leaderboard line. The top three get a filled rank disc (mustard for first, ink for second and third);
+ * One leaderboard line. The top three get a filled rank disc (yellow for first, ink for second and third);
  * your own line is tinted so you can find yourself at a glance.
  */
 @Composable
@@ -135,7 +114,7 @@ private fun RankRow(rank: Int, photo: String?, name: String, sub: String, value:
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             val (disc, ink) = when (rank) {
-                1 -> com.barathiraja.jk.ui.theme.Mustard to androidx.compose.ui.graphics.Color.Black
+                1 -> com.barathiraja.jk.ui.theme.Yellow to androidx.compose.ui.graphics.Color.Black
                 2, 3 -> cs.onSurface to cs.surface
                 else -> androidx.compose.ui.graphics.Color.Transparent to cs.onSurfaceVariant
             }
@@ -146,7 +125,7 @@ private fun RankRow(rank: Int, photo: String?, name: String, sub: String, value:
                 Text("$rank", style = MaterialTheme.typography.titleMedium.copy(fontFamily = com.barathiraja.jk.ui.theme.CodeFont), color = ink)
             }
             Spacer(Modifier.width(10.dp))
-            OwnerAvatar(photo, name, name, 44.dp)
+            OwnerAvatar(photo, name, 44.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(if (highlight) "$name (you)" else name, style = MaterialTheme.typography.titleMedium, maxLines = 1,
@@ -197,7 +176,7 @@ fun AwardsCard(m: MonthAwards, gvm: GymViewModel) {
             Column(Modifier.weight(1f)) {
                 Text(monthLabel(m.month), style = plex(19.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = androidx.compose.ui.graphics.Color.White)
             }
-            OwnerChip("${m.winners.size} winners", com.barathiraja.jk.ui.theme.Mustard)
+            OwnerChip("${m.winners.size} winners", Tone.TOP)
         }
         Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
             Award.entries.forEach { a ->
@@ -209,7 +188,7 @@ fun AwardsCard(m: MonthAwards, gvm: GymViewModel) {
                         Text(a.label, style = plex(14.sp), color = cs.onSurfaceVariant)
                         Text(p.name, style = plex(17.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
                     }
-                    OwnerAvatar(p.photoUrl, p.name, p.uid, 38.dp)
+                    OwnerAvatar(p.photoUrl, p.name, 38.dp)
                 }
             }
         }

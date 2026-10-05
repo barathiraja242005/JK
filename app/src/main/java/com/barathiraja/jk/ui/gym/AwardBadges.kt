@@ -43,24 +43,30 @@ import androidx.compose.ui.unit.dp
 import com.barathiraja.jk.gym.Award
 
 /*
- * Award badges: every award is drawn as a medal (a pastel disc with a black ring and a line icon, hanging from two
- * ribbon tails) instead of an emoji, so they match the rest of the app and look the same on every phone. Awards
+ * Award badges: every award is drawn as a medal (a gold, silver or rose disc with a black ring and a line icon,
+ * hanging from two red ribbon tails) instead of an emoji, so they match the rest of the app and look the same on every phone. Awards
  * are stored with an emoji; it is only used here to pick the badge.
  */
 
-/** How one award looks: its icon and the pastel it sits on. */
+/** How one award looks: its icon and the metal it sits on. */
 internal data class AwardLook(val icon: ImageVector, val fill: Color)
 
+/** Medal discs: fixed light colours so the black icon and ring read the same in light and dark mode. */
+private val Gold = Color(0xFFFFC629)
+private val Silver = Color(0xFFE6E6E3)
+private val Rose = Color(0xFFFFD0D2)
+private val Cream = Color(0xFFFFF2C7)
+
 internal fun awardLook(emoji: String, title: String = ""): AwardLook = when {
-    emoji == Award.BEST_MEMBER.emoji || title == Award.BEST_MEMBER.label -> AwardLook(Icons.Outlined.Star, Owner.Mustard)
-    emoji == Award.BEST_TRAINER.emoji || title == Award.BEST_TRAINER.label -> AwardLook(Icons.Outlined.WorkspacePremium, Owner.Lavender)
-    emoji == Award.MOST_CONSISTENT.emoji || title == Award.MOST_CONSISTENT.label -> AwardLook(Icons.Outlined.LocalFireDepartment, Owner.Coral)
-    emoji == Award.MOST_IMPROVED.emoji || title == Award.MOST_IMPROVED.label -> AwardLook(Icons.AutoMirrored.Outlined.TrendingUp, Owner.Mint)
-    emoji == Award.IRON_LIFTER.emoji || title == Award.IRON_LIFTER.label -> AwardLook(Icons.Outlined.FitnessCenter, Owner.Butter)
-    emoji == "⭐" -> AwardLook(Icons.Outlined.AutoAwesome, Owner.Mustard)
-    emoji == "🔄" -> AwardLook(Icons.Outlined.Autorenew, Owner.Mint)
-    emoji == "📅" -> AwardLook(Icons.Outlined.EventAvailable, Owner.Lavender)
-    else -> AwardLook(Icons.Outlined.MilitaryTech, Owner.Coral)
+    emoji == Award.BEST_MEMBER.emoji || title == Award.BEST_MEMBER.label -> AwardLook(Icons.Outlined.Star, Gold)
+    emoji == Award.BEST_TRAINER.emoji || title == Award.BEST_TRAINER.label -> AwardLook(Icons.Outlined.WorkspacePremium, Gold)
+    emoji == Award.MOST_CONSISTENT.emoji || title == Award.MOST_CONSISTENT.label -> AwardLook(Icons.Outlined.LocalFireDepartment, Rose)
+    emoji == Award.MOST_IMPROVED.emoji || title == Award.MOST_IMPROVED.label -> AwardLook(Icons.AutoMirrored.Outlined.TrendingUp, Silver)
+    emoji == Award.IRON_LIFTER.emoji || title == Award.IRON_LIFTER.label -> AwardLook(Icons.Outlined.FitnessCenter, Cream)
+    emoji == "⭐" -> AwardLook(Icons.Outlined.AutoAwesome, Gold)
+    emoji == "🔄" -> AwardLook(Icons.Outlined.Autorenew, Silver)
+    emoji == "📅" -> AwardLook(Icons.Outlined.EventAvailable, Silver)
+    else -> AwardLook(Icons.Outlined.MilitaryTech, Rose)
 }
 
 internal fun Award.look() = awardLook(emoji, label)
@@ -84,11 +90,10 @@ internal fun rewardIcon(emoji: String): ImageVector = when (emoji) {
 }
 
 /**
- * A medal [size] wide (and a little taller, for the ribbon). [ribbon] is the tails' colour; ink by default,
- * mustard reads better on a black card.
+ * A medal [size] wide (and a little taller, for the ribbon). [ribbon] is the tails' colour: brand red.
  */
 @Composable
-internal fun AwardBadge(look: AwardLook, size: Dp, ribbon: Color = Owner.Ink, modifier: Modifier = Modifier) {
+internal fun AwardBadge(look: AwardLook, size: Dp, ribbon: Color = Owner.Red, modifier: Modifier = Modifier) {
     Box(modifier.size(size, size * 1.12f)) {
         Canvas(Modifier.fillMaxSize()) {
             val w = this.size.width

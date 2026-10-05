@@ -54,7 +54,8 @@ import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.theme.HeroBlue
-import com.barathiraja.jk.ui.theme.Mustard
+import com.barathiraja.jk.ui.theme.Red
+import com.barathiraja.jk.ui.theme.Yellow
 
 /*
  * One person's page (a trainer for the owner, a member for the owner or their trainer): a black top card with
@@ -86,44 +87,39 @@ internal fun PersonPage(backLabel: String, onBack: () -> Unit, content: LazyList
 }
 
 /**
- * The black top card: who, a status chip, a ring for the month and one plain sentence, with a strip at the
- * bottom. The corner cut-out holds [corner] (usually their rank).
+ * The black top card: who, a status chip, a yellow ring for the month and one plain sentence, with a strip at the
+ * bottom. [rank] shows as a yellow disc in the corner when they have one.
  */
 @Composable
 internal fun PersonHero(
-    p: Person, chip: Pair<String, Color>, fraction: Float?, line: String, strip: String, corner: String?,
+    p: Person, chip: Pair<String, Tone>, fraction: Float?, line: String, strip: String, rank: String?,
 ) {
-    val k = "hero-" + p.uid
-    Box(Modifier.fillMaxWidth()) {
-        Column(
-            Modifier.fillMaxWidth().clip(NotchedShape(radius = 30.dp)).background(HeroBlue).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
-        ) {
-            Row(Modifier.padding(end = 60.dp), verticalAlignment = Alignment.CenterVertically) {
-                OwnerAvatar(p.photoUrl, p.name, p.uid, 60.dp)
-                Spacer(Modifier.width(14.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(p.name, style = plex(22.sp, FontWeight.SemiBold, line = 26.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    OwnerChip(chip.first, chip.second)
-                }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(HeroBlue).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OwnerAvatar(p.photoUrl, p.name, 60.dp, onDark = true)
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(p.name, style = plex(22.sp, FontWeight.Bold, line = 26.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                OwnerChip(chip.first, chip.second, onDark = true)
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OwnerRing(fraction ?: 0f, 96.dp, 10.dp, Owner.DarkTrack, Mustard, k) {
-                    Text(if (fraction == null) "–" else "${Math.round(fraction * 100)}%",
-                        style = plex(if ((fraction ?: 0f) >= 1f) 21.sp else 25.sp, FontWeight.SemiBold, tracking = (-1).sp), color = Color.White, maxLines = 1)
-                }
-                Spacer(Modifier.width(16.dp))
-                Text(line, style = plex(16.sp, line = 22.sp), color = Owner.OnDarkSoft)
-            }
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Owner.DarkStrip).heightIn(min = 48.dp)
-                .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(strip, style = plex(15.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (rank != null) Box(Modifier.padding(start = 8.dp).size(52.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) {
+                Text(rank, style = plex(17.sp, FontWeight.Bold), color = Owner.Black)
             }
         }
-        if (corner != null) Box(Modifier.align(Alignment.TopEnd).size(68.dp), contentAlignment = Alignment.Center) {
-            Box(Modifier.size(56.dp).clip(CircleShape).background(Mustard), contentAlignment = Alignment.Center) {
-                Text(corner, style = plex(17.sp, FontWeight.SemiBold).copy(fontFamily = com.barathiraja.jk.ui.theme.CodeFont), color = Color.Black)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OwnerRing(fraction ?: 0f, 96.dp, 10.dp, Owner.DarkTrack, Yellow, "hero-" + p.uid) {
+                Text(if (fraction == null) "–" else "${Math.round(fraction * 100)}%",
+                    style = plex(if ((fraction ?: 0f) >= 1f) 21.sp else 25.sp, FontWeight.Bold, tracking = (-1).sp), color = Color.White, maxLines = 1)
             }
+            Spacer(Modifier.width(16.dp))
+            Text(line, style = plex(17.sp, line = 23.sp), color = Owner.OnDarkSoft)
+        }
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Owner.DarkStrip).heightIn(min = 48.dp)
+            .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(strip, style = plex(16.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -156,7 +152,7 @@ internal fun lastWeeks(list: List<Assignment>, today: Long): List<Pair<Int, Int>
     due.count { it.done } to due.size
 }
 
-/** Four bars, one per week, each filled to the share finished; this week in mustard. */
+/** Four bars, one per week, each filled to the share finished; this week in red. */
 @Composable
 internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
     val cs = MaterialTheme.colorScheme
@@ -172,7 +168,7 @@ internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
                     Box(Modifier.weight(1f).width(40.dp).clip(RoundedCornerShape(14.dp)).background(cs.surfaceContainerHigh),
                         contentAlignment = Alignment.BottomCenter) {
                         Box(Modifier.fillMaxWidth().fillMaxHeight((f * k).coerceIn(0f, 1f)).clip(RoundedCornerShape(14.dp))
-                            .background(if (i == weeks.lastIndex) Mustard else cs.onSurface))
+                            .background(if (i == weeks.lastIndex) Red else cs.onSurface))
                     }
                 }
             }
@@ -183,19 +179,9 @@ internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
     }
 }
 
-/** Full-width ink pill with a mustard icon disc: the page's main action. */
+/** The page's main action. */
 @Composable
-internal fun WideAction(text: String, icon: ImageVector, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = HeroBlue, contentColor = Color.White,
-        modifier = Modifier.fillMaxWidth().heightIn(min = 58.dp)) {
-        Row(Modifier.padding(start = 22.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text, Modifier.weight(1f), style = plex(17.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Box(Modifier.size(42.dp).clip(CircleShape).background(Mustard), contentAlignment = Alignment.Center) {
-                Icon(icon, null, Modifier.size(20.dp), tint = Color.Black)
-            }
-        }
-    }
-}
+internal fun WideAction(text: String, icon: ImageVector, onClick: () -> Unit) = RedButton(text, onClick, Modifier.fillMaxWidth(), icon)
 
 @Composable
 internal fun PageHeading(title: String, explain: String) {
@@ -234,12 +220,12 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
         item {
             PersonHero(
                 trainer,
-                chip = row?.let { trainerStatus(it, rank == 1) } ?: ("No workouts yet" to Owner.Stone),
+                chip = row?.let { trainerStatus(it, rank == 1) } ?: ("No workouts yet" to Tone.NONE),
                 fraction = row?.takeIf { it.due > 0 }?.rate,
                 line = if (row == null || row.due == 0) "No workouts given to members yet this month"
                     else "Members finished ${row.done} of ${plural(row.due, "workout")} this month",
                 strip = "Trains ${plural(members.size, "member")}" + if (row != null && row.idle > 0) " · ${row.idle} away" else "",
-                corner = if (rank > 0) "#$rank" else null,
+                rank = if (rank > 0) "#$rank" else null,
             )
         }
         item {
@@ -260,7 +246,7 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
         item { PageHeading("${trainer.firstName}'s members", "Tap a member to see their workouts.") }
         if (members.isEmpty()) item { Text("No members yet.", style = plex(17.sp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(members, key = { it.uid }) { m ->
-            MemberCard(m, scores[m.uid] ?: Scoring.MemberScore(m.uid, 0, 0, 0, 0, 0.0), top = false, idle[m.uid], trainer) {
+            MemberCard(m, scores[m.uid] ?: Scoring.MemberScore(m.uid, 0, 0, 0, 0, 0.0), idle[m.uid], trainer) {
                 nav.navigate(Routes.gymMember(m.uid))
             }
         }
@@ -285,7 +271,7 @@ internal fun LazyListScope.memberOverview(
             line = if (s == null || s.due == 0) "No workouts given yet this month"
                 else "Finished ${s.completed} of ${s.due} workouts this month",
             strip = if (trainer != null) "Trainer · ${trainer.name}" else "No trainer yet",
-            corner = if (rank > 0 && (s?.points ?: 0) > 0) "#$rank" else null,
+            rank = if (rank > 0 && (s?.points ?: 0) > 0) "#$rank" else null,
         )
     }
     item {

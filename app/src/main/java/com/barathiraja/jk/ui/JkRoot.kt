@@ -11,7 +11,7 @@ import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.Storefront
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +26,7 @@ import com.barathiraja.jk.ui.gym.MemberGymScreen
 import com.barathiraja.jk.ui.gym.GiveAwardScreen
 import com.barathiraja.jk.ui.gym.OwnerHomeScreen
 import com.barathiraja.jk.ui.gym.OwnerPeopleScreen
+import com.barathiraja.jk.ui.gym.OwnerAwardsScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -141,11 +142,11 @@ object Routes {
     const val GYM_TRAINER = "gymTrainer/{id}"
     const val GIVE_AWARD = "giveAward"
     const val ASSIGNED = "assigned/{id}"
-    const val PEOPLE = "people/{tab}"
+    const val OWNER_PEOPLE = "ownerPeople"
+    const val OWNER_AWARDS = "ownerAwards"
     fun assign(memberUid: String) = "assign/${memberUid.ifBlank { "-" }}"
     fun gymMember(uid: String) = "gymMember/$uid"
     fun gymTrainer(uid: String) = "gymTrainer/$uid"
-    fun people(tab: String) = "people/$tab"
     fun assigned(id: String) = "assigned/$id"
     fun session(id: Long) = "session/$id"
     fun workout(id: String) = "workout/$id"
@@ -180,22 +181,26 @@ private val trainerTabs = listOf(
     Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
     Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
 )
+/** The owner gets one tab per job, each thing in one place: today, people, awards, and their gym and settings. */
 private val ownerTabs = listOf(
-    Tab(Routes.GYM, "Gym", Icons.Outlined.Storefront),
-    Tab(Routes.RANKS, "Ranks", Icons.Outlined.EmojiEvents),
+    Tab(Routes.GYM, "Home", Icons.Outlined.Home),
+    Tab(Routes.OWNER_PEOPLE, "People", Icons.Outlined.Groups),
+    Tab(Routes.OWNER_AWARDS, "Awards", Icons.Outlined.EmojiEvents),
     Tab(Routes.PROFILE, "Me", Icons.Outlined.Person),
 )
 
 /**
- * The floating bottom bar: a white rounded bar whose top edge dips smoothly under the open tab, with a raised
- * black button resting in the dip that shows that tab's icon. Picking another tab slides the dip and the button
- * across to it; the open tab's label sits in the dip under the button, the others show icon over label in grey.
+ * The floating bottom bar: a black bar whose top edge dips smoothly under the open tab, with a raised red button
+ * resting in the dip that shows that tab's icon. Black anchors the screen; the one red circle says "you are here".
+ * Picking another tab slides the dip and the button across to it; the open tab's label sits in the dip under the
+ * button in white, the others show icon over label in light grey (7:1 on black).
  * Nothing is painted behind it, so pages scroll under it.
  */
 @Composable
 private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
-    val cs = MaterialTheme.colorScheme
-    val dark = cs.background.luminance() < 0.5f
+    val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    // In dark mode the bar lifts a step off the black page so it still reads as a bar.
+    val barFill = if (dark) androidx.compose.ui.graphics.Color(0xFF1C1C1C) else com.barathiraja.jk.ui.theme.Ink
     val selected = tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
     val pos by androidx.compose.animation.core.animateFloatAsState(
         selected.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")
@@ -218,12 +223,12 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
             Modifier.align(androidx.compose.ui.Alignment.BottomCenter).fillMaxWidth().height(BAR_HEIGHT + navInset)
                 .shadow(24.dp, barShape, ambientColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.18f),
                     spotColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.22f))
-                .clip(barShape).background(cs.surfaceContainer).padding(start = inner, end = inner, bottom = navInset),
+                .clip(barShape).background(barFill).padding(start = inner, end = inner, bottom = navInset),
         ) {
             tabs.forEachIndexed { i, tab -> SideTab(tab, i == selected, Modifier.weight(1f).fillMaxHeight(), onSelect) }
         }
-        val fill = if (dark) com.barathiraja.jk.ui.theme.Mustard else androidx.compose.ui.graphics.Color.Black
-        val ink = if (dark) androidx.compose.ui.graphics.Color.Black else com.barathiraja.jk.ui.theme.Mustard
+        val fill = com.barathiraja.jk.ui.theme.Red
+        val ink = androidx.compose.ui.graphics.Color.White
         val tab = tabs[selected]
         androidx.compose.material3.Surface(
             onClick = { onSelect(tab.route) },
@@ -241,10 +246,10 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
 
 private val BAR_HEIGHT = 72.dp
 
-/** One slot: icon over label in grey; when open, just its label in black, low in the dip under the button. */
+/** One slot: icon over label in light grey; when open, just its label in white, low in the dip under the button. */
 @Composable
 private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String) -> Unit) {
-    val cs = MaterialTheme.colorScheme
+    val idle = androidx.compose.ui.graphics.Color(0xFFB3B3B3)
     androidx.compose.foundation.layout.Column(
         modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).clickable { onSelect(tab.route) }
             .semantics { selected = on }.padding(bottom = 10.dp),
@@ -254,11 +259,11 @@ private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String
         androidx.compose.animation.AnimatedVisibility(!on,
             enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
             exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()) {
-            Icon(tab.icon, null, tint = cs.onSurfaceVariant, modifier = Modifier.size(24.dp))
+            Icon(tab.icon, null, tint = idle, modifier = Modifier.size(24.dp))
         }
         Text(tab.label, style = MaterialTheme.typography.labelMedium.copy(
             fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-            fontSize = 13.sp), color = if (on) cs.onSurface else cs.onSurfaceVariant, maxLines = 1,
+            fontSize = 13.sp), color = if (on) androidx.compose.ui.graphics.Color.White else idle, maxLines = 1,
             modifier = Modifier.padding(top = 4.dp))
     }
 }
@@ -386,7 +391,8 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             composable(Routes.ASSIGN) { AssignScreen(it.arg("id").takeIf { a -> a != "-" }.orEmpty(), gvm, nav) }
             composable(Routes.GYM_MEMBER) { MemberDetailScreen(it.arg("id"), gvm, nav) }
             composable(Routes.GYM_TRAINER) { TrainerDetailScreen(it.arg("id"), gvm, nav) }
-            composable(Routes.PEOPLE) { OwnerPeopleScreen(it.arg("tab"), gvm, nav) }
+            composable(Routes.OWNER_PEOPLE) { OwnerPeopleScreen(gvm, nav) }
+            composable(Routes.OWNER_AWARDS) { OwnerAwardsScreen(gvm, nav) }
             composable(Routes.GIVE_AWARD) { GiveAwardScreen(gvm, nav) }
             composable(Routes.ASSIGNED) { AssignedSessionScreen(it.arg("id"), gvm, nav) }
             composable(Routes.WORKOUTS) { WorkoutsScreen(vm, tvm, nav) }
