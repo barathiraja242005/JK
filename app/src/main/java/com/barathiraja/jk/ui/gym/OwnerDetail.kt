@@ -106,7 +106,11 @@ internal fun PersonHero(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OwnerChip(chip.first, chip.second, onDark = true)
                     // "Top …" already says first place, so the rank only shows for everyone else.
-                    if (rank != null && chip.second != Tone.TOP) OwnerChip("$rank this month", Tone.NONE)
+                    if (rank != null && chip.second != Tone.TOP) Text(
+                        "$rank this month",
+                        Modifier.clip(RoundedCornerShape(50)).background(Owner.DarkStrip).padding(horizontal = 10.dp, vertical = 4.dp),
+                        style = plex(12.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1,
+                    )
                 }
             }
         }
