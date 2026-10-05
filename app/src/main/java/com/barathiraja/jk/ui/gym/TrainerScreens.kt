@@ -185,7 +185,7 @@ fun AssignmentCard(a: Assignment, today: Long, expandedByDefault: Boolean = fals
     JkCard(Modifier.fillMaxWidth(), onClick = onClick ?: { expanded = !expanded }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(dayLabel(a.epochDay, today), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                Text(dayLabel(a.epochDay, today), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(a.title, style = MaterialTheme.typography.titleMedium)
                 Text("${plural(a.exercises.size, "exercise")} · ${a.setsDone}/${a.setsTotal} sets", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)

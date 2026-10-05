@@ -88,7 +88,7 @@ internal fun PersonPage(backLabel: String, onBack: () -> Unit, content: LazyList
 
 /**
  * The black top card: who, a status chip, a yellow ring for the month and one plain sentence, with a strip at the
- * bottom. [rank] shows as a yellow disc in the corner when they have one.
+ * bottom. [rank] ("#3") shows as a chip next to the status when they have one.
  */
 @Composable
 internal fun PersonHero(
@@ -103,10 +103,11 @@ internal fun PersonHero(
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(p.name, style = plex(22.sp, FontWeight.Bold, line = 26.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                OwnerChip(chip.first, chip.second, onDark = true)
-            }
-            if (rank != null) Box(Modifier.padding(start = 8.dp).size(52.dp).clip(CircleShape).background(Yellow), contentAlignment = Alignment.Center) {
-                Text(rank, style = plex(17.sp, FontWeight.Bold), color = Owner.Black)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OwnerChip(chip.first, chip.second, onDark = true)
+                    // "Top …" already says first place, so the rank only shows for everyone else.
+                    if (rank != null && chip.second != Tone.TOP) OwnerChip("$rank this month", Tone.NONE)
+                }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {

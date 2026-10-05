@@ -183,7 +183,7 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
         item {
             Column(Modifier.padding(horizontal = 4.dp)) {
                 Text("Give an award", style = plex(30.sp, FontWeight.SemiBold, tracking = (-0.6).sp), color = MaterialTheme.colorScheme.onSurface)
-                Text("Three steps: pick the award, the person, and a reward. Everyone in the gym sees it on the Ranks tab.",
+                Text("Three steps: pick the award, the person, and a reward. Everyone in the gym will see it.",
                     style = plex(16.sp, line = 23.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
             }
         }
@@ -221,7 +221,7 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                 )
             }
             if (tabPeople.isEmpty()) item {
-                Text(if (trainerTab) "No trainers yet. Share your gym code from the Me tab to add one." else "No members yet. Trainers add members from their Gym tab.",
+                Text(if (trainerTab) "No trainers yet. Share your gym code from the Me tab to add one." else "No members yet. Trainers add members with their own code.",
                     style = plex(16.sp, line = 22.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 6.dp))
             }
             if (tabPeople.isNotEmpty()) item {
@@ -242,15 +242,14 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(p.name, style = plex(17.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
-                                Text(
+                                if (p.uid == suggested) OwnerChip("Leading this month", Tone.TOP, Modifier.padding(top = 3.dp))
+                                else Text(
                                     when {
-                                        p.uid == suggested -> "Leading this month"
                                         p.role == Role.TRAINER -> trainerScores.firstOrNull { it.uid == p.uid }?.takeIf { it.members > 0 }
                                             ?.let { "Members finished ${Math.round(it.rate * 100)}% of workouts" } ?: "No members' workouts yet"
                                         else -> "${memberScores[p.uid]?.points ?: 0} points · trainer ${gvm.trainerOf(p)?.firstName ?: "–"}"
                                     },
-                                    style = plex(14.sp, if (p.uid == suggested) FontWeight.SemiBold else FontWeight.Normal),
-                                    color = if (p.uid == suggested) Owner.RedText else cs.onSurfaceVariant,
+                                    style = plex(14.sp), color = cs.onSurfaceVariant,
                                 )
                             }
                             CheckDisc(selected)
