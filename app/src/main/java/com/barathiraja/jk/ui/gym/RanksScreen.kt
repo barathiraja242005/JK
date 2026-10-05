@@ -1,7 +1,6 @@
 package com.barathiraja.jk.ui.gym
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,10 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,8 +28,6 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
-import com.barathiraja.jk.ui.components.TabScreen
-import com.barathiraja.jk.ui.theme.CodeFont
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
@@ -53,31 +46,48 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
     val month = YearMonth.now()
     val canOpen = me?.role != Role.MEMBER
 
-    TabScreen("Leaderboard", subtitle = month.format(monthFmt)) {
+    val people by gvm.people.collectAsStateWithLifecycle()
+    val digest by gvm.ownerDigest.collectAsStateWithLifecycle()
+    val idle = digest?.idle.orEmpty().associateBy { it.member.uid }
+
+    OwnerPage {
+        item { PageTitle("Ranks", "Who's on top in ${month.format(monthFmt)}. Points come from finishing workouts.") }
         item {
             SegmentedTabs(listOf(SegmentTab("Members"), SegmentTab("Trainers"), SegmentTab("Awards")), tab, onSelect = { gvm.showRanksTab(it) })
         }
         when (tab) {
             0 -> {
-                item { Text("Points: finish a workout +${Scoring.COMPLETED}, on the day +${Scoring.ON_TIME}, each set +${Scoring.SET_POINT}, coach verified +${Scoring.VERIFIED}, full week +${Scoring.PERFECT_WEEK}.",
-                    style = plex(13.sp, line = 18.sp), color = Owner.Muted) }
-                if (members.isEmpty()) item { Text("No members yet.", style = plex(15.sp), color = Owner.Ink) }
-                itemsIndexed(members, key = { _, s -> s.uid }) { i, s ->
-                    val p = gvm.person(s.uid) ?: return@itemsIndexed
-                    RankRow(i + 1, p.photoUrl, p.name, "${s.completed}/${s.due} workouts done" + (if (s.due > 0) " · ${pct(s.completed, s.due)}" else ""), "${s.points}", "pts",
-                        highlight = s.uid == me?.uid, onClick = { nav.navigate(Routes.gymMember(s.uid)) }.takeIf { canOpen })
+                item {
+                    Text("Finish a workout +${Scoring.COMPLETED}, on the day +${Scoring.ON_TIME}, each set +${Scoring.SET_POINT}, " +
+                        "checked by your coach +${Scoring.VERIFIED}, full week +${Scoring.PERFECT_WEEK}.",
+                        style = plex(13.sp, line = 18.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 4.dp))
                 }
+                val entries = members.mapIndexedNotNull { i, s ->
+                    val p = people.firstOrNull { it.uid == s.uid } ?: return@mapIndexedNotNull null
+                    memberEntry(p, s, top = i == 0 && s.points > 0, idle[p.uid], gvm.trainerOf(p) != null, extra = null,
+                        value = "${s.points} pts", isMe = p.uid == me?.uid,
+                        onClick = { nav.navigate(Routes.gymMember(p.uid)) }.takeIf { canOpen })
+                }
+                if (entries.isEmpty()) item { OwnerCardBox { Text("No members yet.", style = plex(15.sp), color = Owner.Muted) } }
+                leaderboard(entries, "rank-members")
             }
             1 -> {
-                item { Text("Trainers are ranked by how many of their members' workouts get done, not by how many they assign.",
-                    style = plex(13.sp, line = 18.sp), color = Owner.Muted) }
-                if (trainers.isEmpty()) item { Text("No trainers yet.", style = plex(15.sp), color = Owner.Ink) }
-                itemsIndexed(trainers, key = { _, t -> t.uid }) { i, t ->
-                    val p = gvm.person(t.uid) ?: return@itemsIndexed
-                    RankRow(i + 1, p.photoUrl, p.name, "${plural(t.members, "member")} · ${Math.round(t.rate * 100)}% completion", "${t.score}", "score",
-                        highlight = t.uid == me?.uid,
-                        onClick = { nav.navigate(Routes.gymTrainer(t.uid)) }.takeIf { canOpen })
+                item {
+                    Text("Trainers are ranked by how many of their members' workouts get done, not by how many they give.",
+                        style = plex(13.sp, line = 18.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 4.dp))
                 }
+                val entries = trainers.mapIndexedNotNull { i, t ->
+                    val p = people.firstOrNull { it.uid == t.uid } ?: return@mapIndexedNotNull null
+                    RankEntry(
+                        key = "t" + t.uid, person = p, ranked = t.score > 0,
+                        status = (if (i == 0 && t.score > 0) "Top trainer" to Tone.TOP else "${Math.round(t.rate * 100)}% done" to Tone.NONE),
+                        pct = Math.round(t.rate * 100), detail = plural(t.members, "member"),
+                        onClick = { nav.navigate(Routes.gymTrainer(t.uid)) }.takeIf { canOpen },
+                        isMe = t.uid == me?.uid,
+                    )
+                }
+                if (entries.isEmpty()) item { OwnerCardBox { Text("No trainers yet.", style = plex(15.sp), color = Owner.Muted) } }
+                leaderboard(entries, "rank-trainers")
             }
             else -> {
                 if (given.isNotEmpty()) {
@@ -96,52 +106,6 @@ fun RanksScreen(gvm: GymViewModel, nav: NavHostController) {
                 }
                 awards.sortedByDescending { it.month }.forEach { m -> item(key = m.month) { AwardsCard(m, gvm) } }
             }
-        }
-    }
-}
-
-/**
- * One leaderboard line. The top three get a filled rank disc (yellow for first, ink for second and third);
- * your own line is tinted so you can find yourself at a glance. Only a line with [onClick] is a button.
- */
-@Composable
-private fun RankRow(rank: Int, photo: String?, name: String, sub: String, value: String, unit: String, highlight: Boolean, onClick: (() -> Unit)? = null) {
-    val shape = RoundedCornerShape(24.dp)
-    val fill = if (highlight) Tone.WARN.fill else Owner.Card
-    if (onClick != null) {
-        Surface(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = shape, color = fill, contentColor = Owner.Ink) {
-            RankRowContent(rank, photo, name, sub, value, unit, highlight)
-        }
-    } else {
-        Surface(modifier = Modifier.fillMaxWidth(), shape = shape, color = fill, contentColor = Owner.Ink) {
-            RankRowContent(rank, photo, name, sub, value, unit, highlight)
-        }
-    }
-}
-
-@Composable
-private fun RankRowContent(rank: Int, photo: String?, name: String, sub: String, value: String, unit: String, highlight: Boolean) {
-    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-        val (disc, ink) = when (rank) {
-            1 -> Owner.Yellow to Owner.Black
-            2, 3 -> Owner.Ink to Owner.OnInk
-            else -> Color.Transparent to Owner.Muted
-        }
-        Box(Modifier.size(32.dp).clip(CircleShape).background(disc), contentAlignment = Alignment.Center) {
-            Text("$rank", style = plex(16.sp, FontWeight.SemiBold).copy(fontFamily = CodeFont), color = ink)
-        }
-        Spacer(Modifier.width(10.dp))
-        OwnerAvatar(photo, name, 44.dp)
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(if (highlight) "$name (you)" else name, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-            Text(sub, style = plex(13.sp, line = 18.sp), color = Owner.Muted, maxLines = 2)
-        }
-        Spacer(Modifier.width(8.dp))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(value, style = plex(18.sp, FontWeight.Bold), color = Owner.Ink)
-            Text(unit, style = plex(13.sp), color = Owner.Muted)
         }
     }
 }

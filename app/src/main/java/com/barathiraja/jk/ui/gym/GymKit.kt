@@ -215,8 +215,19 @@ internal fun GreetingHeader(me: Person?) {
 /** One person in a ranked list (owner People tab, trainer Members tab), the same shape for members and trainers. [pct] is null when nothing was due. */
 internal class RankEntry(
     val key: String, val person: Person, val ranked: Boolean, val status: Pair<String, Tone>,
-    val pct: Int?, val detail: String, val onClick: () -> Unit,
-)
+    val pct: Int?, val detail: String, val onClick: (() -> Unit)?,
+    /** Shown on the right instead of the percentage (e.g. "43 pts"). */
+    val value: String? = null,
+    /** Marks the viewer's own line. */
+    val isMe: Boolean = false,
+) {
+    val shownValue get() = value ?: pct?.let { "$it%" } ?: "–"
+    val shownName get() = if (isMe) "${person.name} (you)" else person.name
+}
+
+/** Makes a row tappable only when there is somewhere to go. */
+private fun Modifier.openable(e: RankEntry) =
+    if (e.onClick != null) clickable(onClickLabel = "Open ${e.person.firstName}", onClick = e.onClick) else this
 
 /**
  * The top three as a podium on a white card: first in the middle, larger, with a yellow ring and a yellow rank
@@ -233,7 +244,7 @@ internal fun Podium(top: List<RankEntry>) {
         order.forEach { (rank, e) ->
             val first = rank == 1
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(onClickLabel = "Open ${e.person.firstName}", onClick = e.onClick)
+                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).openable(e)
                     .padding(vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -246,8 +257,8 @@ internal fun Podium(top: List<RankEntry>) {
                     RankBadge(rank, Modifier.align(Alignment.BottomCenter))
                 }
                 Spacer(Modifier.height(6.dp))
-                Text(e.person.firstName, style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(e.pct?.let { "$it%" } ?: "–", style = plex(if (first) 20.sp else 17.sp, FontWeight.Bold), color = Owner.Ink)
+                Text(if (e.isMe) "You" else e.person.firstName, style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(e.shownValue, style = plex(if (first) 20.sp else 17.sp, FontWeight.Bold), color = Owner.Ink)
                 Text(e.status.first, style = plex(11.sp, FontWeight.SemiBold), color = Owner.Muted, maxLines = 1)
             }
         }
@@ -271,8 +282,7 @@ internal fun RankList(entries: List<RankEntry>, firstRank: Int) {
         entries.forEachIndexed { i, e ->
             if (i > 0) Box(Modifier.padding(start = 92.dp).fillMaxWidth().height(1.dp).background(Owner.Line))
             Row(
-                Modifier.fillMaxWidth().clickable(onClickLabel = "Open ${e.person.firstName}", onClick = e.onClick)
-                    .padding(start = 8.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
+                Modifier.fillMaxWidth().openable(e).padding(start = 8.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(if (e.ranked) "${firstRank + i}" else "–", Modifier.width(32.dp), style = plex(15.sp, FontWeight.Bold),
@@ -280,7 +290,7 @@ internal fun RankList(entries: List<RankEntry>, firstRank: Int) {
                 OwnerAvatar(e.person.photoUrl, e.person.name, 44.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(e.person.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(e.shownName, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         OwnerChip(e.status.first, e.status.second, small = true)
                         Spacer(Modifier.width(6.dp))
@@ -288,7 +298,7 @@ internal fun RankList(entries: List<RankEntry>, firstRank: Int) {
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                Text(e.pct?.let { "$it%" } ?: "–", style = plex(16.sp, FontWeight.Bold), color = Owner.Ink)
+                Text(e.shownValue, style = plex(16.sp, FontWeight.Bold), color = Owner.Ink)
             }
         }
     }
@@ -304,7 +314,8 @@ internal fun LazyListScope.leaderboard(entries: List<RankEntry>, key: String) {
 
 /** A member as a ranked entry: status word, this month's share done, and "3 of 4 done" plus [extra]. */
 internal fun memberEntry(
-    p: Person, s: Scoring.MemberScore, top: Boolean, idle: OwnerStats.Idle?, hasTrainer: Boolean, extra: String?, onClick: () -> Unit,
+    p: Person, s: Scoring.MemberScore, top: Boolean, idle: OwnerStats.Idle?, hasTrainer: Boolean, extra: String?,
+    value: String? = null, isMe: Boolean = false, onClick: (() -> Unit)?,
 ) = RankEntry(
     key = "m" + p.uid, person = p, ranked = s.points > 0,
     status = memberStatus(s, top, idle, hasTrainer),
@@ -314,5 +325,5 @@ internal fun memberEntry(
         s.due == 0 -> "No workouts yet"
         else -> "${s.completed} of ${s.due} done"
     } + (extra?.let { " · $it" } ?: ""),
-    onClick = onClick,
+    onClick = onClick, value = value, isMe = isMe,
 )
