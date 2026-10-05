@@ -95,7 +95,7 @@ internal fun PersonHero(
     p: Person, chip: Pair<String, Tone>, fraction: Float?, line: String, strip: String, rank: String?,
 ) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(HeroBlue).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(com.barathiraja.jk.ui.theme.Gradients.Hero).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -169,7 +169,7 @@ internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
                     Box(Modifier.weight(1f).width(30.dp).clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainerHigh),
                         contentAlignment = Alignment.BottomCenter) {
                         Box(Modifier.fillMaxWidth().fillMaxHeight((f * k).coerceIn(0f, 1f)).clip(RoundedCornerShape(10.dp))
-                            .background(if (i == weeks.lastIndex) Red else cs.onSurface))
+                            .background(if (i == weeks.lastIndex) com.barathiraja.jk.ui.theme.Gradients.Red else androidx.compose.ui.graphics.SolidColor(cs.onSurface)))
                     }
                 }
             }

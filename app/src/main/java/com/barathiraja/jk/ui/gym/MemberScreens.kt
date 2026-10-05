@@ -77,7 +77,7 @@ fun AssignedTodayCard(gvm: GymViewModel, nav: NavHostController) {
     Column {
         a?.let { w ->
             Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-                .background(HeroBlue).padding(20.dp)) {
+                .background(com.barathiraja.jk.ui.theme.Gradients.Hero).padding(20.dp)) {
                 Column {
                     Text(if (w.done) "DONE ✓ · FROM COACH ${coach?.firstName?.uppercase() ?: ""}" else "🏋 FROM COACH ${coach?.firstName?.uppercase() ?: ""}",
                         style = MaterialTheme.typography.labelLarge, color = Color.White.copy(alpha = 0.85f))

@@ -147,8 +147,9 @@ internal fun OwnerHeading(title: String, explain: String? = null) {
 @Composable
 internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
     Surface(
-        onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
-        color = if (enabled) Owner.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Owner.Muted,
+        onClick = onClick, enabled = enabled, shape = RoundedCornerShape(50),
+        modifier = modifier.heightIn(min = 48.dp).clip(RoundedCornerShape(50)).background(if (enabled) com.barathiraja.jk.ui.theme.Gradients.Red else androidx.compose.ui.graphics.SolidColor(Tone.GOOD.fill)),
+        color = Color.Transparent, contentColor = if (enabled) Color.White else Owner.Muted,
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text(text, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -243,9 +244,9 @@ internal fun OwnerRing(fraction: Float, size: Dp, stroke: Dp, track: Color, colo
 
 /** A thin rounded bar that fills to [fraction] when it first appears. */
 @Composable
-internal fun OwnerBar(fraction: Float, track: Color, color: Color, key: Any, height: Dp = 8.dp) {
+internal fun OwnerBar(fraction: Float, track: Color, color: Color, key: Any, height: Dp = 8.dp, brush: androidx.compose.ui.graphics.Brush? = null) {
     val k = rememberFillIn(key, 400)
     Box(Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(50)).background(track)) {
-        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f) * k).fillMaxHeight().clip(RoundedCornerShape(50)).background(color))
+        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f) * k).fillMaxHeight().clip(RoundedCornerShape(50)).background(brush ?: androidx.compose.ui.graphics.SolidColor(color)))
     }
 }

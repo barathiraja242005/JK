@@ -148,7 +148,7 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
  */
 @Composable
 private fun TodayCard(d: OwnerStats.Digest, gymName: String) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(com.barathiraja.jk.ui.theme.Gradients.Hero).padding(16.dp)) {
         Text("Today at $gymName", style = plex(14.sp), color = Owner.OnDarkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             Text("${d.trainedToday}", style = plex(40.sp, FontWeight.Bold, line = 50.sp, tracking = (-2).sp), color = Color.White)
@@ -156,7 +156,7 @@ private fun TodayCard(d: OwnerStats.Digest, gymName: String) {
         }
         Text(if (d.members == 1) "member trained" else "members trained", style = plex(15.sp, FontWeight.SemiBold), color = Color.White)
         Box(Modifier.padding(top = 14.dp, bottom = 12.dp)) {
-            OwnerBar(if (d.members == 0) 0f else d.trainedToday / d.members.toFloat(), Owner.DarkTrack, Owner.Yellow, "today-${d.trainedToday}-${d.members}", 10.dp)
+            OwnerBar(if (d.members == 0) 0f else d.trainedToday / d.members.toFloat(), Owner.DarkTrack, Owner.Yellow, "today-${d.trainedToday}-${d.members}", 10.dp, brush = com.barathiraja.jk.ui.theme.Gradients.Gold)
         }
         val diff = d.trainedToday - d.trainedYesterday
         Text(buildAnnotatedString {
@@ -193,7 +193,7 @@ private sealed interface Need {
 private fun AllClearCard() {
     OwnerCardBox {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(48.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Gradients.Gold), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Check, null, Modifier.size(22.dp), tint = Owner.Black)
             }
             Spacer(Modifier.width(14.dp))
@@ -275,8 +275,8 @@ private fun ChipLine(chip: String, tone: Tone, line: String, lines: Int) {
 /** A round 44dp icon button: red for the yes, outlined otherwise. [label] is read out by TalkBack. */
 @Composable
 private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, red: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CircleShape, color = if (red) Owner.Red else Owner.Card, contentColor = if (red) Color.White else Owner.Ink,
-        border = if (red) null else androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(44.dp)) {
+    Surface(onClick = onClick, shape = CircleShape, color = if (red) Color.Transparent else Owner.Card, contentColor = if (red) Color.White else Owner.Ink,
+        border = if (red) null else androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(44.dp).then(if (red) Modifier.clip(CircleShape).background(com.barathiraja.jk.ui.theme.Gradients.Red) else Modifier)) {
         Box(contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(20.dp)) }
     }
 }
@@ -347,7 +347,7 @@ internal fun Segment(label: String, count: Int, selected: Boolean, modifier: Mod
         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = plex(15.sp, FontWeight.SemiBold))
             Spacer(Modifier.width(8.dp))
-            Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (selected) Owner.Yellow else Owner.Well)
+            Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (selected) com.barathiraja.jk.ui.theme.Gradients.Gold else androidx.compose.ui.graphics.SolidColor(Owner.Well))
                 .padding(horizontal = 9.dp), contentAlignment = Alignment.Center) {
                 Text("$count", style = plex(13.sp, FontWeight.SemiBold), color = if (selected) Owner.Black else Owner.Ink)
             }
@@ -382,10 +382,10 @@ internal fun memberStatus(s: Scoring.MemberScore?, top: Boolean, idle: OwnerStat
 @Composable
 private fun RankDisc(rank: Int, show: Boolean) {
     val (fill, ink) = when {
-        !show -> Color.Transparent to Owner.Muted
-        rank == 1 -> Owner.Yellow to Owner.Black
-        rank <= 3 -> Owner.Ink to Owner.OnInk
-        else -> Owner.Well to Owner.Ink
+        !show -> androidx.compose.ui.graphics.SolidColor(Color.Transparent) to Owner.Muted
+        rank == 1 -> com.barathiraja.jk.ui.theme.Gradients.Gold to Owner.Black
+        rank <= 3 -> androidx.compose.ui.graphics.SolidColor(Owner.Ink) to Owner.OnInk
+        else -> androidx.compose.ui.graphics.SolidColor(Owner.Well) to Owner.Ink
     }
     Box(Modifier.size(26.dp).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
         Text(if (show) "$rank" else "–", style = plex(12.sp, FontWeight.Bold), color = ink)

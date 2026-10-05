@@ -91,7 +91,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         gym?.let { g ->
             item { OwnerHeading("Your gym", "New trainers join with this code. You approve each one on Home.") }
             item {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(com.barathiraja.jk.ui.theme.Gradients.Hero).padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(g.name, Modifier.weight(1f), style = plex(20.sp, FontWeight.Bold, line = 24.sp), color = Color.White, maxLines = 2)
                         EditDisc("Rename gym", onDark = true) { renamingGym = true }

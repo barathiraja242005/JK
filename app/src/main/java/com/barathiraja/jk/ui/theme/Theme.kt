@@ -1,5 +1,6 @@
 package com.barathiraja.jk.ui.theme
 
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -52,6 +53,20 @@ val Red: Color = Color(0xFFD7141E)
 val Yellow: Color = Color(0xFFFFC629)
 /** Near-black ink; also the fill of hero cards and the bottom bar. */
 val Ink: Color = Color(0xFF0A0A0A)
+
+/**
+ * Gradients over the same palette, for depth: each blends two shades of one colour (plus a red glow on the dark
+ * cards), so the look stays red, black and yellow. Text contrast is checked against the lightest stop: white on
+ * the red gradient is at least 4.7:1, black on the gold one at least 9:1.
+ */
+object Gradients {
+    /** Main actions and the open tab: bright red into crimson. */
+    val Red: Brush get() = Brush.linearGradient(listOf(Color(0xFFE0242C), Color(0xFFA50F17)))
+    /** Hero cards: charcoal into black, warming to a deep red glow in the far corner. */
+    val Hero: Brush get() = Brush.linearGradient(listOf(pick(0xFF262626, 0xFF2A2A2A), Color(0xFF0A0A0A), Color(0xFF4A0A10)))
+    /** Reward and the top spot: light gold into amber. */
+    val Gold: Brush get() = Brush.linearGradient(listOf(Color(0xFFFFD84D), Color(0xFFFF9F0A)))
+}
 
 /** Solid fill for hero cards; white text on it in both modes. */
 val HeroBlue: Color get() = pick(0xFF0A0A0A, 0xFF1C1C1C)

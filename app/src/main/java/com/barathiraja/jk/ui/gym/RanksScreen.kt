@@ -114,9 +114,9 @@ private fun RankRow(rank: Int, photo: String?, name: String, sub: String, value:
     ) {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             val (disc, ink) = when (rank) {
-                1 -> com.barathiraja.jk.ui.theme.Yellow to androidx.compose.ui.graphics.Color.Black
-                2, 3 -> cs.onSurface to cs.surface
-                else -> androidx.compose.ui.graphics.Color.Transparent to cs.onSurfaceVariant
+                1 -> com.barathiraja.jk.ui.theme.Gradients.Gold to androidx.compose.ui.graphics.Color.Black
+                2, 3 -> androidx.compose.ui.graphics.SolidColor(cs.onSurface) to cs.surface
+                else -> androidx.compose.ui.graphics.SolidColor(androidx.compose.ui.graphics.Color.Transparent) to cs.onSurfaceVariant
             }
             androidx.compose.foundation.layout.Box(
                 Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).background(disc),
@@ -171,7 +171,7 @@ internal fun PillSwitch(options: List<String>, selected: Int, onSelect: (Int) ->
 fun AwardsCard(m: MonthAwards, gvm: GymViewModel) {
     val cs = MaterialTheme.colorScheme
     Column(Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(26.dp)).background(cs.surfaceContainer)) {
-        Row(Modifier.fillMaxWidth().background(com.barathiraja.jk.ui.theme.HeroBlue).padding(horizontal = 18.dp, vertical = 14.dp),
+        Row(Modifier.fillMaxWidth().background(com.barathiraja.jk.ui.theme.Gradients.Hero).padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(monthLabel(m.month), style = plex(15.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = androidx.compose.ui.graphics.Color.White)

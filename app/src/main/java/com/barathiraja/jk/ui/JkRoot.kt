@@ -190,7 +190,7 @@ private val ownerTabs = listOf(
 )
 
 /**
- * The floating bottom bar: a black bar whose top edge dips smoothly under the open tab, with a raised red button
+ * The floating bottom bar: a black bar whose top edge dips smoothly under the open tab, with a raised red-gradient button
  * resting in the dip that shows that tab's icon. Black anchors the screen; the one red circle says "you are here".
  * Picking another tab slides the dip and the button across to it; the open tab's label sits in the dip under the
  * button in white, the others show icon over label in light grey (7:1 on black).
@@ -227,14 +227,14 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
         ) {
             tabs.forEachIndexed { i, tab -> SideTab(tab, i == selected, Modifier.weight(1f).fillMaxHeight(), onSelect) }
         }
-        val fill = com.barathiraja.jk.ui.theme.Red
         val ink = androidx.compose.ui.graphics.Color.White
         val tab = tabs[selected]
         androidx.compose.material3.Surface(
             onClick = { onSelect(tab.route) },
             shape = androidx.compose.foundation.shape.CircleShape,
-            color = fill, contentColor = ink, shadowElevation = 8.dp,
+            color = androidx.compose.ui.graphics.Color.Transparent, contentColor = ink, shadowElevation = 8.dp,
             modifier = Modifier.offset(x = cx - button / 2).size(button)
+                .clip(androidx.compose.foundation.shape.CircleShape).background(com.barathiraja.jk.ui.theme.Gradients.Red)
                 .semantics { contentDescription = tab.label },
         ) {
             androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {

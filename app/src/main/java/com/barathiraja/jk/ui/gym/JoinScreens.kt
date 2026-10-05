@@ -97,7 +97,7 @@ fun SignInScreen(gvm: GymViewModel) {
     val message by gvm.message.collectAsStateWithLifecycle()
     val context = LocalContext.current
     JoinColumn {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Owner.Hero).padding(18.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(com.barathiraja.jk.ui.theme.Gradients.Hero).padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Logo(44, onDark = true)
                 Spacer(Modifier.width(12.dp))
@@ -105,7 +105,7 @@ fun SignInScreen(gvm: GymViewModel) {
             }
             Spacer(Modifier.height(32.dp))
             Text("Your whole gym,\nin one place.", style = plex(28.sp, FontWeight.Bold, line = 35.sp, tracking = (-1).sp), color = Color.White)
-            Box(Modifier.padding(top = 14.dp).width(56.dp).height(6.dp).clip(RoundedCornerShape(50)).background(Owner.Red))
+            Box(Modifier.padding(top = 14.dp).width(56.dp).height(6.dp).clip(RoundedCornerShape(50)).background(com.barathiraja.jk.ui.theme.Gradients.Red))
             Spacer(Modifier.height(24.dp))
             listOf(
                 "Owners see who trained today",
@@ -116,7 +116,8 @@ fun SignInScreen(gvm: GymViewModel) {
         Spacer(Modifier.height(4.dp))
         Surface(
             onClick = { gvm.message.value = null; gvm.signIn(context) }, enabled = !busy, shape = RoundedCornerShape(50),
-            color = Owner.Red, contentColor = Color.White, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
+            color = Color.Transparent, contentColor = Color.White,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp).clip(RoundedCornerShape(50)).background(com.barathiraja.jk.ui.theme.Gradients.Red),
         ) {
             Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
@@ -139,7 +140,7 @@ fun SignInScreen(gvm: GymViewModel) {
 @Composable
 private fun Point(text: String) {
     Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(22.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(22.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Gradients.Gold), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Owner.Black)
         }
         Spacer(Modifier.width(12.dp))
