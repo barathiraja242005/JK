@@ -86,7 +86,7 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
         if (awards.isEmpty()) item {
             OwnerCardBox {
                 Text("The first ones come on the 1st of next month: Best Member, Best Trainer, Most Consistent, Most Improved and Iron Lifter.",
-                    style = plex(16.sp, line = 23.sp), color = Owner.Muted)
+                    style = plex(14.sp, line = 19.sp), color = Owner.Muted)
             }
         }
         awards.sortedByDescending { it.month }.forEach { m -> item(key = m.month) { AwardsCard(m, gvm) } }
@@ -99,14 +99,14 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
 private fun LeaderRow(p: Person, chip: String, line: String, onClick: () -> Unit) {
     OwnerCardBox(onClick = onClick, onClickLabel = "Open ${p.firstName}", padding = 14.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(p.photoUrl, p.name, 52.dp)
+            OwnerAvatar(p.photoUrl, p.name, 44.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 OwnerChip(chip, Tone.TOP)
-                Text(p.name, style = plex(18.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(line, style = plex(15.sp), color = Owner.Muted)
+                Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(line, style = plex(13.sp), color = Owner.Muted)
             }
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(26.dp), tint = Owner.Muted)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
         }
     }
 }
@@ -119,12 +119,12 @@ fun GivenAwardRow(a: GivenAward, person: Person?, onClick: (() -> Unit)? = null)
             AwardBadge(awardLook(a.emoji, a.title), 56.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("${a.title} · ${monthLabel(a.month)}", style = plex(14.sp), color = Owner.Muted)
-                Text(person?.name ?: "Former member", style = plex(18.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1,
+                Text("${a.title} · ${monthLabel(a.month)}", style = plex(13.sp), color = Owner.Muted)
+                Text(person?.name ?: "Former member", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
                 if (a.note.isNotBlank()) OwnerChip("Gift · ${a.note}", Tone.WARN, Modifier.padding(top = 3.dp))
             }
-            if (onClick != null) Icon(Icons.Outlined.Edit, null, Modifier.padding(start = 8.dp).size(22.dp), tint = Owner.Muted)
+            if (onClick != null) Icon(Icons.Outlined.Edit, null, Modifier.padding(start = 8.dp).size(20.dp), tint = Owner.Muted)
         }
     }
 }
@@ -141,10 +141,10 @@ internal fun GivenAwardEditor(editing: GivenAward?, gvm: GymViewModel, onClose: 
     removing?.let { a ->
         AlertDialog(onDismissRequest = { removing = null },
             title = { Text("Take back this award?") },
-            text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.", style = plex(17.sp, line = 25.sp)) },
+            text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.", style = plex(15.sp, line = 21.sp)) },
             confirmButton = { TextButton(onClick = { removing = null; gvm.removeGivenAward(a) }) {
-                Text("Take it back", style = plex(16.sp, FontWeight.SemiBold), color = Owner.RedText) } },
-            dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep it", style = plex(16.sp, FontWeight.SemiBold)) } })
+                Text("Take it back", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep it", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
     }
 }
 
@@ -162,8 +162,8 @@ private fun AwardSheet(a: GivenAward, person: Person?, onDismiss: () -> Unit, on
                 AwardBadge(awardLook(a.emoji, title), 52.dp)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Change award", style = plex(21.sp, FontWeight.Bold), color = Owner.Ink)
-                    Text("For ${person?.name ?: "a former member"} · ${monthLabel(a.month)}", style = plex(15.sp), maxLines = 2, color = Owner.Muted)
+                    Text("Change award", style = plex(17.sp, FontWeight.Bold), color = Owner.Ink)
+                    Text("For ${person?.name ?: "a former member"} · ${monthLabel(a.month)}", style = plex(13.sp), maxLines = 2, color = Owner.Muted)
                 }
             }
             OutlinedTextField(title, { title = it.take(32) }, Modifier.fillMaxWidth(), label = { Text("Award name") }, singleLine = true,

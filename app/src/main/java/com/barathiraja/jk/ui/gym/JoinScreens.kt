@@ -97,14 +97,14 @@ fun SignInScreen(gvm: GymViewModel) {
     val message by gvm.message.collectAsStateWithLifecycle()
     val context = LocalContext.current
     JoinColumn {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(Owner.Hero).padding(24.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Owner.Hero).padding(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Logo(56, onDark = true)
+                Logo(44, onDark = true)
                 Spacer(Modifier.width(12.dp))
-                Text("JK Gym", style = plex(20.sp, FontWeight.Bold), color = Color.White)
+                Text("JK Gym", style = plex(16.sp, FontWeight.Bold), color = Color.White)
             }
-            Spacer(Modifier.height(36.dp))
-            Text("Your whole gym,\nin one place.", style = plex(36.sp, FontWeight.Bold, line = 42.sp, tracking = (-1).sp), color = Color.White)
+            Spacer(Modifier.height(32.dp))
+            Text("Your whole gym,\nin one place.", style = plex(28.sp, FontWeight.Bold, line = 35.sp, tracking = (-1).sp), color = Color.White)
             Box(Modifier.padding(top = 14.dp).width(56.dp).height(6.dp).clip(RoundedCornerShape(50)).background(Owner.Red))
             Spacer(Modifier.height(24.dp))
             listOf(
@@ -116,21 +116,21 @@ fun SignInScreen(gvm: GymViewModel) {
         Spacer(Modifier.height(4.dp))
         Surface(
             onClick = { gvm.message.value = null; gvm.signIn(context) }, enabled = !busy, shape = RoundedCornerShape(50),
-            color = Owner.Red, contentColor = Color.White, modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+            color = Owner.Red, contentColor = Color.White, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp),
         ) {
             Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                if (busy) CircularProgressIndicator(Modifier.size(22.dp), color = Color.White, strokeWidth = 2.dp)
+                if (busy) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
                 else {
-                    Box(Modifier.size(30.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
-                        Text("G", style = plex(17.sp, FontWeight.Bold), color = Owner.Black)
+                    Box(Modifier.size(26.dp).clip(CircleShape).background(Color.White), contentAlignment = Alignment.Center) {
+                        Text("G", style = plex(15.sp, FontWeight.Bold), color = Owner.Black)
                     }
                     Spacer(Modifier.width(12.dp))
-                    Text("Continue with Google", style = plex(18.sp, FontWeight.SemiBold))
+                    Text("Continue with Google", style = plex(15.sp, FontWeight.SemiBold))
                 }
             }
         }
         Text("We use your Google name and photo so your gym knows it's you.", Modifier.fillMaxWidth(),
-            style = plex(15.sp, line = 21.sp), color = Owner.Muted, textAlign = TextAlign.Center)
+            style = plex(13.sp, line = 18.sp), color = Owner.Muted, textAlign = TextAlign.Center)
         message?.let { ErrorText(it) }
     }
 }
@@ -139,18 +139,18 @@ fun SignInScreen(gvm: GymViewModel) {
 @Composable
 private fun Point(text: String) {
     Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(26.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(22.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Owner.Black)
         }
         Spacer(Modifier.width(12.dp))
-        Text(text, style = plex(17.sp, line = 23.sp), color = Owner.OnDarkSoft)
+        Text(text, style = plex(15.sp, line = 19.sp), color = Owner.OnDarkSoft)
     }
 }
 
 @Composable
 private fun ErrorText(text: String) {
     Text(text, Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Tone.BAD.fill).padding(14.dp),
-        style = plex(16.sp, line = 22.sp), color = Tone.BAD.ink)
+        style = plex(14.sp, line = 18.sp), color = Tone.BAD.ink)
 }
 
 private enum class JoinMode { CHOOSE, OWNER, TRAINER, MEMBER }
@@ -166,22 +166,22 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
     JoinColumn {
         if (mode == JoinMode.CHOOSE) {
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Logo(44)
+                Logo(36)
                 Spacer(Modifier.weight(1f))
-                Text("Use another account", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink,
+                Text("Use another account", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Ink,
                     modifier = Modifier.clip(RoundedCornerShape(50)).clickable { gvm.signOut() }.padding(horizontal = 12.dp, vertical = 14.dp))
             }
             Column(Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
-                Text("Hi ${GymViewModel.tidyName(userName).substringBefore(' ').ifBlank { "there" }}", style = plex(32.sp, FontWeight.Bold, tracking = (-0.6).sp),
+                Text("Hi ${GymViewModel.tidyName(userName).substringBefore(' ').ifBlank { "there" }}", style = plex(25.sp, FontWeight.Bold, tracking = (-0.6).sp),
                     color = Owner.Ink)
-                Text("Who are you at the gym?", style = plex(18.sp, line = 25.sp), color = Owner.Muted)
+                Text("Who are you at the gym?", style = plex(15.sp, line = 21.sp), color = Owner.Muted)
             }
             RoleCard(Icons.Outlined.Storefront, "I own the gym", "Set up your gym and see how everyone is doing.") { mode = JoinMode.OWNER; text = "" }
             RoleCard(Icons.Outlined.Badge, "I'm a trainer", "I coach members. The owner gave me the gym code.") { mode = JoinMode.TRAINER; text = "" }
             RoleCard(Icons.Outlined.FitnessCenter, "I'm a member", "I train here. My trainer gave me a code.") { mode = JoinMode.MEMBER; text = "" }
         } else {
             Surface(onClick = { mode = JoinMode.CHOOSE; gvm.message.value = null }, shape = CircleShape, color = Owner.Card,
-                contentColor = Owner.Ink, modifier = Modifier.padding(top = 8.dp).size(52.dp)) {
+                contentColor = Owner.Ink, modifier = Modifier.padding(top = 8.dp).size(44.dp)) {
                 Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", Modifier.size(24.dp)) }
             }
             val isCode = mode != JoinMode.OWNER
@@ -195,11 +195,11 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
             )
             OutlinedTextField(
                 text, { text = if (isCode) it.uppercase().filter(Char::isLetterOrDigit).take(6) else it.take(40) },
-                Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(18.dp),
-                label = { Text(if (isCode) "Code" else "Gym name", style = plex(16.sp)) },
-                placeholder = { Text(if (isCode) "ABC123" else "e.g. Iron Temple Fitness", style = plex(if (isCode) 26.sp else 20.sp)) },
-                textStyle = if (isCode) plex(28.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont, color = Owner.Ink)
-                    else plex(20.sp, FontWeight.SemiBold).copy(color = Owner.Ink),
+                Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(16.dp),
+                label = { Text(if (isCode) "Code" else "Gym name", style = plex(14.sp)) },
+                placeholder = { Text(if (isCode) "ABC123" else "e.g. Iron Temple Fitness", style = plex(if (isCode) 21.sp else 16.sp)) },
+                textStyle = if (isCode) plex(22.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont, color = Owner.Ink)
+                    else plex(16.sp, FontWeight.SemiBold).copy(color = Owner.Ink),
                 colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Owner.Ink, focusedLabelColor = Owner.Ink, cursorColor = Owner.Red,
                     focusedContainerColor = Owner.Card, unfocusedContainerColor = Owner.Card),
                 keyboardOptions = KeyboardOptions(capitalization = if (isCode) KeyboardCapitalization.Characters else KeyboardCapitalization.Words),
@@ -224,17 +224,17 @@ fun ChooseRoleScreen(gvm: GymViewModel, userName: String) {
 
 @Composable
 private fun RoleCard(icon: ImageVector, title: String, sub: String, onClick: () -> Unit) {
-    OwnerCardBox(onClick = onClick, onClickLabel = title, padding = 18.dp) {
+    OwnerCardBox(onClick = onClick, onClickLabel = title, padding = 14.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(56.dp).clip(CircleShape).background(Owner.Ink), contentAlignment = Alignment.Center) {
-                Icon(icon, null, Modifier.size(26.dp), tint = Owner.OnInk)
+            Box(Modifier.size(48.dp).clip(CircleShape).background(Owner.Ink), contentAlignment = Alignment.Center) {
+                Icon(icon, null, Modifier.size(22.dp), tint = Owner.OnInk)
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(title, style = plex(20.sp, FontWeight.Bold), color = Owner.Ink)
-                Text(sub, style = plex(16.sp, line = 22.sp), color = Owner.Muted)
+                Text(title, style = plex(16.sp, FontWeight.Bold), color = Owner.Ink)
+                Text(sub, style = plex(14.sp, line = 18.sp), color = Owner.Muted)
             }
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(28.dp), tint = Owner.Muted)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(24.dp), tint = Owner.Muted)
         }
     }
 }
@@ -244,16 +244,16 @@ private fun RoleCard(icon: ImageVector, title: String, sub: String, onClick: () 
 fun WaitingScreen(gvm: GymViewModel, gym: Gym?, removed: Boolean) {
     JoinColumn {
         Spacer(Modifier.height(48.dp))
-        Box(Modifier.size(88.dp).clip(CircleShape).background(if (removed) Tone.BAD.fill else Owner.Yellow).align(Alignment.CenterHorizontally),
+        Box(Modifier.size(72.dp).clip(CircleShape).background(if (removed) Tone.BAD.fill else Owner.Yellow).align(Alignment.CenterHorizontally),
             contentAlignment = Alignment.Center) {
             Icon(Icons.Outlined.HourglassTop, null, Modifier.size(40.dp), tint = if (removed) Tone.BAD.ink else Owner.Black)
         }
         Text(if (removed) "You're no longer part of ${gym?.name ?: "this gym"}" else "Waiting for the owner",
-            Modifier.fillMaxWidth(), style = plex(26.sp, FontWeight.Bold, line = 32.sp), color = Owner.Ink, textAlign = TextAlign.Center)
+            Modifier.fillMaxWidth(), style = plex(21.sp, FontWeight.Bold, line = 27.sp), color = Owner.Ink, textAlign = TextAlign.Center)
         Text(
             if (removed) "Ask the gym owner if this is a mistake, or join another gym."
             else "We've asked the owner of ${gym?.name ?: "the gym"} to let you in. This screen moves on by itself once they say yes.",
-            Modifier.fillMaxWidth(), style = plex(17.sp, line = 25.sp), textAlign = TextAlign.Center, color = Owner.Muted,
+            Modifier.fillMaxWidth(), style = plex(15.sp, line = 21.sp), textAlign = TextAlign.Center, color = Owner.Muted,
         )
         Spacer(Modifier.height(8.dp))
         PlainButton(if (removed) "Join another gym" else "Use a different code", { gvm.leaveGym() }, Modifier.fillMaxWidth())

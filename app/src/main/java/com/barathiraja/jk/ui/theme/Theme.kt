@@ -136,13 +136,13 @@ private fun TextStyle.p(size: Int, line: Int, weight: FontWeight, tracking: Doub
 /** Sentence case; bold headings for a confident, athletic voice; regular body text never below 15sp. */
 private val JkType = Typography().let { t ->
     Typography(
-        displayLarge = t.displayLarge.p(48, 56, FontWeight.Bold, -1.0),
-        displayMedium = t.displayMedium.p(40, 48, FontWeight.Bold, -0.8),
-        displaySmall = t.displaySmall.p(32, 40, FontWeight.Bold, -0.5),
-        headlineLarge = t.headlineLarge.p(28, 36, FontWeight.Bold, -0.4),
-        headlineMedium = t.headlineMedium.p(24, 32, FontWeight.Bold, -0.3),
-        headlineSmall = t.headlineSmall.p(20, 28, FontWeight.SemiBold, -0.2),
-        titleLarge = t.titleLarge.p(18, 26, FontWeight.SemiBold),
+        displayLarge = t.displayLarge.p(40, 48, FontWeight.Bold, -1.0),
+        displayMedium = t.displayMedium.p(34, 42, FontWeight.Bold, -0.8),
+        displaySmall = t.displaySmall.p(28, 34, FontWeight.Bold, -0.5),
+        headlineLarge = t.headlineLarge.p(24, 30, FontWeight.Bold, -0.4),
+        headlineMedium = t.headlineMedium.p(21, 28, FontWeight.Bold, -0.3),
+        headlineSmall = t.headlineSmall.p(18, 24, FontWeight.SemiBold, -0.2),
+        titleLarge = t.titleLarge.p(17, 24, FontWeight.SemiBold),
         titleMedium = t.titleMedium.p(16, 24, FontWeight.SemiBold),
         titleSmall = t.titleSmall.p(15, 22, FontWeight.SemiBold),
         bodyLarge = t.bodyLarge.p(16, 24, FontWeight.Normal),

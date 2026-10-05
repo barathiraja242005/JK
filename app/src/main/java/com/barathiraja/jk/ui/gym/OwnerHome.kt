@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -80,19 +81,19 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text(greeting(), style = plex(17.sp), color = Owner.Muted)
-                    Text(me?.firstName ?: "Owner", style = plex(30.sp, FontWeight.Bold, tracking = (-0.6).sp), color = Owner.Ink,
+                    Text(greeting(), style = plex(15.sp), color = Owner.Muted)
+                    Text(me?.firstName ?: "Owner", style = plex(23.sp, FontWeight.Bold, tracking = (-0.6).sp), color = Owner.Ink,
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-                OwnerAvatar(me?.photoUrl, me?.name ?: "Owner", 52.dp)
+                OwnerAvatar(me?.photoUrl, me?.name ?: "Owner", 40.dp)
             }
         }
         if (demoOn) item {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Tone.WARN.fill)
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Tone.WARN.fill)
                 .padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Sample gym, not your real data", Modifier.weight(1f), style = plex(16.sp), color = Tone.WARN.ink)
+                Text("Sample gym, not your real data", Modifier.weight(1f), style = plex(14.sp), color = Tone.WARN.ink)
                 TextButton(onClick = { gvm.setDemo(false) }, Modifier.heightIn(min = 48.dp)) {
-                    Text("Turn off", style = plex(16.sp, FontWeight.SemiBold), color = Tone.WARN.ink)
+                    Text("Turn off", style = plex(14.sp, FontWeight.SemiBold), color = Tone.WARN.ink)
                 }
             }
         }
@@ -127,10 +128,10 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
     rejecting?.let { p ->
         AlertDialog(onDismissRequest = { rejecting = null },
             title = { Text("Reject ${p.firstName}?") },
-            text = { Text("${p.firstName} won't join as a trainer. They can ask again with your gym code.", style = plex(17.sp, line = 25.sp)) },
+            text = { Text("${p.firstName} won't join as a trainer. They can ask again with your gym code.", style = plex(15.sp, line = 21.sp)) },
             confirmButton = { TextButton(onClick = { rejecting = null; gvm.reject(p) }) {
-                Text("Reject ${p.firstName}", style = plex(16.sp, FontWeight.SemiBold), color = Owner.RedText) } },
-            dismissButton = { TextButton(onClick = { rejecting = null }) { Text("Keep waiting", style = plex(16.sp, FontWeight.SemiBold)) } })
+                Text("Reject ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
+            dismissButton = { TextButton(onClick = { rejecting = null }) { Text("Keep waiting", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
     }
     choosingFor?.let { m -> ChangeTrainerDialog(m, gvm) { choosingFor = null } }
 }
@@ -147,13 +148,13 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) {
  */
 @Composable
 private fun TodayCard(d: OwnerStats.Digest, gymName: String) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Owner.Hero).padding(20.dp)) {
-        Text("Today at $gymName", style = plex(16.sp), color = Owner.OnDarkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
+        Text("Today at $gymName", style = plex(14.sp), color = Owner.OnDarkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
-            Text("${d.trainedToday}", style = plex(56.sp, FontWeight.Bold, line = 60.sp, tracking = (-2).sp), color = Color.White)
-            Text("  of ${d.members}", style = plex(24.sp, FontWeight.SemiBold), color = Owner.OnDarkMuted, modifier = Modifier.padding(bottom = 8.dp))
+            Text("${d.trainedToday}", style = plex(40.sp, FontWeight.Bold, line = 50.sp, tracking = (-2).sp), color = Color.White)
+            Text("  of ${d.members}", style = plex(20.sp, FontWeight.SemiBold), color = Owner.OnDarkMuted, modifier = Modifier.padding(bottom = 8.dp))
         }
-        Text(if (d.members == 1) "member trained" else "members trained", style = plex(17.sp, FontWeight.SemiBold), color = Color.White)
+        Text(if (d.members == 1) "member trained" else "members trained", style = plex(15.sp, FontWeight.SemiBold), color = Color.White)
         Box(Modifier.padding(top = 14.dp, bottom = 12.dp)) {
             OwnerBar(if (d.members == 0) 0f else d.trainedToday / d.members.toFloat(), Owner.DarkTrack, Owner.Yellow, "today-${d.trainedToday}-${d.members}", 10.dp)
         }
@@ -166,15 +167,15 @@ private fun TodayCard(d: OwnerStats.Digest, gymName: String) {
                 else -> { withStyle(SpanStyle(color = Color.White, fontWeight = FontWeight.SemiBold)) { append("Same") }; append(" as yesterday") }
             }
             if (d.inProgressToday > 0) append(" · ${d.inProgressToday} training now")
-        }, style = plex(16.sp, line = 22.sp), color = Owner.OnDarkSoft)
+        }, style = plex(14.sp, line = 18.sp), color = Owner.OnDarkSoft)
         // The month in one sentence: of every 100 workouts trainers gave, how many members finished.
         val due = d.trainers.sumOf { it.due }
         val done = d.trainers.sumOf { it.done }
-        if (due > 0) Row(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Owner.DarkStrip)
+        if (due > 0) Row(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Owner.DarkStrip)
             .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("${Math.round(done * 100f / due)}%", style = plex(22.sp, FontWeight.Bold), color = Owner.Yellow)
+            Text("${Math.round(done * 100f / due)}%", style = plex(18.sp, FontWeight.Bold), color = Owner.Yellow)
             Spacer(Modifier.width(12.dp))
-            Text("of this month's workouts finished ($done of $due)", style = plex(15.sp, line = 20.sp), color = Owner.OnDarkSoft)
+            Text("of this month's workouts finished ($done of $due)", style = plex(13.sp, line = 17.sp), color = Owner.OnDarkSoft)
         }
     }
 }
@@ -193,57 +194,53 @@ private fun AllClearCard() {
     OwnerCardBox {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(48.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Check, null, Modifier.size(26.dp), tint = Owner.Black)
+                Icon(Icons.Outlined.Check, null, Modifier.size(22.dp), tint = Owner.Black)
             }
             Spacer(Modifier.width(14.dp))
             Column {
-                Text("All clear", style = plex(19.sp, FontWeight.Bold), color = Owner.Ink)
-                Text("No one is waiting to join and every member trained this week.", style = plex(16.sp, line = 22.sp), color = Owner.Muted)
+                Text("All clear", style = plex(15.sp, FontWeight.Bold), color = Owner.Ink)
+                Text("No one is waiting to join and every member trained this week.", style = plex(14.sp, line = 18.sp), color = Owner.Muted)
             }
         }
     }
 }
 
-/** One person who needs the owner: who, why in words, and the action(s) under it. Tapping the top opens them. */
+/**
+ * One person who needs the owner, as a compact row: face, name with a status word, one short reason, and a small
+ * action on the right. Tapping the row opens them. Only "Approve" is red, so the one decision stands out.
+ */
 @Composable
 private fun NeedCard(
-    p: Person, chip: String, tone: Tone, line: String, onOpen: (() -> Unit)?, actions: @Composable () -> Unit,
+    p: Person, chip: String, tone: Tone, line: String, onOpen: (() -> Unit)?, action: @Composable () -> Unit,
 ) {
-    OwnerCardBox(padding = 16.dp) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                    .then(if (onOpen != null) Modifier.clickable(onClickLabel = "Open ${p.firstName}", onClick = onOpen) else Modifier),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                OwnerAvatar(p.photoUrl, p.name, 52.dp)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(p.name, style = plex(19.sp, FontWeight.SemiBold, line = 23.sp), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    OwnerChip(chip, tone)
-                }
-                if (onOpen != null) Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(26.dp), tint = Owner.Muted)
+    OwnerCardBox(onClick = onOpen, onClickLabel = "Open ${p.firstName}", padding = 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OwnerAvatar(p.photoUrl, p.name, 40.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                ChipLine(chip, tone, line, lines = 2)
             }
-            Text(line, style = plex(17.sp, line = 24.sp), color = Owner.Ink)
-            actions()
+            Spacer(Modifier.width(10.dp))
+            action()
         }
     }
 }
 
 @Composable
 private fun JoiningCard(p: Person, onApprove: () -> Unit, onReject: () -> Unit) {
-    NeedCard(p, "Wants to join", Tone.WARN, "${p.firstName} asked to join as a trainer with your gym code.", onOpen = null) {
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            PlainButton("Reject", onReject, Modifier.weight(1f))
-            RedButton("Approve", onApprove, Modifier.weight(1.4f), Icons.Outlined.Check)
+    NeedCard(p, "New trainer", Tone.WARN, "Wants to join", onOpen = null) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            SmallAction(Icons.Outlined.Close, "Reject ${p.firstName}", red = false, onReject)
+            SmallAction(Icons.Outlined.Check, "Approve ${p.firstName}", red = true, onApprove)
         }
     }
 }
 
 @Composable
 private fun NoTrainerCard(m: Person, onOpen: () -> Unit, onChoose: () -> Unit) {
-    NeedCard(m, "No trainer", Tone.BAD, "${m.firstName}'s trainer left the gym. Pick who trains ${m.firstName} now.", onOpen) {
-        RedButton("Choose a trainer", onChoose, Modifier.fillMaxWidth())
+    NeedCard(m, "No trainer", Tone.BAD, "Their trainer left. Pick a new one.", onOpen) {
+        SmallPill("Choose", onChoose)
     }
 }
 
@@ -251,19 +248,44 @@ private fun NoTrainerCard(m: Person, onOpen: () -> Unit, onChoose: () -> Unit) {
 private fun AwayCard(i: OwnerStats.Idle, trainer: Person?, gymName: String, context: Context, onOpen: () -> Unit) {
     val m = i.member
     val noPlan = !i.assignedRecently && trainer != null
-    val days = if (i.days > 30) "over a month" else plural(i.days, "day")
+    val days = if (i.days > 30) "30+ days" else plural(i.days, "day")
     NeedCard(
         m, if (noPlan) "No plan" else "Away", if (noPlan) Tone.WARN else Tone.BAD,
-        if (noPlan) "No workout given for $days. Ask ${trainer!!.firstName} to give one."
-        else "No workout done for $days." + (trainer?.let { " Trainer: ${it.firstName}." } ?: ""),
+        if (noPlan) "No workout given for $days. Ask ${trainer!!.firstName}."
+        else "No workout for $days" + (trainer?.let { ". Trainer: ${it.firstName}" } ?: ""),
         onOpen,
     ) {
-        if (noPlan) RedButton("Message ${trainer!!.firstName}", {
-            context.whatsApp("Hi ${trainer.firstName}, ${m.name} hasn't had a workout for ${i.days} days. Please assign one in the JK app and check in with them. Thanks!")
-        }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.Send)
-        else RedButton("Message ${m.firstName}", {
-            context.whatsApp("Hi ${m.firstName}, we haven't seen you at $gymName for a while. Your trainer has a workout ready for you in the JK app. See you soon! 💪")
-        }, Modifier.fillMaxWidth(), Icons.AutoMirrored.Outlined.Send)
+        SmallAction(Icons.AutoMirrored.Outlined.Send, if (noPlan) "Message ${trainer!!.firstName}" else "Message ${m.firstName}", red = false) {
+            if (noPlan) context.whatsApp("Hi ${trainer!!.firstName}, ${m.name} hasn't had a workout for ${i.days} days. Please assign one in the JK app and check in with them. Thanks!")
+            else context.whatsApp("Hi ${m.firstName}, we haven't seen you at $gymName for a while. Your trainer has a workout ready for you in the JK app. See you soon! 💪")
+        }
+    }
+}
+
+/** A small status chip, then a short muted line after it; the name above gets the full width. */
+@Composable
+private fun ChipLine(chip: String, tone: Tone, line: String, lines: Int) {
+    Row(verticalAlignment = Alignment.Top) {
+        OwnerChip(chip, tone, Modifier.padding(top = 1.dp), small = true)
+        Spacer(Modifier.width(6.dp))
+        Text(line, style = plex(13.sp, line = 18.sp), color = Owner.Muted, maxLines = lines, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** A round 44dp icon button: red for the yes, outlined otherwise. [label] is read out by TalkBack. */
+@Composable
+private fun SmallAction(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, red: Boolean, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = CircleShape, color = if (red) Owner.Red else Owner.Card, contentColor = if (red) Color.White else Owner.Ink,
+        border = if (red) null else androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(44.dp)) {
+        Box(contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(20.dp)) }
+    }
+}
+
+/** A short outlined pill with a word, for an action an icon can't say. */
+@Composable
+private fun SmallPill(text: String, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = Owner.Ink, contentColor = Owner.OnInk, modifier = Modifier.heightIn(min = 40.dp)) {
+        Box(Modifier.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) { Text(text, style = plex(13.sp, FontWeight.SemiBold)) }
     }
 }
 
@@ -291,9 +313,9 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
         }
         item {
             Text(
-                if (trainersTab) "Out of every 100 workouts a trainer gave this month, how many their members finished. Higher is better."
-                else "How many of their workouts each member finished this month.",
-                style = plex(16.sp, line = 23.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 4.dp),
+                if (trainersTab) "Workouts their members finished this month, out of those given. Higher is better."
+                else "Workouts each member finished this month, out of those given.",
+                style = plex(14.sp, line = 19.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
         if (trainersTab) {
@@ -314,20 +336,20 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
 
 @Composable
 private fun Empty(text: String) {
-    OwnerCardBox { Text(text, style = plex(17.sp, line = 25.sp), color = Owner.Muted) }
+    OwnerCardBox { Text(text, style = plex(15.sp, line = 21.sp), color = Owner.Muted) }
 }
 
 /** One side of a two-way switch: black when open, with the count in a small pill. */
 @Composable
 internal fun Segment(label: String, count: Int, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
-    Surface(onClick = onClick, modifier = modifier.heightIn(min = 52.dp).semantics { this.selected = selected }, shape = RoundedCornerShape(50),
+    Surface(onClick = onClick, modifier = modifier.heightIn(min = 44.dp).semantics { this.selected = selected }, shape = RoundedCornerShape(50),
         color = if (selected) Owner.Ink else Color.Transparent, contentColor = if (selected) Owner.OnInk else Owner.Ink) {
         Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Text(label, style = plex(17.sp, FontWeight.SemiBold))
+            Text(label, style = plex(15.sp, FontWeight.SemiBold))
             Spacer(Modifier.width(8.dp))
-            Box(Modifier.heightIn(min = 26.dp).clip(RoundedCornerShape(50)).background(if (selected) Owner.Yellow else Owner.Well)
+            Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (selected) Owner.Yellow else Owner.Well)
                 .padding(horizontal = 9.dp), contentAlignment = Alignment.Center) {
-                Text("$count", style = plex(14.sp, FontWeight.SemiBold), color = if (selected) Owner.Black else Owner.Ink)
+                Text("$count", style = plex(13.sp, FontWeight.SemiBold), color = if (selected) Owner.Black else Owner.Ink)
             }
         }
     }
@@ -356,7 +378,7 @@ internal fun memberStatus(s: Scoring.MemberScore?, top: Boolean, idle: OwnerStat
     }
 }
 
-/** Rank disc: yellow for first, black for second and third, plain after that. */
+/** Rank disc: yellow for first, black for second and third, grey after that. */
 @Composable
 private fun RankDisc(rank: Int, show: Boolean) {
     val (fill, ink) = when {
@@ -365,33 +387,31 @@ private fun RankDisc(rank: Int, show: Boolean) {
         rank <= 3 -> Owner.Ink to Owner.OnInk
         else -> Owner.Well to Owner.Ink
     }
-    Box(Modifier.size(34.dp).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
-        Text(if (show) "$rank" else "–", style = plex(15.sp, FontWeight.Bold), color = ink)
+    Box(Modifier.size(26.dp).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
+        Text(if (show) "$rank" else "–", style = plex(12.sp, FontWeight.Bold), color = ink)
     }
 }
 
-/** A list row for one person: rank, face, name and status, then one line of numbers with a bar. */
+/** A compact list row for one person: rank, face, name with status, one line of numbers and a thin bar. */
 @Composable
 private fun PersonRow(
     rank: Int?, ranked: Boolean, photo: String?, name: String, status: Pair<String, Tone>, line: String, fraction: Float?, onClick: () -> Unit,
 ) {
-    OwnerCardBox(onClick = onClick, onClickLabel = "Open $name", padding = 14.dp) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (rank != null) {
-                    RankDisc(rank, ranked)
-                    Spacer(Modifier.width(10.dp))
-                }
-                OwnerAvatar(photo, name, 48.dp)
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(name, style = plex(18.sp, FontWeight.SemiBold, line = 22.sp), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    OwnerChip(status.first, status.second)
-                }
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(26.dp), tint = Owner.Muted)
+    OwnerCardBox(onClick = onClick, onClickLabel = "Open $name", padding = 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (rank != null) {
+                RankDisc(rank, ranked)
+                Spacer(Modifier.width(10.dp))
             }
-            Text(line, style = plex(16.sp, line = 22.sp), color = Owner.Muted)
-            if (fraction != null) OwnerBar(fraction, Owner.Well, if (status.second == Tone.BAD) Owner.Red else Owner.Ink, "row-$name-$fraction")
+            OwnerAvatar(photo, name, 40.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                ChipLine(status.first, status.second, line, lines = 1)
+                if (fraction != null) OwnerBar(fraction, Owner.Well, if (status.second == Tone.BAD) Owner.Red else Owner.Ink, "row-$name-$fraction", 5.dp)
+            }
+            Spacer(Modifier.width(4.dp))
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
         }
     }
 }
@@ -400,21 +420,20 @@ private fun PersonRow(
 private fun TrainerRow(t: OwnerStats.TrainerRow, rank: Int, top: Boolean, onClick: () -> Unit) {
     PersonRow(
         rank, t.due > 0, t.trainer.photoUrl, t.trainer.name, trainerStatus(t, top),
-        if (t.due == 0) "Trains ${plural(t.members, "member")}. No workouts given yet this month."
-        else "Members finished ${t.done} of ${plural(t.due, "workout")} · trains ${plural(t.members, "member")}",
+        if (t.due == 0) "${plural(t.members, "member")} · no workouts given yet"
+        else "${t.done} of ${t.due} done · ${plural(t.members, "member")}",
         t.rate.takeIf { t.due > 0 }, onClick,
     )
 }
 
 @Composable
 private fun MemberRow(p: Person, s: Scoring.MemberScore, rank: Int, top: Boolean, idle: OwnerStats.Idle?, trainer: Person?, onClick: () -> Unit) {
-    val who = trainer?.let { " · trainer ${it.firstName}" } ?: ""
     PersonRow(
         rank, s.points > 0, p.photoUrl, p.name, memberStatus(s, top, idle, trainer != null),
         when {
-            idle != null -> "No workout for ${if (idle.days > 30) "over a month" else plural(idle.days, "day")}$who"
-            s.due == 0 -> "No workouts given yet this month$who"
-            else -> "Finished ${s.completed} of ${plural(s.due, "workout")}$who"
+            idle != null -> "No workout for ${if (idle.days > 30) "30+ days" else plural(idle.days, "day")}"
+            s.due == 0 -> "No workouts yet"
+            else -> "${s.completed} of ${s.due} done"
         },
         s.rate.takeIf { s.due > 0 }, onClick,
     )

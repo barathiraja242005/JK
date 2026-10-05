@@ -89,22 +89,22 @@ internal object Owner {
 }
 
 /**
- * A status word's look. [TOP]: yellow, the best. [GOOD]: black, all fine. [WARN]: pale yellow, worth a look.
- * [BAD]: pale red, needs the owner. [NONE]: grey, nothing yet.
+ * A status word's look. [TOP]: yellow, the best. [GOOD]: quiet grey, all fine (the usual case, so it stays calm).
+ * [WARN]: pale yellow, worth a look. [BAD]: pale red, needs the owner. [NONE]: outlined, nothing yet.
  */
 internal enum class Tone {
     TOP, GOOD, WARN, BAD, NONE;
 
     val fill: Color get() = when (this) {
         TOP -> Owner.Yellow
-        GOOD -> Owner.Ink
+        GOOD -> pick(0xFFEFEFEC, 0xFF262626)
         WARN -> pick(0xFFFFF2C7, 0xFF2A2410)
         BAD -> pick(0xFFFDE4E4, 0xFF2A1214)
-        NONE -> pick(0xFFEFEFEC, 0xFF262626)
+        NONE -> Color.Transparent
     }
     val ink: Color get() = when (this) {
         TOP -> Owner.Black
-        GOOD -> Owner.OnInk
+        GOOD -> Owner.Ink
         WARN -> pick(0xFF0A0A0A, 0xFFFFD966)
         BAD -> pick(0xFF9E0F16, 0xFFFFB4B6)
         NONE -> pick(0xFF3D3D3D, 0xFFD4D4D4)
@@ -116,7 +116,7 @@ internal fun plex(size: TextUnit, weight: FontWeight = FontWeight.Normal, line: 
 
 /** Owner page shell: paper background, status-bar padding and room for the bottom bar. */
 @Composable
-internal fun OwnerPage(spacing: Dp = 12.dp, content: LazyListScope.() -> Unit) {
+internal fun OwnerPage(spacing: Dp = 10.dp, content: LazyListScope.() -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize().background(Owner.Paper).windowInsetsPadding(WindowInsets.statusBars).imePadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp + LocalNavBarInset.current),
@@ -129,17 +129,17 @@ internal fun OwnerPage(spacing: Dp = 12.dp, content: LazyListScope.() -> Unit) {
 @Composable
 internal fun PageTitle(title: String, explain: String) {
     Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)) {
-        Text(title, style = plex(32.sp, FontWeight.Bold, line = 38.sp, tracking = (-0.6).sp), color = Owner.Ink)
-        Text(explain, style = plex(17.sp, line = 25.sp), color = Owner.Muted, modifier = Modifier.padding(top = 6.dp))
+        Text(title, style = plex(24.sp, FontWeight.Bold, line = 30.sp, tracking = (-0.4).sp), color = Owner.Ink)
+        Text(explain, style = plex(15.sp, line = 21.sp), color = Owner.Muted, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
 /** Section title with one plain sentence under it. */
 @Composable
 internal fun OwnerHeading(title: String, explain: String? = null) {
-    Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 20.dp, bottom = 2.dp)) {
-        Text(title, style = plex(21.sp, FontWeight.Bold), color = Owner.Ink)
-        if (explain != null) Text(explain, style = plex(16.sp, line = 23.sp), color = Owner.Muted, modifier = Modifier.padding(top = 4.dp))
+    Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 0.dp)) {
+        Text(title, style = plex(17.sp, FontWeight.Bold), color = Owner.Ink)
+        if (explain != null) Text(explain, style = plex(14.sp, line = 19.sp), color = Owner.Muted, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -147,11 +147,11 @@ internal fun OwnerHeading(title: String, explain: String? = null) {
 @Composable
 internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
     Surface(
-        onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 56.dp), shape = RoundedCornerShape(50),
-        color = if (enabled) Owner.Red else Tone.NONE.fill, contentColor = if (enabled) Color.White else Owner.Muted,
+        onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
+        color = if (enabled) Owner.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Owner.Muted,
     ) {
-        Row(Modifier.padding(horizontal = 22.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Text(text, style = plex(17.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Text(text, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
             if (icon != null) {
                 Spacer(Modifier.width(10.dp))
                 Icon(icon, null, Modifier.size(20.dp))
@@ -164,7 +164,7 @@ internal fun RedButton(text: String, onClick: () -> Unit, modifier: Modifier = M
 @Composable
 internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ink: Color = Owner.Ink) {
     Surface(
-        onClick = onClick, modifier = modifier.heightIn(min = 56.dp), shape = RoundedCornerShape(50),
+        onClick = onClick, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
         color = Owner.Card, contentColor = ink, border = BorderStroke(1.5.dp, Owner.Line),
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -172,7 +172,7 @@ internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier =
                 Icon(icon, null, Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
             }
-            Text(text, style = plex(17.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -182,7 +182,7 @@ internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier =
 internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, onClickLabel: String? = null, padding: Dp = 18.dp,
                           content: @Composable () -> Unit) {
     Box(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Owner.Card)
+        modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)
             .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
             .padding(padding),
     ) { content() }
@@ -191,7 +191,7 @@ internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? 
 /** Round photo, or the first letter on grey. */
 @Composable
 internal fun OwnerAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDark: Boolean = false) {
-    val fill = if (onDark) Owner.DarkStrip else Tone.NONE.fill
+    val fill = if (onDark) Owner.DarkStrip else Tone.GOOD.fill
     Box(Modifier.size(size).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
         if (photoUrl != null) {
             coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
@@ -204,13 +204,13 @@ internal fun OwnerAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDa
 
 /** A small rounded label: always a word, never colour alone. [onDark] adds a fine ring so a black chip shows on black. */
 @Composable
-internal fun OwnerChip(text: String, tone: Tone, modifier: Modifier = Modifier, onDark: Boolean = false) {
+internal fun OwnerChip(text: String, tone: Tone, modifier: Modifier = Modifier, onDark: Boolean = false, small: Boolean = false) {
     Text(
         text,
         modifier.clip(RoundedCornerShape(50)).background(tone.fill)
-            .then(if (onDark && tone == Tone.GOOD) Modifier.border(1.dp, Owner.OnDarkMuted, RoundedCornerShape(50)) else Modifier)
-            .padding(horizontal = 12.dp, vertical = 5.dp),
-        style = plex(14.sp, FontWeight.SemiBold), color = if (onDark && tone == Tone.GOOD) Color.White else tone.ink, maxLines = 1,
+            .then(if (tone == Tone.NONE) Modifier.border(1.dp, if (onDark) Owner.OnDarkMuted else Owner.Line, RoundedCornerShape(50)) else Modifier)
+            .padding(horizontal = if (small) 8.dp else 10.dp, vertical = if (small) 2.dp else 4.dp),
+        style = plex(if (small) 11.sp else 12.sp, FontWeight.SemiBold), color = if (onDark && tone == Tone.NONE) Color.White else tone.ink, maxLines = 1,
     )
 }
 

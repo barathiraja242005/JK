@@ -119,7 +119,7 @@ private fun RankRow(rank: Int, photo: String?, name: String, sub: String, value:
                 else -> androidx.compose.ui.graphics.Color.Transparent to cs.onSurfaceVariant
             }
             androidx.compose.foundation.layout.Box(
-                Modifier.size(36.dp).clip(androidx.compose.foundation.shape.CircleShape).background(disc),
+                Modifier.size(32.dp).clip(androidx.compose.foundation.shape.CircleShape).background(disc),
                 contentAlignment = Alignment.Center,
             ) {
                 Text("$rank", style = MaterialTheme.typography.titleMedium.copy(fontFamily = com.barathiraja.jk.ui.theme.CodeFont), color = ink)
@@ -174,7 +174,7 @@ fun AwardsCard(m: MonthAwards, gvm: GymViewModel) {
         Row(Modifier.fillMaxWidth().background(com.barathiraja.jk.ui.theme.HeroBlue).padding(horizontal = 18.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(monthLabel(m.month), style = plex(19.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = androidx.compose.ui.graphics.Color.White)
+                Text(monthLabel(m.month), style = plex(15.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = androidx.compose.ui.graphics.Color.White)
             }
             OwnerChip("${m.winners.size} winners", Tone.TOP)
         }
@@ -185,8 +185,8 @@ fun AwardsCard(m: MonthAwards, gvm: GymViewModel) {
                     AwardBadge(a.look(), 46.dp)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(a.label, style = plex(14.sp), color = cs.onSurfaceVariant)
-                        Text(p.name, style = plex(17.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
+                        Text(a.label, style = plex(13.sp), color = cs.onSurfaceVariant)
+                        Text(p.name, style = plex(15.sp, androidx.compose.ui.text.font.FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
                     }
                     OwnerAvatar(p.photoUrl, p.name, 38.dp)
                 }

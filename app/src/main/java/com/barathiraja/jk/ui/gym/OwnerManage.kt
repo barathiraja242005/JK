@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.SwapHoriz
@@ -61,20 +62,20 @@ internal fun ManageButton(text: String, icon: ImageVector, danger: Boolean = fal
 private fun TrainerOption(p: Person, note: String, selected: Boolean, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
             .background(if (selected) cs.secondaryContainer else Color.Transparent)
             .semantics { this.selected = selected }
             .clickable(role = A11yRole.RadioButton, onClick = onClick)
-            .heightIn(min = 60.dp).padding(horizontal = 8.dp, vertical = 8.dp),
+            .heightIn(min = 50.dp).padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OwnerAvatar(p.photoUrl, p.name, 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(p.name, style = plex(17.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
-            Text(note, style = plex(14.sp), color = cs.onSurfaceVariant, maxLines = 1)
+            Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
+            Text(note, style = plex(13.sp), color = cs.onSurfaceVariant, maxLines = 1)
         }
-        Box(Modifier.size(28.dp).clip(CircleShape).background(if (selected) Owner.Red else Color.Transparent)
+        Box(Modifier.size(24.dp).clip(CircleShape).background(if (selected) Owner.Red else Color.Transparent)
             .border(1.5.dp, if (selected) Owner.Red else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
             if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.White)
         }
@@ -92,9 +93,9 @@ internal fun ChangeTrainerDialog(member: Person, gvm: GymViewModel, onDismiss: (
         title = { Text("Who trains ${member.firstName}?") },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (trainers.isEmpty()) Text("There are no trainers yet. Share your gym code so one can join.", style = plex(17.sp, line = 25.sp))
+                if (trainers.isEmpty()) Text("There are no trainers yet. Share your gym code so one can join.", style = plex(15.sp, line = 21.sp))
                 else Text("${member.firstName}'s new workouts will come from this trainer. Past workouts stay as they are.",
-                    style = plex(16.sp, line = 23.sp), modifier = Modifier.padding(bottom = 8.dp))
+                    style = plex(14.sp, line = 19.sp), modifier = Modifier.padding(bottom = 8.dp))
                 trainers.forEach { t ->
                     val n = gvm.membersOf(t.uid).size
                     TrainerOption(t, if (t.uid == member.trainerUid) "Trains ${member.firstName} now" else "Trains ${plural(n, "member")}", t.uid == pick) { pick = t.uid }
@@ -103,10 +104,10 @@ internal fun ChangeTrainerDialog(member: Person, gvm: GymViewModel, onDismiss: (
         },
         confirmButton = {
             TextButton(enabled = chosen != null && chosen.uid != member.trainerUid, onClick = { onDismiss(); gvm.changeTrainer(member, chosen!!) }) {
-                Text(chosen?.let { "Move to ${it.firstName}" } ?: "Move", style = plex(16.sp, FontWeight.SemiBold))
+                Text(chosen?.let { "Move to ${it.firstName}" } ?: "Move", style = plex(14.sp, FontWeight.SemiBold))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = plex(16.sp, FontWeight.SemiBold)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } },
     )
 }
 
@@ -128,13 +129,13 @@ internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> U
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${p.firstName} won't be able to open your gym in JK any more. Their past workouts stay in the records.",
-                    style = plex(16.sp, line = 23.sp))
+                    style = plex(14.sp, line = 19.sp))
                 if (theirs.isNotEmpty()) {
                     if (others.isEmpty()) Text(
                         "${p.firstName} trains ${plural(theirs.size, "member")}. There is no other trainer, so they will have no trainer until you choose one.",
-                        style = plex(16.sp, line = 23.sp, weight = FontWeight.SemiBold), modifier = Modifier.padding(top = 10.dp),
+                        style = plex(14.sp, line = 19.sp, weight = FontWeight.SemiBold), modifier = Modifier.padding(top = 10.dp),
                     ) else {
-                        Text("Who should train ${p.firstName}'s ${plural(theirs.size, "member")}?", style = plex(17.sp, FontWeight.SemiBold),
+                        Text("Who should train ${p.firstName}'s ${plural(theirs.size, "member")}?", style = plex(15.sp, FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp))
                         others.forEach { t -> TrainerOption(t, "Trains ${plural(gvm.membersOf(t.uid).size, "member")}", t.uid == pick) { pick = t.uid } }
                     }
@@ -143,36 +144,32 @@ internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> U
         },
         confirmButton = {
             TextButton(onClick = { onDismiss(); gvm.removeFromGym(p, moveTo); onRemoved() }) {
-                Text("Remove ${p.firstName}", style = plex(16.sp, FontWeight.SemiBold), color = Owner.RedText)
+                Text("Remove ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Keep ${p.firstName}", style = plex(16.sp, FontWeight.SemiBold)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Keep ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } },
     )
 }
 
-/** The owner's tools under a member's page. */
+/**
+ * The owner's actions for one person, in one row right under their summary card: Message (red, the usual next
+ * step), Change trainer for members, and Remove (asks first). Nothing is hidden at the bottom of a long page.
+ */
 @Composable
-internal fun MemberManage(member: Person, gvm: GymViewModel, onRemoved: () -> Unit) {
+internal fun OwnerPersonActions(p: Person, gvm: GymViewModel, onRemoved: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     var changing by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeading("Manage ${member.firstName}", "Move ${member.firstName} to another trainer, or take them out of the gym.")
-        Spacer(Modifier.size(2.dp))
-        ManageButton("Change trainer", Icons.Outlined.SwapHoriz) { changing = true }
-        ManageButton("Remove from gym", Icons.Outlined.PersonRemove, danger = true) { removing = true }
+    val member = p.role == com.barathiraja.jk.gym.Role.MEMBER
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        RedButton("Message", { context.whatsApp("Hi ${p.firstName}, ") }, Modifier.weight(1f),
+            Icons.AutoMirrored.Outlined.Send)
+        if (member) PlainButton("Trainer", { changing = true }, Modifier.weight(1f), Icons.Outlined.SwapHoriz)
+        Surface(onClick = { removing = true }, shape = CircleShape, color = Owner.Card, contentColor = Owner.RedText,
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
+            Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PersonRemove, "Remove ${p.firstName} from the gym", Modifier.size(20.dp)) }
+        }
     }
-    if (changing) ChangeTrainerDialog(member, gvm) { changing = false }
-    if (removing) RemovePersonDialog(member, gvm, onDismiss = { removing = false }, onRemoved = onRemoved)
-}
-
-/** The owner's tools under a trainer's page. */
-@Composable
-internal fun TrainerManage(trainer: Person, gvm: GymViewModel, onRemoved: () -> Unit) {
-    var removing by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        PageHeading("Manage ${trainer.firstName}", "To move one member, open them below and tap Change trainer.")
-        Spacer(Modifier.size(2.dp))
-        ManageButton("Remove from gym", Icons.Outlined.PersonRemove, danger = true) { removing = true }
-    }
-    if (removing) RemovePersonDialog(trainer, gvm, onDismiss = { removing = false }, onRemoved = onRemoved)
+    if (changing) ChangeTrainerDialog(p, gvm) { changing = false }
+    if (removing) RemovePersonDialog(p, gvm, onDismiss = { removing = false }, onRemoved = onRemoved)
 }

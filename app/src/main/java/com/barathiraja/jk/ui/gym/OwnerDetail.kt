@@ -75,11 +75,11 @@ internal fun PersonPage(backLabel: String, onBack: () -> Unit, content: LazyList
     ) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
-                Surface(onClick = onBack, shape = CircleShape, color = cs.surfaceContainer, contentColor = cs.onSurface, modifier = Modifier.size(52.dp)) {
+                Surface(onClick = onBack, shape = CircleShape, color = cs.surfaceContainer, contentColor = cs.onSurface, modifier = Modifier.size(44.dp)) {
                     Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, "Back", Modifier.size(24.dp)) }
                 }
                 Spacer(Modifier.width(12.dp))
-                Text(backLabel, style = plex(16.sp), color = cs.onSurfaceVariant)
+                Text(backLabel, style = plex(14.sp), color = cs.onSurfaceVariant)
             }
         }
         content()
@@ -95,14 +95,14 @@ internal fun PersonHero(
     p: Person, chip: Pair<String, Tone>, fraction: Float?, line: String, strip: String, rank: String?,
 ) {
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(HeroBlue).padding(20.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(HeroBlue).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(p.photoUrl, p.name, 60.dp, onDark = true)
+            OwnerAvatar(p.photoUrl, p.name, 44.dp, onDark = true)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(p.name, style = plex(22.sp, FontWeight.Bold, line = 26.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(p.name, style = plex(18.sp, FontWeight.Bold, line = 22.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     OwnerChip(chip.first, chip.second, onDark = true)
                     // "Top …" already says first place, so the rank only shows for everyone else.
@@ -111,16 +111,16 @@ internal fun PersonHero(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerRing(fraction ?: 0f, 96.dp, 10.dp, Owner.DarkTrack, Yellow, "hero-" + p.uid) {
+            OwnerRing(fraction ?: 0f, 76.dp, 8.dp, Owner.DarkTrack, Yellow, "hero-" + p.uid) {
                 Text(if (fraction == null) "–" else "${Math.round(fraction * 100)}%",
-                    style = plex(if ((fraction ?: 0f) >= 1f) 21.sp else 25.sp, FontWeight.Bold, tracking = (-1).sp), color = Color.White, maxLines = 1)
+                    style = plex(if ((fraction ?: 0f) >= 1f) 15.sp else 17.sp, FontWeight.Bold, tracking = (-0.5).sp), color = Color.White, maxLines = 1)
             }
             Spacer(Modifier.width(16.dp))
-            Text(line, style = plex(17.sp, line = 23.sp), color = Owner.OnDarkSoft)
+            Text(line, style = plex(15.sp, line = 19.sp), color = Owner.OnDarkSoft)
         }
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Owner.DarkStrip).heightIn(min = 48.dp)
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Owner.DarkStrip).heightIn(min = 48.dp)
             .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(strip, style = plex(16.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(strip, style = plex(14.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -134,13 +134,13 @@ internal fun StatTiles(tiles: List<Tile>) {
     Row(Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         tiles.forEach { t ->
             Column(
-                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(22.dp)).background(if (t.dark) HeroBlue else cs.surfaceContainer)
+                Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(18.dp)).background(if (t.dark) HeroBlue else cs.surfaceContainer)
                     .padding(14.dp),
             ) {
-                Text(t.value, style = plex(26.sp, FontWeight.SemiBold, tracking = (-0.5).sp), color = if (t.dark) Color.White else cs.onSurface, maxLines = 1)
-                Text(t.label, style = plex(14.sp, FontWeight.SemiBold), color = if (t.dark) Color.White else cs.onSurface,
+                Text(t.value, style = plex(21.sp, FontWeight.SemiBold, tracking = (-0.5).sp), color = if (t.dark) Color.White else cs.onSurface, maxLines = 1)
+                Text(t.label, style = plex(13.sp, FontWeight.SemiBold), color = if (t.dark) Color.White else cs.onSurface,
                     modifier = Modifier.padding(top = 2.dp))
-                Text(t.note, style = plex(12.sp, line = 16.sp), color = if (t.dark) Owner.OnDarkMuted else cs.onSurfaceVariant)
+                Text(t.note, style = plex(11.sp, line = 14.sp), color = if (t.dark) Owner.OnDarkMuted else cs.onSurfaceVariant)
             }
         }
     }
@@ -158,24 +158,24 @@ internal fun lastWeeks(list: List<Assignment>, today: Long): List<Pair<Int, Int>
 internal fun WeeksCard(weeks: List<Pair<Int, Int>>) {
     val cs = MaterialTheme.colorScheme
     val labels = listOf("3 weeks ago", "2 weeks ago", "Last week", "This week")
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(18.dp)) {
-        Row(Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainer).padding(18.dp)) {
+        Row(Modifier.fillMaxWidth().height(112.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             weeks.forEachIndexed { i, (done, due) ->
                 val f = if (due == 0) 0f else done / due.toFloat()
                 val k = rememberFillIn("w$i-$done-$due", 200 + i * 80)
                 Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(if (due == 0) "–" else "$done/$due", style = plex(14.sp, FontWeight.SemiBold), color = cs.onSurface)
+                    Text(if (due == 0) "–" else "$done/$due", style = plex(13.sp, FontWeight.SemiBold), color = cs.onSurface)
                     Spacer(Modifier.height(6.dp))
-                    Box(Modifier.weight(1f).width(40.dp).clip(RoundedCornerShape(14.dp)).background(cs.surfaceContainerHigh),
+                    Box(Modifier.weight(1f).width(30.dp).clip(RoundedCornerShape(10.dp)).background(cs.surfaceContainerHigh),
                         contentAlignment = Alignment.BottomCenter) {
-                        Box(Modifier.fillMaxWidth().fillMaxHeight((f * k).coerceIn(0f, 1f)).clip(RoundedCornerShape(14.dp))
+                        Box(Modifier.fillMaxWidth().fillMaxHeight((f * k).coerceIn(0f, 1f)).clip(RoundedCornerShape(10.dp))
                             .background(if (i == weeks.lastIndex) Red else cs.onSurface))
                     }
                 }
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            labels.forEach { Text(it, Modifier.weight(1f), style = plex(12.sp, line = 15.sp), color = cs.onSurfaceVariant, textAlign = TextAlign.Center) }
+            labels.forEach { Text(it, Modifier.weight(1f), style = plex(11.sp, line = 14.sp), color = cs.onSurfaceVariant, textAlign = TextAlign.Center) }
         }
     }
 }
@@ -187,8 +187,8 @@ internal fun WideAction(text: String, icon: ImageVector, onClick: () -> Unit) = 
 @Composable
 internal fun PageHeading(title: String, explain: String) {
     Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 16.dp)) {
-        Text(title, style = plex(21.sp, FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
-        Text(explain, style = plex(16.sp, line = 23.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+        Text(title, style = plex(17.sp, FontWeight.SemiBold), color = MaterialTheme.colorScheme.onSurface)
+        Text(explain, style = plex(14.sp, line = 19.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -204,7 +204,7 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
     val d = digest
     val trainer = people.firstOrNull { it.uid == uid }?.takeIf { it.active }
     if (d == null || trainer == null) {
-        PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(17.sp)) } }
+        PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(15.sp)) } }
         return
     }
     val row = d.trainers.firstOrNull { it.trainer.uid == uid }
@@ -229,6 +229,7 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
                 rank = if (rank > 0) "#$rank" else null,
             )
         }
+        if (me?.role == Role.OWNER) item { OwnerPersonActions(trainer, gvm, onRemoved = { nav.popBackStack() }) }
         item {
             StatTiles(listOf(
                 Tile("${todays.count { it.done }}/${todays.size}", "Done today", "workouts finished", dark = true),
@@ -238,22 +239,12 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
         }
         item { PageHeading("Last 4 weeks", "How many of the workouts ${trainer.firstName} gave were finished each week.") }
         item { WeeksCard(lastWeeks(mine, today)) }
-        item {
-            Spacer(Modifier.height(4.dp))
-            WideAction("Message ${trainer.firstName}", Icons.AutoMirrored.Outlined.Send) {
-                context.whatsApp("Hi ${trainer.firstName}, ")
-            }
-        }
         item { PageHeading("${trainer.firstName}'s members", "Tap a member to see their workouts.") }
-        if (members.isEmpty()) item { Text("No members yet.", style = plex(17.sp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        if (members.isEmpty()) item { Text("No members yet.", style = plex(15.sp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         items(members, key = { it.uid }) { m ->
             MemberCard(m, scores[m.uid] ?: Scoring.MemberScore(m.uid, 0, 0, 0, 0, 0.0), idle[m.uid], trainer) {
                 nav.navigate(Routes.gymMember(m.uid))
             }
-        }
-        if (me?.role == Role.OWNER) item {
-            Spacer(Modifier.height(8.dp))
-            TrainerManage(trainer, gvm, onRemoved = { nav.popBackStack() })
         }
     }
 }
@@ -261,6 +252,7 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
 /** Top of a member's page: the black card, number tiles and their last four weeks. */
 internal fun LazyListScope.memberOverview(
     member: Person, s: Scoring.MemberScore?, rank: Int, idle: OwnerStats.Idle?, trainer: Person?, list: List<Assignment>, today: Long,
+    actions: (@Composable () -> Unit)? = null,
 ) {
     val lastDone = list.filter { it.done && it.epochDay <= today }.maxOfOrNull { it.epochDay }
     val since = lastDone?.let { (today - it).toInt() }
@@ -275,6 +267,7 @@ internal fun LazyListScope.memberOverview(
             rank = if (rank > 0 && (s?.points ?: 0) > 0) "#$rank" else null,
         )
     }
+    if (actions != null) item { actions() }
     item {
         StatTiles(listOf(
             Tile("${s?.points ?: 0}", "Points", if (rank > 0 && (s?.points ?: 0) > 0) "#$rank in the gym" else "this month", dark = true),

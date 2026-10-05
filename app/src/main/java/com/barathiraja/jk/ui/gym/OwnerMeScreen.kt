@@ -76,12 +76,12 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         item {
             OwnerCardBox(padding = 16.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    OwnerAvatar(me?.photoUrl, me?.name ?: "Owner", 60.dp)
+                    OwnerAvatar(me?.photoUrl, me?.name ?: "Owner", 50.dp)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(me?.name ?: "Owner", style = plex(20.sp, FontWeight.Bold, line = 24.sp), color = Owner.Ink, maxLines = 2,
+                        Text(me?.name ?: "Owner", style = plex(16.sp, FontWeight.Bold, line = 20.sp), color = Owner.Ink, maxLines = 2,
                             overflow = TextOverflow.Ellipsis)
-                        Text("Owner", style = plex(16.sp), color = Owner.Muted)
+                        Text("Owner", style = plex(14.sp), color = Owner.Muted)
                     }
                     EditDisc("Change your name") { renamingMe = true }
                 }
@@ -91,23 +91,23 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         gym?.let { g ->
             item { OwnerHeading("Your gym", "New trainers join with this code. You approve each one on Home.") }
             item {
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Owner.Hero).padding(20.dp)) {
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(g.name, Modifier.weight(1f), style = plex(24.sp, FontWeight.Bold, line = 28.sp), color = Color.White, maxLines = 2)
+                        Text(g.name, Modifier.weight(1f), style = plex(20.sp, FontWeight.Bold, line = 24.sp), color = Color.White, maxLines = 2)
                         EditDisc("Rename gym", onDark = true) { renamingGym = true }
                     }
-                    Text("Code for new trainers", style = plex(15.sp), color = Owner.OnDarkMuted, modifier = Modifier.padding(top = 18.dp))
-                    Text(g.gymCode, style = plex(40.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont), color = Owner.Yellow)
+                    Text("Code for new trainers", style = plex(13.sp), color = Owner.OnDarkMuted, modifier = Modifier.padding(top = 18.dp))
+                    Text(g.gymCode, style = plex(29.sp, FontWeight.SemiBold, tracking = 6.sp).copy(fontFamily = CodeFont), color = Owner.Yellow)
                     Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         RedButton("Share code", {
                             context.shareText("Join ${g.name} as a trainer on the JK app. Open JK → Sign in → I'm a trainer → enter code ${g.gymCode}")
                         }, Modifier.weight(1.4f), Icons.Outlined.Share)
                         Surface(onClick = { copy(context, g.gymCode); gvm.message.value = "Gym code copied" }, shape = RoundedCornerShape(50),
-                            color = Owner.DarkStrip, contentColor = Color.White, modifier = Modifier.weight(1f).height(56.dp)) {
+                            color = Owner.DarkStrip, contentColor = Color.White, modifier = Modifier.weight(1f).height(48.dp)) {
                             Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Outlined.ContentCopy, null, Modifier.size(20.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("Copy", style = plex(17.sp, FontWeight.SemiBold))
+                                Text("Copy", style = plex(15.sp, FontWeight.SemiBold))
                             }
                         }
                     }
@@ -119,7 +119,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
         item {
             OwnerCardBox(padding = 16.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Theme", style = plex(17.sp, FontWeight.SemiBold), color = Owner.Ink)
+                    Text("Theme", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink)
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(Owner.Well).padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         ThemeMode.entries.forEach { m ->
@@ -127,7 +127,7 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                             Surface(onClick = { vm.saveSettings(s.copy(theme = m)) }, Modifier.weight(1f).height(48.dp), shape = RoundedCornerShape(50),
                                 color = if (on) Owner.Ink else Color.Transparent, contentColor = if (on) Owner.OnInk else Owner.Ink) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(m.name.lowercase().replaceFirstChar(Char::uppercase), style = plex(16.sp, FontWeight.SemiBold))
+                                    Text(m.name.lowercase().replaceFirstChar(Char::uppercase), style = plex(14.sp, FontWeight.SemiBold))
                                 }
                             }
                         }
@@ -135,9 +135,9 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                     Box(Modifier.fillMaxWidth().height(1.dp).background(Owner.Line))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Sample gym", style = plex(17.sp, FontWeight.SemiBold), color = Owner.Ink)
+                            Text("Sample gym", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink)
                             Text("Try the app with made-up trainers and members. Your real gym isn't changed.",
-                                style = plex(15.sp, line = 21.sp), color = Owner.Muted)
+                                style = plex(13.sp, line = 18.sp), color = Owner.Muted)
                         }
                         Spacer(Modifier.width(12.dp))
                         Switch(checked = demo != null, onCheckedChange = { gvm.setDemo(it) },
@@ -156,10 +156,10 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
     if (renamingMe) NameDialog("Your name", "Trainers and members see this name.", me?.name.orEmpty(), { renamingMe = false }) { gvm.renameMe(it) }
     if (signingOut) AlertDialog(onDismissRequest = { signingOut = false },
         title = { Text("Sign out?") },
-        text = { Text("Your gym stays safe. Sign in again with the same Google account to come back.", style = plex(17.sp, line = 25.sp)) },
+        text = { Text("Your gym stays safe. Sign in again with the same Google account to come back.", style = plex(15.sp, line = 21.sp)) },
         confirmButton = { TextButton(onClick = { signingOut = false; gvm.signOut() }) {
-            Text("Sign out", style = plex(16.sp, FontWeight.SemiBold), color = Owner.RedText) } },
-        dismissButton = { TextButton(onClick = { signingOut = false }) { Text("Cancel", style = plex(16.sp, FontWeight.SemiBold)) } })
+            Text("Sign out", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
+        dismissButton = { TextButton(onClick = { signingOut = false }) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
 }
 
 private fun copy(context: Context, code: String) {
@@ -184,13 +184,13 @@ private fun NameDialog(title: String, explain: String?, initial: String, onDismi
         title = { Text(title) },
         text = {
             Column {
-                if (explain != null) Text(explain, style = plex(16.sp, line = 23.sp), modifier = Modifier.padding(bottom = 12.dp))
+                if (explain != null) Text(explain, style = plex(14.sp, line = 19.sp), modifier = Modifier.padding(bottom = 12.dp))
                 OutlinedTextField(name, { name = it.take(40) }, singleLine = true, modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank(), onClick = { onDismiss(); onSave(name) }) { Text("Save", style = plex(16.sp, FontWeight.SemiBold)) }
+            TextButton(enabled = name.isNotBlank(), onClick = { onDismiss(); onSave(name) }) { Text("Save", style = plex(14.sp, FontWeight.SemiBold)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = plex(16.sp, FontWeight.SemiBold)) } })
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
 }

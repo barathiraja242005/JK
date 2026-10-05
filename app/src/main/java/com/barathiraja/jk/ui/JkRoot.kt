@@ -206,10 +206,10 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
         selected.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")
     // Fewer tabs leave room for a bigger button and a wider, deeper dip.
     val roomy = tabs.size <= 3
-    val button = if (roomy) 60.dp else 52.dp
-    val hw = if (roomy) 76.dp else 52.dp
-    val depth = if (roomy) 38.dp else 32.dp
-    val rise = if (roomy) 22.dp else 20.dp
+    val button = if (roomy) 52.dp else 46.dp
+    val hw = if (roomy) 64.dp else 46.dp
+    val depth = if (roomy) 32.dp else 28.dp
+    val rise = if (roomy) 18.dp else 16.dp
     val inner = 18.dp
     // Full screen width, flush with the bottom edge: the bar's white runs down behind the system gesture area.
     val navInset = androidx.compose.foundation.layout.WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -238,13 +238,13 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
                 .semantics { contentDescription = tab.label },
         ) {
             androidx.compose.foundation.layout.Box(contentAlignment = androidx.compose.ui.Alignment.Center) {
-                Icon(tab.icon, null, Modifier.size(if (roomy) 26.dp else 23.dp))
+                Icon(tab.icon, null, Modifier.size(if (roomy) 22.dp else 20.dp))
             }
         }
     }
 }
 
-private val BAR_HEIGHT = 72.dp
+private val BAR_HEIGHT = 60.dp
 
 /** One slot: icon over label in light grey; when open, just its label in white, low in the dip under the button. */
 @Composable
@@ -252,19 +252,19 @@ private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String
     val idle = androidx.compose.ui.graphics.Color(0xFFB3B3B3)
     androidx.compose.foundation.layout.Column(
         modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(18.dp)).clickable { onSelect(tab.route) }
-            .semantics { selected = on }.padding(bottom = 10.dp),
+            .semantics { selected = on }.padding(bottom = 8.dp),
         horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
         verticalArrangement = androidx.compose.foundation.layout.Arrangement.Bottom,
     ) {
         androidx.compose.animation.AnimatedVisibility(!on,
             enter = androidx.compose.animation.fadeIn() + androidx.compose.animation.expandVertically(),
             exit = androidx.compose.animation.fadeOut() + androidx.compose.animation.shrinkVertically()) {
-            Icon(tab.icon, null, tint = idle, modifier = Modifier.size(24.dp))
+            Icon(tab.icon, null, tint = idle, modifier = Modifier.size(21.dp))
         }
         Text(tab.label, style = MaterialTheme.typography.labelMedium.copy(
             fontWeight = if (on) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal,
-            fontSize = 13.sp), color = if (on) androidx.compose.ui.graphics.Color.White else idle, maxLines = 1,
-            modifier = Modifier.padding(top = 4.dp))
+            fontSize = 11.sp), color = if (on) androidx.compose.ui.graphics.Color.White else idle, maxLines = 1,
+            modifier = Modifier.padding(top = 2.dp))
     }
 }
 
@@ -374,7 +374,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     }
 
     // The bar floats over the screens (nothing painted behind it); screens pad their lists by LocalNavBarInset.
-    val barInset = if (showBar) 108.dp + androidx.compose.foundation.layout.WindowInsets.navigationBars
+    val barInset = if (showBar) 88.dp + androidx.compose.foundation.layout.WindowInsets.navigationBars
         .asPaddingValues().calculateBottomPadding() else 0.dp
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar, Modifier.padding(bottom = barInset)) },

@@ -143,6 +143,8 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
     var customReward by rememberSaveable { mutableStateOf("") }
     var showEveryone by rememberSaveable { mutableStateOf(false) }
     var trainerTab by rememberSaveable { mutableStateOf(false) }
+    // Which finished step is open again for a change; finished steps otherwise fold into one line.
+    var editStep by rememberSaveable { mutableStateOf(0) }
     val memberScores by gvm.monthScores.collectAsStateWithLifecycle()
     val trainerScores by gvm.trainerRanking.collectAsStateWithLifecycle()
 
@@ -175,24 +177,28 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
     androidx.activity.compose.BackHandler(enabled = started && !busy) { leaving = true }
     if (leaving) androidx.compose.material3.AlertDialog(onDismissRequest = { leaving = false },
         title = { Text("Leave without giving the award?") },
-        text = { Text("What you picked here will be lost.", style = plex(17.sp, line = 25.sp)) },
-        confirmButton = { TextButton(onClick = { leaving = false; nav.popBackStack() }) { Text("Leave", style = plex(16.sp, FontWeight.SemiBold)) } },
-        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Stay", style = plex(16.sp, FontWeight.SemiBold)) } })
+        text = { Text("What you picked here will be lost.", style = plex(15.sp, line = 21.sp)) },
+        confirmButton = { TextButton(onClick = { leaving = false; nav.popBackStack() }) { Text("Leave", style = plex(14.sp, FontWeight.SemiBold)) } },
+        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Stay", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
 
     PersonPage("Back", onBack = { if (started) leaving = true else nav.popBackStack() }) {
         item {
             Column(Modifier.padding(horizontal = 4.dp)) {
-                Text("Give an award", style = plex(30.sp, FontWeight.SemiBold, tracking = (-0.6).sp), color = MaterialTheme.colorScheme.onSurface)
-                Text("Three steps: pick the award, the person, and a reward. Everyone in the gym will see it.",
-                    style = plex(16.sp, line = 23.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
+                Text("Give an award", style = plex(24.sp, FontWeight.Bold, tracking = (-0.4).sp), color = MaterialTheme.colorScheme.onSurface)
+                Text("Pick the award, who gets it, and a gift. Everyone in the gym will see it.",
+                    style = plex(14.sp, line = 19.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
             }
         }
+        if (option != null && editStep != 1) item {
+            StepSummary("Award", if (option.custom) "Your own award" else option.title) { editStep = 1 }
+        } else {
         item { StepTitle(1, "Choose the award", done = option != null) }
         item {
             TileGrid(awardOptions.size) { i, m ->
                 val o = awardOptions[i]
                 AwardTile(awardLook(o.emoji, o.title), o.title, i == optionIndex, m) {
                     optionIndex = i
+                    editStep = 0
                     val chosenRole = people.firstOrNull { it.uid == chosenUid }?.role
                     val keep = when (chosenRole) { Role.TRAINER -> o.trainersOnly || o.award == null; Role.MEMBER -> !o.trainersOnly; else -> false }
                     if (!keep) chosenUid = null
@@ -200,11 +206,15 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                 }
             }
         }
+        }
         if (option?.custom == true) item {
             FocusedField(customTitle, { customTitle = it.take(32) }, "Award name", "e.g. Early Bird", KeyboardCapitalization.Words)
         }
 
-        if (option != null) {
+        if (option != null && person != null && editStep != 2) item {
+            StepSummary(if (person.role == Role.TRAINER) "Trainer" else "Member", person.name) { editStep = 2 }
+        }
+        if (option != null && (person == null || editStep == 2)) {
             item { StepTitle(2, "Who gets it?", done = person != null) }
             item {
                 val active = people.filter { it.active }
@@ -217,16 +227,16 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                 )
                 if (!membersAllowed || !trainersAllowed) Text(
                     "${option.title} is only for ${if (trainersAllowed) "trainers" else "members"}.",
-                    style = plex(14.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp, top = 10.dp),
+                    style = plex(13.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(start = 6.dp, top = 10.dp),
                 )
             }
             if (tabPeople.isEmpty()) item {
                 Text(if (trainerTab) "No trainers yet. Share your gym code from the Me tab to add one." else "No members yet. Trainers add members with their own code.",
-                    style = plex(16.sp, line = 22.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 6.dp))
+                    style = plex(14.sp, line = 18.sp), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 6.dp))
             }
             if (tabPeople.isNotEmpty()) item {
                 val cs = MaterialTheme.colorScheme
-                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(cs.surfaceContainer).padding(6.dp),
+                Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(cs.surfaceContainer).padding(6.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     // Best this month first; the rest stay folded so the reward step is one short scroll away.
                     val shown = if (showEveryone) tabPeople else tabPeople.take(PEOPLE_PREVIEW).let { top ->
@@ -234,14 +244,14 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                     }
                     shown.forEach { p ->
                         val selected = p.uid == chosenUid
-                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
                             .background(if (selected) cs.secondaryContainer else Color.Transparent)
-                            .clickable { chosenUid = p.uid }.padding(horizontal = 10.dp, vertical = 10.dp),
+                            .clickable { chosenUid = p.uid; editStep = 0 }.padding(horizontal = 10.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically) {
                             OwnerAvatar(p.photoUrl, p.name, 44.dp)
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
-                                Text(p.name, style = plex(17.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
+                                Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
                                 if (p.uid == suggested) OwnerChip("Leading this month", Tone.TOP, Modifier.padding(top = 3.dp))
                                 else Text(
                                     when {
@@ -249,7 +259,7 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                                             ?.let { "Members finished ${Math.round(it.rate * 100)}% of workouts" } ?: "No members' workouts yet"
                                         else -> "${memberScores[p.uid]?.points ?: 0} points · trainer ${gvm.trainerOf(p)?.firstName ?: "–"}"
                                     },
-                                    style = plex(14.sp), color = cs.onSurfaceVariant,
+                                    style = plex(13.sp), color = cs.onSurfaceVariant,
                                 )
                             }
                             CheckDisc(selected)
@@ -257,17 +267,23 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                     }
                     if (tabPeople.size > PEOPLE_PREVIEW) {
                         TextButton(onClick = { showEveryone = !showEveryone }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                            Text(if (showEveryone) "Show fewer" else "Show all ${if (trainerTab) "trainers" else "members"} (${tabPeople.size})", style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface)
+                            Text(if (showEveryone) "Show fewer" else "Show all ${if (trainerTab) "trainers" else "members"} (${tabPeople.size})", style = plex(13.sp, FontWeight.SemiBold), color = cs.onSurface)
                         }
                     }
                 }
             }
 
-            item { StepTitle(3, if (forTrainer) "Choose a trainer reward" else "Choose a member reward", done = rewardText != null) }
-            item {
-                TileGrid(rewardOptions.size) { i, m ->
-                    val r = rewardOptions[i]
-                    RewardTile(rewardIcon(r.emoji), r.text, i == rewardIndex, m) { rewardIndex = i }
+        }
+        if (option != null && person != null) {
+            if (reward != null && editStep != 3) item {
+                StepSummary("Reward", if (reward.custom) "Your own reward" else reward.text) { editStep = 3 }
+            } else {
+                item { StepTitle(3, if (forTrainer) "Choose a trainer reward" else "Choose a member reward", done = rewardText != null) }
+                item {
+                    TileGrid(rewardOptions.size) { i, m ->
+                        val r = rewardOptions[i]
+                        RewardTile(rewardIcon(r.emoji), r.text, i == rewardIndex, m) { rewardIndex = i; editStep = 0 }
+                    }
                 }
             }
             if (reward?.custom == true) item {
@@ -304,7 +320,7 @@ private fun FocusedField(value: String, onChange: (String) -> Unit, label: Strin
     OutlinedTextField(
         value, onChange,
         Modifier.fillMaxWidth().bringIntoViewRequester(bring).focusRequester(focus).onFocusChanged { focused = it.isFocused },
-        singleLine = true, shape = RoundedCornerShape(18.dp),
+        singleLine = true, shape = RoundedCornerShape(16.dp),
         label = { Text(label) }, placeholder = { Text(hint) },
         keyboardOptions = KeyboardOptions(capitalization = caps, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
@@ -321,7 +337,7 @@ private fun WhoTabs(
     pickedIn: Boolean?, onPick: (trainer: Boolean) -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    BoxWithConstraints(Modifier.fillMaxWidth().height(60.dp).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).padding(5.dp)) {
+    BoxWithConstraints(Modifier.fillMaxWidth().height(50.dp).clip(RoundedCornerShape(50)).background(cs.surfaceContainer).padding(5.dp)) {
         val half = maxWidth / 2
         val x by animateDpAsState(if (trainerTab) half else 0.dp, spring(dampingRatio = 0.8f, stiffness = 500f), label = "tab")
         Box(Modifier.offset(x = x).width(half).fillMaxHeight().clip(RoundedCornerShape(50)).background(cs.onSurface))
@@ -347,12 +363,12 @@ private fun WhoTab(
     ) {
         Icon(icon, null, Modifier.size(19.dp), tint = fg)
         Spacer(Modifier.width(8.dp))
-        Text(label, style = plex(16.sp, FontWeight.SemiBold), color = fg, maxLines = 1)
+        Text(label, style = plex(14.sp, FontWeight.SemiBold), color = fg, maxLines = 1)
         Spacer(Modifier.width(8.dp))
-        Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50))
+        Box(Modifier.heightIn(min = 20.dp).clip(RoundedCornerShape(50))
             .background(if (selected) com.barathiraja.jk.ui.theme.Yellow else cs.surfaceContainerHighest)
             .padding(horizontal = 7.dp), contentAlignment = Alignment.Center) {
-            Text("$count", style = plex(12.sp, FontWeight.SemiBold), color = if (selected) Color.Black else fg)
+            Text("$count", style = plex(11.sp, FontWeight.SemiBold), color = if (selected) Color.Black else fg)
         }
         if (picked && !selected) {
             Spacer(Modifier.width(6.dp))
@@ -364,18 +380,39 @@ private fun WhoTab(
     }
 }
 
+/** A finished step folded to one line: a yellow tick, what was picked, and Change to open the step again. */
+@Composable
+private fun StepSummary(label: String, value: String, onChange: () -> Unit) {
+    OwnerCardBox(padding = 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(30.dp).clip(CircleShape).background(com.barathiraja.jk.ui.theme.Yellow), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(label, style = plex(12.sp), color = Owner.Muted)
+                Text(value, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+            TextButton(onClick = onChange, Modifier.heightIn(min = 44.dp)) {
+                Text("Change", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink)
+            }
+        }
+    }
+}
+
 /** Step number in a disc (a tick once that step is done) and the step's question. */
 @Composable
 private fun StepTitle(n: Int, text: String, done: Boolean) {
     val cs = MaterialTheme.colorScheme
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 14.dp, start = 4.dp)) {
-        Box(Modifier.size(34.dp).clip(CircleShape).background(if (done) com.barathiraja.jk.ui.theme.Yellow else cs.onSurface),
+        Box(Modifier.size(30.dp).clip(CircleShape).background(if (done) com.barathiraja.jk.ui.theme.Yellow else cs.onSurface),
             contentAlignment = Alignment.Center) {
             if (done) Icon(Icons.Outlined.Check, "Done", Modifier.size(18.dp), tint = Color.Black)
-            else Text("$n", style = plex(16.sp, FontWeight.SemiBold), color = cs.surface)
+            else Text("$n", style = plex(14.sp, FontWeight.SemiBold), color = cs.surface)
         }
         Spacer(Modifier.width(12.dp))
-        Text(text, style = plex(21.sp, FontWeight.SemiBold), color = cs.onSurface)
+        Text(text, style = plex(17.sp, FontWeight.SemiBold), color = cs.onSurface)
     }
 }
 
@@ -396,7 +433,7 @@ private fun TileGrid(count: Int, tile: @Composable (index: Int, modifier: Modifi
 @Composable
 private fun CheckDisc(on: Boolean) {
     val cs = MaterialTheme.colorScheme
-    Box(Modifier.size(28.dp).clip(CircleShape).background(if (on) com.barathiraja.jk.ui.theme.Yellow else Color.Transparent)
+    Box(Modifier.size(24.dp).clip(CircleShape).background(if (on) com.barathiraja.jk.ui.theme.Yellow else Color.Transparent)
         .border(1.5.dp, if (on) Color.Black else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
         if (on) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
     }
@@ -406,14 +443,14 @@ private fun CheckDisc(on: Boolean) {
 @Composable
 private fun AwardTile(look: AwardLook, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Surface(onClick = onClick, modifier = modifier.semantics { this.selected = selected }, shape = RoundedCornerShape(24.dp),
+    Surface(onClick = onClick, modifier = modifier.semantics { this.selected = selected }, shape = RoundedCornerShape(20.dp),
         color = if (selected) com.barathiraja.jk.ui.theme.HeroBlue else cs.surfaceContainer,
         contentColor = if (selected) Color.White else cs.onSurface) {
         Box {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                AwardBadge(look, 58.dp)
+                AwardBadge(look, 48.dp)
                 Spacer(Modifier.height(10.dp))
-                Text(label, style = plex(15.sp, FontWeight.SemiBold, line = 19.sp), textAlign = TextAlign.Center)
+                Text(label, style = plex(13.sp, FontWeight.SemiBold, line = 16.sp), textAlign = TextAlign.Center)
             }
             if (selected) Box(Modifier.align(Alignment.TopEnd).padding(10.dp)) { CheckDisc(true) }
         }
@@ -424,7 +461,7 @@ private fun AwardTile(look: AwardLook, label: String, selected: Boolean, modifie
 @Composable
 private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val cs = MaterialTheme.colorScheme
-    Surface(onClick = onClick, modifier = modifier.heightIn(min = 64.dp).semantics { this.selected = selected }, shape = RoundedCornerShape(22.dp),
+    Surface(onClick = onClick, modifier = modifier.heightIn(min = 52.dp).semantics { this.selected = selected }, shape = RoundedCornerShape(18.dp),
         color = if (selected) com.barathiraja.jk.ui.theme.HeroBlue else cs.surfaceContainer,
         contentColor = if (selected) Color.White else cs.onSurface) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -433,7 +470,7 @@ private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, la
                 Icon(icon, null, Modifier.size(19.dp), tint = if (selected) Color.Black else cs.onSurface)
             }
             Spacer(Modifier.width(10.dp))
-            Text(label, style = plex(14.sp, FontWeight.SemiBold, line = 18.sp))
+            Text(label, style = plex(13.sp, FontWeight.SemiBold, line = 15.sp))
         }
     }
 }
@@ -441,17 +478,17 @@ private fun RewardTile(icon: androidx.compose.ui.graphics.vector.ImageVector, la
 /** What everyone will see: the medal, who it is for, the award and the gift, on a mustard card. */
 @Composable
 private fun AwardPreview(look: AwardLook, title: String, person: Person, reward: String) {
-    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(com.barathiraja.jk.ui.theme.Yellow).padding(22.dp),
+    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(com.barathiraja.jk.ui.theme.Yellow).padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Preview", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Black)
+        Text("Preview", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Black)
         Spacer(Modifier.height(12.dp))
-        AwardBadge(look, 92.dp)
+        AwardBadge(look, 72.dp)
         Spacer(Modifier.height(14.dp))
-        Text(title, style = plex(22.sp, FontWeight.SemiBold), color = Color.Black, textAlign = TextAlign.Center)
+        Text(title, style = plex(18.sp, FontWeight.SemiBold), color = Color.Black, textAlign = TextAlign.Center)
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(person.photoUrl, person.name, 30.dp)
+            OwnerAvatar(person.photoUrl, person.name, 26.dp)
             Spacer(Modifier.width(8.dp))
-            Text(person.name, style = plex(17.sp, FontWeight.SemiBold), color = Color.Black)
+            Text(person.name, style = plex(15.sp, FontWeight.SemiBold), color = Color.Black)
         }
         if (reward.isNotBlank()) OwnerChip("Gift · $reward", Tone.GOOD, Modifier.padding(top = 12.dp))
     }

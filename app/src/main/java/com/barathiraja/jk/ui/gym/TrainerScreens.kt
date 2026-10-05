@@ -104,6 +104,9 @@ fun TrainerMembersScreen(gvm: GymViewModel, nav: NavHostController) {
     }
 }
 
+/** How many workouts a member's page lists before "Show all". */
+private const val WORKOUTS_PREVIEW = 5
+
 /** A member's month and workout history. Their trainer can verify sessions, add notes and assign more. */
 @Composable
 fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
@@ -119,6 +122,7 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
     val today = gvm.today
     var confirmRemove by remember { mutableStateOf(false) }
     var noteFor by remember { mutableStateOf<Assignment?>(null) }
+    var showAllWorkouts by remember { mutableStateOf(false) }
 
     if (member == null) {
         BackScreen("Member", onBack = { nav.popBackStack() }) { item { Text("This member isn't in the gym anymore.") } }
@@ -129,19 +133,17 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
     val rank = ranking.indexOfFirst { it.uid == uid } + 1
 
     PersonPage("Back", onBack = { nav.popBackStack() }) {
-        memberOverview(member, s, rank, digest?.idle?.firstOrNull { it.member.uid == uid }, gvm.trainerOf(member), list, today)
-        if (me?.role == Role.OWNER) item {
-            Spacer(Modifier.height(4.dp))
-            WideAction("Message ${member.firstName}", Icons.AutoMirrored.Outlined.Send) { context.whatsApp("Hi ${member.firstName}, ") }
-        }
+        memberOverview(member, s, rank, digest?.idle?.firstOrNull { it.member.uid == uid }, gvm.trainerOf(member), list, today,
+            actions = if (me?.role == Role.OWNER) ({ OwnerPersonActions(member, gvm, onRemoved = { nav.popBackStack() }) }) else null)
         if (isTrainer) item {
             Button(onClick = { nav.navigate(Routes.assign(uid)) }, Modifier.fillMaxWidth().height(52.dp)) {
                 Icon(Icons.Filled.Add, null); Spacer(Modifier.width(6.dp)); Text("Assign workout to ${member.firstName}")
             }
         }
-        item { PageHeading("Workouts", "Every workout ${member.firstName} was given, newest first.") }
+        item { PageHeading("Workouts", "Newest first.") }
         if (list.isEmpty()) item { Text("No workouts assigned yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        items(list, key = { it.id }) { a ->
+        val shown = if (showAllWorkouts) list else list.take(WORKOUTS_PREVIEW)
+        items(shown, key = { it.id }) { a ->
             AssignmentCard(a, today, expandedByDefault = a.epochDay == today) {
                 if (isTrainer) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (a.done) FilledTonalButton(onClick = { gvm.verify(a, !a.verified, a.trainerNote) }) { Text(if (a.verified) "Unverify" else "✓ Verify") }
@@ -150,9 +152,8 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
                 }
             }
         }
-        if (me?.role == Role.OWNER) item {
-            Spacer(Modifier.height(8.dp))
-            MemberManage(member, gvm, onRemoved = { nav.popBackStack() })
+        if (list.size > WORKOUTS_PREVIEW) item {
+            PlainButton(if (showAllWorkouts) "Show fewer" else "Show all ${list.size} workouts", { showAllWorkouts = !showAllWorkouts }, Modifier.fillMaxWidth())
         }
         if (isTrainer) item {
             TextButton(onClick = { confirmRemove = true }, Modifier.fillMaxWidth().padding(top = 16.dp)) {
