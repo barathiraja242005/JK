@@ -70,8 +70,8 @@ internal object Owner {
     /** Text, icons and lines on paper and cards. */
     val Ink get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
     val OnInk get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
-    /** The dark hero card; white text on it in both modes. */
-    val Hero get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
+    /** The charcoal hero card; white text on it in both modes. */
+    val Hero get() = pick(0xFF232529, 0xFF2A2C31)
     /** Text on yellow, in both modes. */
     val Black = Color(0xFF0A0A0A)
     /** Red as a fill: the main action. White text on it (5.2:1). */
@@ -84,8 +84,8 @@ internal object Owner {
     /** On the hero card. */
     val OnDarkMuted = Color(0xFFA3A3A3)
     val OnDarkSoft = Color(0xFFD4D4D4)
-    val DarkTrack = Color(0xFF333333)
-    val DarkStrip get() = pick(0xFF1F1F1F, 0xFF2A2A2A)
+    val DarkTrack = Color(0xFF44474D)
+    val DarkStrip get() = pick(0xFF33363B, 0xFF383B40)
 }
 
 /**

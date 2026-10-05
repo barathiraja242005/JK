@@ -190,7 +190,7 @@ private val ownerTabs = listOf(
 )
 
 /**
- * The floating bottom bar: a black bar whose top edge dips smoothly under the open tab, with a raised red button
+ * The floating bottom bar: a charcoal bar whose top edge dips smoothly under the open tab, with a raised red button
  * resting in the dip that shows that tab's icon. Black anchors the screen; the one red circle says "you are here".
  * Picking another tab slides the dip and the button across to it; the open tab's label sits in the dip under the
  * button in white, the others show icon over label in light grey (7:1 on black).
@@ -200,7 +200,7 @@ private val ownerTabs = listOf(
 private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = Modifier, onSelect: (String) -> Unit) {
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     // In dark mode the bar lifts a step off the black page so it still reads as a bar.
-    val barFill = if (dark) androidx.compose.ui.graphics.Color(0xFF1C1C1C) else com.barathiraja.jk.ui.theme.Ink
+    val barFill = if (dark) androidx.compose.ui.graphics.Color(0xFF2A2C31) else com.barathiraja.jk.ui.theme.Charcoal
     val selected = tabs.indexOfFirst { it.route == route }.coerceAtLeast(0)
     val pos by androidx.compose.animation.core.animateFloatAsState(
         selected.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.78f, stiffness = 380f), label = "dip")

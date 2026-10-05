@@ -26,8 +26,9 @@ import com.barathiraja.jk.data.ThemeMode
  * Why these four, and how much of each (60-30-10):
  *  - White (60%): page and cards. Space and calm lower the effort of reading, which matters most for an older
  *    owner scanning numbers. The page is a faint grey so white cards stand out without borders.
- *  - Black (30%): text, the bottom bar and the one dark "hero" card per page. Black reads as strength and
- *    authority, the core of gym culture, and black on white is the clearest text there is (19.8:1).
+ *  - Black and charcoal (30%): black for text (19.8:1 on white, the clearest there is); charcoal, a softer
+ *    shade of black, for the bottom bar and the one dark "hero" card per page. Both read as strength and
+ *    authority, the core of gym culture; charcoal keeps the big dark areas from feeling heavy.
  *  - Red (about 7%): only the main action on a screen and "needs attention". Red raises arousal and draws the eye
  *    first (it is the colour people spot fastest), so it is kept for what the user should do or look at next.
  *    Using it sparingly keeps it meaningful: one red thing per view stands out (the isolation effect).
@@ -50,11 +51,13 @@ internal fun pick(light: Long, dark: Long) = if (Palette.dark) Color(dark) else 
 val Red: Color = Color(0xFFD7141E)
 /** Signal yellow, for fills only (awards, top spot, done). Always black text on it. */
 val Yellow: Color = Color(0xFFFFC629)
-/** Near-black ink; also the fill of hero cards and the bottom bar. */
+/** Near-black ink, for text. */
 val Ink: Color = Color(0xFF0A0A0A)
+/** Charcoal: hero cards and the bottom bar. White text on it is 15:1. */
+val Charcoal: Color = Color(0xFF232529)
 
 /** Solid fill for hero cards; white text on it in both modes. */
-val HeroBlue: Color get() = pick(0xFF0A0A0A, 0xFF1C1C1C)
+val HeroBlue: Color get() = pick(0xFF232529, 0xFF2A2C31)
 
 /** The accent for text, icons and progress: red on white, coral on black. */
 val Ember: Color get() = pick(0xFFD7141E, 0xFFFF5A5F)
