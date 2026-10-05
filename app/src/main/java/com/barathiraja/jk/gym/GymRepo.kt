@@ -8,11 +8,11 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.tasks.await
@@ -89,25 +89,35 @@ class GymRepo {
         val c = lookup(gymCode, "gym")
         val gymId = c.getString("gymId")!!
         val trainerCode = freeCode()
-        db.batch()
-            .set(peopleCol(gymId).document(uid), personMap(displayName, photo, Role.TRAINER, PersonStatus.PENDING) + ("trainerCode" to trainerCode))
-            .set(db.collection("codes").document(trainerCode), mapOf("gymId" to gymId, "type" to "trainer", "trainerUid" to uid))
-            .set(db.collection("users").document(uid), mapOf("gymId" to gymId), SetOptions.merge())
-            .commit().await()
+        joinBatch {
+            db.batch()
+                .set(peopleCol(gymId).document(uid), personMap(displayName, photo, Role.TRAINER, PersonStatus.PENDING) + ("trainerCode" to trainerCode))
+                .set(db.collection("codes").document(trainerCode), mapOf("gymId" to gymId, "type" to "trainer", "trainerUid" to uid))
+                .set(db.collection("users").document(uid), mapOf("gymId" to gymId), SetOptions.merge())
+        }
     }
 
     suspend fun joinAsMember(trainerCode: String, uid: String, displayName: String, photo: String?) {
         val c = lookup(trainerCode, "trainer")
         val gymId = c.getString("gymId")!!
         val trainerUid = c.getString("trainerUid")!!
-        try {
+        joinBatch {
+            // joinCode lets the rules check the member really had the code (codes can't be listed).
             db.batch()
-                .set(peopleCol(gymId).document(uid), personMap(displayName, photo, Role.MEMBER, PersonStatus.ACTIVE) + ("trainerUid" to trainerUid))
+                .set(peopleCol(gymId).document(uid),
+                    personMap(displayName, photo, Role.MEMBER, PersonStatus.ACTIVE) + mapOf("trainerUid" to trainerUid, "joinCode" to c.id))
                 .set(db.collection("users").document(uid), mapOf("gymId" to gymId), SetOptions.merge())
-                .commit().await()
+        }
+    }
+
+    /** Commits a join; the rules refuse joining an unapproved trainer or coming back while not removed. */
+    private suspend fun joinBatch(build: () -> com.google.firebase.firestore.WriteBatch) {
+        try {
+            build().commit().await()
         } catch (e: FirebaseFirestoreException) {
-            // The rules only allow joining trainers the owner has approved.
-            if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) throw GymException("This trainer hasn't been approved by the gym owner yet.")
+            if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) {
+                throw GymException("Couldn't join with this code. The trainer may not be approved yet, or you're already in this gym.")
+            }
             throw e
         }
     }
@@ -136,9 +146,15 @@ class GymRepo {
         batch.commit().await()
     }
 
-    /** Leaving only unlinks the account from the gym; the gym keeps the history and the user keeps their backup. */
-    suspend fun leave(uid: String) {
-        db.collection("users").document(uid).update("gymId", FieldValue.delete()).await()
+    /**
+     * Leaving unlinks the account and marks them removed, so they drop out of rankings and lose access. The gym keeps
+     * their history and they keep their backup; they can join again with a code.
+     */
+    suspend fun leave(gymId: String, uid: String) {
+        db.batch()
+            .update(db.collection("users").document(uid), "gymId", FieldValue.delete())
+            .update(peopleCol(gymId).document(uid), "status", PersonStatus.REMOVED.name.lowercase())
+            .commit().await()
     }
 
     /** Private per-account backup of profile and settings (users/{uid}.prefs), so signing in again restores them. */
@@ -153,12 +169,24 @@ class GymRepo {
 
     // ---------- workouts ----------
 
-    suspend fun assign(gymId: String, list: List<Assignment>) {
-        list.chunked(400).forEach { chunk ->
+    /**
+     * Writes assignments in small batches: the rules read each member's record, and a batch may only make
+     * [RULE_READS_PER_BATCH] such reads. Returns how many were saved; throws [PartialSave] if a later batch fails.
+     */
+    suspend fun assign(gymId: String, list: List<Assignment>): Int {
+        var saved = 0
+        list.chunked(RULE_READS_PER_BATCH).forEach { chunk ->
             val batch = db.batch()
             chunk.forEach { batch.set(assignmentsCol(gymId).document(), assignmentMap(it)) }
-            batch.commit().await()
+            try {
+                batch.commit().await()
+            } catch (e: Exception) {
+                if (saved > 0) throw PartialSave(saved, list.size, e)
+                throw e
+            }
+            saved += chunk.size
         }
+        return saved
     }
 
     /** Member progress: sets ticked, status and timestamps. */
@@ -191,15 +219,21 @@ class GymRepo {
         templatesCol(gymId).document(id).delete().await()
     }
 
-    /** Monthly awards are written once; later attempts are refused by the rules and ignored. */
+    /** Monthly awards are written once (only by the owner); an existing month is left as it is. */
     suspend fun saveAwards(gymId: String, month: String, winners: Map<Award, String>) {
-        runCatching {
-            db.runTransaction { tx ->
-                val ref = awardsCol(gymId).document(month)
-                if (!tx.get(ref).exists()) tx.set(ref, mapOf("winners" to winners.mapKeys { it.key.name }, "savedAt" to System.currentTimeMillis()))
-            }.await()
-        }
+        db.runTransaction { tx ->
+            val ref = awardsCol(gymId).document(month)
+            if (!tx.get(ref).exists()) tx.set(ref, mapOf("winners" to winners.mapKeys { it.key.name }, "savedAt" to System.currentTimeMillis()))
+        }.await()
     }
+
+    /** Everyone in the gym, straight from the server (not the phone's cache), for decisions that are saved for good. */
+    suspend fun fetchPeople(gymId: String): List<Person> = peopleCol(gymId).get(Source.SERVER).await().documents.map(::toPerson)
+
+    /** Assignments between two days from the server, for the same reason. */
+    suspend fun fetchAssignments(gymId: String, from: Long, to: Long): List<Assignment> =
+        assignmentsCol(gymId).whereGreaterThanOrEqualTo("epochDay", from).whereLessThanOrEqualTo("epochDay", to)
+            .get(Source.SERVER).await().documents.map(::toAssignment)
 
     suspend fun giveAward(gymId: String, a: GivenAward) {
         givenCol(gymId).add(mapOf("title" to a.title, "emoji" to a.emoji, "uid" to a.uid, "note" to a.note,
@@ -285,29 +319,42 @@ class GymRepo {
     private fun <T> com.google.firebase.firestore.DocumentReference.listen(map: (DocumentSnapshot) -> T?): Flow<T?> = callbackFlow {
         // INCLUDE so we also hear the server's confirmation, which changes only metadata.
         val reg = addSnapshotListener(MetadataChanges.INCLUDE) { snap, err ->
-            if (err != null) { trySend(null); return@addSnapshotListener }
+            // An error is not "the document is gone": close and retry, so a hiccup never shows the join screen.
+            if (err != null) { close(err); return@addSnapshotListener }
             // Wait for the server to confirm local writes: rules only see committed data, so acting on an
             // unconfirmed "you're in the gym" would start gym listeners that the server then refuses.
             if (snap?.metadata?.hasPendingWrites() == true) return@addSnapshotListener
             trySend(snap?.takeIf { it.exists() }?.let(map))
         }
         awaitClose { reg.remove() }
-    }.distinctUntilChanged()
+    }.retryWithBackoff().distinctUntilChanged()
 
-    /** A refused listener is dead in Firestore, so retry a few times (e.g. right after joining or approval). */
+    /** A refused listener is dead in Firestore, so retry (e.g. right after joining or approval). */
     private fun <T> Query.listenAll(map: (DocumentSnapshot) -> T): Flow<List<T>> = callbackFlow {
         val reg = addSnapshotListener { snap, err ->
             if (err != null) { close(err); return@addSnapshotListener }
             trySend(snap?.documents?.map(map).orEmpty())
         }
         awaitClose { reg.remove() }
-    }.retryWhen { _, attempt ->
-        if (attempt < 6) { delay(1000L * (attempt + 1)); true } else false
-    }.catch { emit(emptyList()) }
+    }.retryWithBackoff()
+
+    /** Keeps a listener alive: retries after 1s, 2s, 4s… up to [MAX_RETRY_DELAY_MS], for as long as it is collected. */
+    private fun <T> Flow<T>.retryWithBackoff(): Flow<T> = retryWhen { e, attempt ->
+        if (e is kotlinx.coroutines.CancellationException) return@retryWhen false
+        delay((1000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(MAX_RETRY_DELAY_MS))
+        true
+    }
 
     private companion object {
         const val CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // no 0/O, 1/I
+        /** Firestore rules allow 20 document reads per batch; each assignment needs one, plus a little headroom. */
+        const val RULE_READS_PER_BATCH = 15
+        const val MAX_RETRY_DELAY_MS = 30_000L
     }
 }
 
+/** Something the user can fix, with a message written for them. */
 class GymException(message: String) : Exception(message)
+
+/** Only [saved] of [total] items were written before [cause] stopped the rest. */
+class PartialSave(val saved: Int, val total: Int, cause: Throwable) : Exception(cause)

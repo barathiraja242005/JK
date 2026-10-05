@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// JK Gym security rules. Paste into Firebase console → Firestore → Rules.
+// JK Gym security rules. Paste into Firebase console → Firestore → Rules, then Publish.
 // Layout is documented in app/src/main/java/com/barathiraja/jk/gym/GymRepo.kt.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -9,6 +9,7 @@ service cloud.firestore {
     function me() { return request.auth.uid; }
     function gymPath(gymId) { return /databases/$(database)/documents/gyms/$(gymId); }
     function personPath(gymId, uid) { return /databases/$(database)/documents/gyms/$(gymId)/people/$(uid); }
+    function codePath(code) { return /databases/$(database)/documents/codes/$(code); }
 
     function isOwner(gymId) { return signedIn() && get(gymPath(gymId)).data.ownerUid == me(); }
     function activeIn(gymId) {
@@ -17,23 +18,47 @@ service cloud.firestore {
     function isTrainer(gymId) { return activeIn(gymId) && get(personPath(gymId, me())).data.role == 'trainer'; }
     function onlyChanged(keys) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys); }
 
-    // Which gym this account belongs to.
+    // True when "yyyy-MM" [month] is before the current month (so its awards are final).
+    function monthEnded(month) {
+      let y = string(request.time.year());
+      let m = request.time.month();
+      return (m < 10 && month < y + '-0' + string(m)) || (m >= 10 && month < y + '-' + string(m));
+    }
+
+    // A valid way into a gym: trainers ask and wait for the owner; members need their trainer's code, and the
+    // trainer must be approved. Codes can't be listed, so knowing one is the proof of being invited.
+    function validJoin(gymId, d) {
+      return (d.role == 'trainer' && d.status == 'pending') ||
+        (d.role == 'member' && d.status == 'active' && d.joinCode is string &&
+           get(codePath(d.joinCode)).data.type == 'trainer' &&
+           get(codePath(d.joinCode)).data.gymId == gymId &&
+           get(codePath(d.joinCode)).data.trainerUid == d.trainerUid &&
+           get(personPath(gymId, d.trainerUid)).data.role == 'trainer' &&
+           get(personPath(gymId, d.trainerUid)).data.status == 'active');
+    }
+
+    // Which gym this account belongs to, plus its private settings backup.
     match /users/{uid} {
       allow read, write: if signedIn() && me() == uid;
     }
 
-    // Join codes: anyone signed in can look one up; only the gym owner / the trainer it belongs to can create it.
+    // Join codes: look one up by its exact value only (never list them). The owner creates the gym code with the
+    // gym; a trainer creates their member code in the same write that asks to join that gym.
     match /codes/{code} {
-      allow read: if signedIn();
+      allow get: if signedIn();
+      allow list: if false;
       allow create: if signedIn() && (
         (request.resource.data.type == 'gym' && getAfter(gymPath(request.resource.data.gymId)).data.ownerUid == me()) ||
-        (request.resource.data.type == 'trainer' && request.resource.data.trainerUid == me())
+        (request.resource.data.type == 'trainer' && request.resource.data.trainerUid == me() &&
+           getAfter(personPath(request.resource.data.gymId, me())).data.role == 'trainer')
       );
       allow update, delete: if false;
     }
 
     match /gyms/{gymId} {
-      allow read: if signedIn();
+      // Anyone with a record in the gym (active, waiting or removed) can read its name.
+      allow get: if signedIn() && exists(personPath(gymId, me()));
+      allow list: if false;
       allow create: if signedIn() && request.resource.data.ownerUid == me();
       allow update: if isOwner(gymId) && onlyChanged(['name']);
       allow delete: if false;
@@ -43,18 +68,18 @@ service cloud.firestore {
         allow create: if signedIn() && me() == uid && (
           (request.resource.data.role == 'owner' && request.resource.data.status == 'active' &&
              getAfter(gymPath(gymId)).data.ownerUid == me()) ||
-          (request.resource.data.role == 'trainer' && request.resource.data.status == 'pending') ||
-          (request.resource.data.role == 'member' && request.resource.data.status == 'active' &&
-             get(personPath(gymId, request.resource.data.trainerUid)).data.role == 'trainer' &&
-             get(personPath(gymId, request.resource.data.trainerUid)).data.status == 'active')
+          validJoin(gymId, request.resource.data)
         );
         allow update: if
-          // Owner approves / removes anyone.
+          // Owner approves, removes and moves people between trainers.
           (isOwner(gymId) && onlyChanged(['status', 'trainerUid'])) ||
           // Trainers can remove their own members.
           (isTrainer(gymId) && resource.data.trainerUid == me() && onlyChanged(['status'])) ||
-          // Everyone can update their own name and photo.
-          (me() == uid && onlyChanged(['name', 'photoUrl']));
+          // Everyone can update their own name and photo, and leave.
+          (me() == uid && onlyChanged(['name', 'photoUrl'])) ||
+          (me() == uid && onlyChanged(['status']) && request.resource.data.status == 'removed') ||
+          // Someone who left or was removed can come back the normal way.
+          (me() == uid && resource.data.status == 'removed' && validJoin(gymId, request.resource.data));
         allow delete: if false;
       }
 
@@ -62,12 +87,14 @@ service cloud.firestore {
         allow read: if activeIn(gymId) || isOwner(gymId);
         allow create: if isTrainer(gymId) && request.resource.data.trainerUid == me() &&
           get(personPath(gymId, request.resource.data.memberUid)).data.trainerUid == me() &&
-          request.resource.data.verified == false;
+          request.resource.data.verified == false && request.resource.data.status == 'assigned';
         allow update: if
-          (isTrainer(gymId) && resource.data.trainerUid == me() && request.resource.data.trainerUid == me() &&
-             request.resource.data.memberUid == resource.data.memberUid) ||
+          // Trainers only verify and leave notes; they can't mark a member's workout as done.
+          (isTrainer(gymId) && resource.data.trainerUid == me() && onlyChanged(['verified', 'trainerNote'])) ||
+          // Members log their own sets; the workout itself (which exercises, how many) stays as given.
           (activeIn(gymId) && resource.data.memberUid == me() &&
-             onlyChanged(['exercises', 'status', 'startedAt', 'completedAt', 'memberNote']));
+             onlyChanged(['exercises', 'status', 'startedAt', 'completedAt', 'memberNote']) &&
+             request.resource.data.exercises.size() == resource.data.exercises.size());
         allow delete: if isTrainer(gymId) && resource.data.trainerUid == me();
       }
 
@@ -77,10 +104,13 @@ service cloud.firestore {
         allow update, delete: if isTrainer(gymId) && resource.data.trainerUid == me();
       }
 
-      // Monthly awards are written once and never changed.
+      // Monthly awards: saved once by the owner's phone, only for a month that has ended, never changed.
       match /awards/{month} {
         allow read: if activeIn(gymId) || isOwner(gymId);
-        allow create: if activeIn(gymId) || isOwner(gymId);
+        allow create: if isOwner(gymId) && monthEnded(month) &&
+          request.resource.data.keys().hasOnly(['winners', 'savedAt']) &&
+          request.resource.data.winners.keys().hasOnly(
+            ['BEST_MEMBER', 'BEST_TRAINER', 'MOST_CONSISTENT', 'MOST_IMPROVED', 'IRON_LIFTER']);
         allow update, delete: if false;
       }
 

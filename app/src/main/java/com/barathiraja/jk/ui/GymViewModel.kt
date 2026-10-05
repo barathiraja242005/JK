@@ -21,6 +21,7 @@ import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.gym.PersonStatus
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
+import com.barathiraja.jk.ui.gym.plural
 import com.barathiraja.jk.gym.Template
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.Dispatchers
@@ -185,27 +186,62 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
                 if (s is GymState.Ready && s.me.name != tidyName(s.me.name)) runCatching { repo.setName(s.gym.id, s.me.uid, tidyName(s.me.name)) }
             }
         }
-        // Save last month's awards once, from whichever phone opens first after the month ends.
+        // The owner's phone saves last month's awards once they're missing (see saveLastMonthAwards).
         viewModelScope.launch {
-            combine(state, assignments, awards) { s, a, aw -> Triple(s, a, aw) }.collect { (s, a, aw) ->
-                if (s !is GymState.Ready) return@collect
-                val last = month.minusMonths(1)
-                val key = last.toString()
-                if (aw.any { it.month == key } || a.none { it.epochDay in Scoring.monthRange(last) }) return@collect
-                val winners = Scoring.awards(people.value, a, last)
-                if (winners.isNotEmpty()) repo.saveAwards(s.gym.id, key, winners)
+            combine(state, awards) { s, aw -> s to aw }.collect { (s, aw) ->
+                if (s is GymState.Ready && s.me.role == Role.OWNER) saveLastMonthAwards(s.gym.id, aw)
             }
+        }
+    }
+
+    /** The month whose awards were last saved (or found saved) by this phone, so the check runs once per month. */
+    private var awardsSavedFor: String? = null
+
+    /**
+     * Saves last month's automatic awards, if nobody has yet. Waits one grace day into the new month so members can
+     * finish logging, and works from fresh server data covering last month and the one before it (for "most
+     * improved"), because the saved result can never be changed.
+     */
+    private suspend fun saveLastMonthAwards(gymId: String, saved: List<MonthAwards>) {
+        val last = month.minusMonths(1)
+        val key = last.toString()
+        if (awardsSavedFor == key) return
+        if (saved.any { it.month == key }) { awardsSavedFor = key; return }
+        if (java.time.LocalDate.now().dayOfMonth < AWARDS_GRACE_DAYS + 1) return
+        try {
+            val from = last.minusMonths(1).atDay(1).toEpochDay()
+            val list = repo.fetchAssignments(gymId, from, last.atEndOfMonth().toEpochDay())
+            val winners = Scoring.awards(repo.fetchPeople(gymId), list, last)
+            if (winners.isNotEmpty()) repo.saveAwards(gymId, key, winners)
+            awardsSavedFor = key
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // Offline or refused: try again the next time the gym data changes.
+            android.util.Log.w("GymViewModel", "Saving $key awards failed", e)
         }
     }
 
     // ---------- actions ----------
 
-    /** Runs one Firestore action: shows the busy state, then [success] or a plain-words error as a message. */
-    private fun act(success: String? = null, block: suspend () -> Unit) = viewModelScope.launch {
+    /**
+     * Runs one Firestore action: shows the busy state, then [success] or a plain-words error as a message.
+     * Firestore keeps writes made offline and sends them later, but the call only returns once the server confirms;
+     * when [queuedOk] and the server hasn't answered in [OFFLINE_WAIT_MS], the user is told it's saved on the phone.
+     * Joining and signing in need the server, so they pass false and keep waiting.
+     */
+    private fun act(success: String? = null, queuedOk: Boolean = true, block: suspend () -> Unit) = viewModelScope.launch {
         busy.value = true
         try {
-            block()
-            if (success != null) message.value = success
+            if (queuedOk) {
+                val finished = kotlinx.coroutines.withTimeoutOrNull(OFFLINE_WAIT_MS) { block() } != null
+                message.value = if (finished) success else "Saved on this phone. It will sync when you're back online."
+            } else {
+                block()
+                message.value = success
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (e: Exception) {
             message.value = friendly(e)
         } finally {
@@ -215,6 +251,7 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
 
     private fun friendly(e: Exception): String = when {
         e is com.barathiraja.jk.gym.GymException -> e.message.orEmpty()
+        e is com.barathiraja.jk.gym.PartialSave -> "Only ${e.saved} of ${e.total} were saved. Check your connection and assign the rest again."
         e is androidx.credentials.exceptions.GetCredentialCancellationException -> "Sign-in cancelled"
         e is androidx.credentials.exceptions.NoCredentialException -> "No Google account found on this phone"
         e is com.google.firebase.firestore.FirebaseFirestoreException &&
@@ -228,21 +265,21 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     private val myName get() = tidyName(user.value?.displayName ?: c.prefs.profile.value.name).ifBlank { "JK user" }
     private val myPhoto get() = user.value?.photoUrl?.toString()
 
-    fun signIn(activity: Context) = act {
+    fun signIn(activity: Context) = act(queuedOk = false) {
         c.auth.signIn(activity)
     }
 
     /** Signs out and removes this account's data from the phone so the next person starts clean. */
-    fun signOut() = act {
+    fun signOut() = act(queuedOk = false) {
         c.auth.signOut()
         withContext(Dispatchers.IO) { c.db.clearAllTables() }
         c.prefs.clearAll()
     }
 
-    fun createGym(name: String) = act("Gym created!") { repo.createGym(name.trim(), uid, myName, myPhoto) }
-    fun joinAsTrainer(code: String) = act { repo.joinAsTrainer(code, uid, myName, myPhoto) }
-    fun joinAsMember(code: String) = act("Welcome to the gym!") { repo.joinAsMember(code, uid, myName, myPhoto) }
-    fun leaveGym() = act { repo.leave(uid) }
+    fun createGym(name: String) = act("Gym created!", queuedOk = false) { repo.createGym(name.trim(), uid, myName, myPhoto) }
+    fun joinAsTrainer(code: String) = act(queuedOk = false) { repo.joinAsTrainer(code, uid, myName, myPhoto) }
+    fun joinAsMember(code: String) = act("Welcome to the gym!", queuedOk = false) { repo.joinAsMember(code, uid, myName, myPhoto) }
+    fun leaveGym() = act(queuedOk = false) { repo.leave(gymIdOrThrow, uid) }
 
     fun approve(p: Person) {
         act("${p.firstName} is now a trainer") { repo.setStatus(gymIdOrThrow, p.uid, PersonStatus.ACTIVE) }
@@ -284,7 +321,7 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         val clean = exercises.map { e -> e.copy(sets = e.sets.map { it.copy(done = false) }) }
         val list = members.flatMap { m -> days.map { d -> Assignment("", uid, m, title.trim().ifBlank { "Workout" }, d, clean) } }
         val n = list.size
-        act("Assigned $n workout${if (n == 1) "" else "s"}") { repo.assign(gymIdOrThrow, list); onDone() }
+        act("Assigned ${plural(n, "workout")}") { repo.assign(gymIdOrThrow, list); onDone() }
     }
 
     fun deleteAssignment(a: Assignment) = act("Workout removed") { repo.deleteAssignment(gymIdOrThrow, a.id) }
@@ -322,19 +359,30 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
             startedAt = a.startedAt ?: now.takeIf { anyDone },
             completedAt = if (allDone) a.completedAt ?: now else null,
         )
-        val firstCompletion = allDone && a.completedAt == null
-        act { repo.saveProgress(gymIdOrThrow, updated) }
-        if (firstCompletion) viewModelScope.launch {
-            val restSec = c.prefs.training.value.restSec
-            val sec = updated.exercises.sumOf { TrainingEngine.estimateSec(it.sets, restSec) }
-            val kcal = updated.exercises.sumOf {
-                Health.caloriesBurned(ExerciseRepo.get(it.exerciseId)?.met ?: 5f, c.prefs.profile.value.weightKg, TrainingEngine.estimateSec(it.sets, restSec))
+        val workoutId = "gym:${a.id}"
+        act {
+            repo.saveProgress(gymIdOrThrow, updated)
+            // Mirror it in the local history once the save went through: one session per workout, removed if undone.
+            when {
+                allDone && a.completedAt == null -> {
+                    val restSec = c.prefs.training.value.restSec
+                    val sec = updated.exercises.sumOf { TrainingEngine.estimateSec(it.sets, restSec) }
+                    val kcal = updated.exercises.sumOf {
+                        Health.caloriesBurned(ExerciseRepo.get(it.exerciseId)?.met ?: 5f, c.prefs.profile.value.weightKg, TrainingEngine.estimateSec(it.sets, restSec))
+                    }
+                    c.dao.replaceSession(WorkoutSession(workoutId = workoutId, title = a.title, finishedAt = now, epochDay = today, durationSec = sec, calories = kcal))
+                }
+                !allDone && a.completedAt != null -> c.dao.deleteSessionsFor(workoutId)
             }
-            c.dao.insertSession(WorkoutSession(workoutId = "gym:${a.id}", title = a.title, finishedAt = now, epochDay = today, durationSec = sec, calories = kcal))
         }
     }
 
     companion object {
+        /** How long a write waits for the server before telling the user it's saved on the phone. */
+        private const val OFFLINE_WAIT_MS = 8_000L
+        /** Days into a new month before last month's awards are saved, so late logs still count. */
+        private const val AWARDS_GRACE_DAYS = 1
+
         /**
          * "_S. Janarthanan_" -> "S. Janarthanan", "KOUNDAR BARATHIRAJA" -> "Koundar Barathiraja",
          * "Barathiraja K 2023-2027" -> "Barathiraja K" (college accounts add the batch years).
