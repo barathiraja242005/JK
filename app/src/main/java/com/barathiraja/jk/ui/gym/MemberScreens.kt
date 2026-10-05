@@ -280,8 +280,8 @@ private fun SessionExerciseCard(
             e.sets.forEachIndexed { si, s ->
                 Spacer(Modifier.height(6.dp))
                 val replace = { ns: SetSpec -> onChange(e.sets.toMutableList().also { it[si] = ns }) }
-                if (editing) SetEditorRow(si, s, step, onChange = replace, onDelete = null)
-                else SetRow(si, s, false, onToggle = {
+                if (editing) SetEditorRow(si, s, e.exerciseId, step, onChange = replace, onDelete = null)
+                else SetRow(si, s, e.exerciseId, false, onToggle = {
                     if (!canEdit) return@SetRow
                     replace(s.copy(done = !s.done))
                     if (!s.done) onTicked()

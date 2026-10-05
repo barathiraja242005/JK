@@ -14,21 +14,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,9 +32,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role as SemanticsRole
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barathiraja.jk.data.SetSpec
+import com.barathiraja.jk.data.weightLabel
 import com.barathiraja.jk.gym.AssignStatus
 import com.barathiraja.jk.gym.Assignment
 import com.barathiraja.jk.gym.Person
@@ -55,15 +51,8 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymState
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.components.formatDuration
-import com.barathiraja.jk.ui.components.shareText
-import com.barathiraja.jk.ui.screens.trimZero
-import com.barathiraja.jk.ui.theme.Bad
-import com.barathiraja.jk.ui.theme.CodeFont
-import com.barathiraja.jk.ui.theme.Good
-import com.barathiraja.jk.ui.theme.Watch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.semantics.Role as SemanticsRole
 
 private val dayFmt = DateTimeFormatter.ofPattern("EEE d MMM")
 
@@ -148,7 +137,7 @@ fun GymAccountCard(gvm: GymViewModel) {
 
 /** One set as "reps × kg" (or seconds) with small steppers; fits inside a card. */
 @Composable
-fun SetEditorRow(index: Int, s: SetSpec, step: Float, onChange: (SetSpec) -> Unit, onDelete: (() -> Unit)?) {
+fun SetEditorRow(index: Int, s: SetSpec, exerciseId: String, step: Float, onChange: (SetSpec) -> Unit, onDelete: (() -> Unit)?) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text("${index + 1}", Modifier.width(22.dp), style = plex(15.sp, FontWeight.SemiBold), color = Owner.RedText)
         if (s.timed) {
@@ -157,7 +146,7 @@ fun SetEditorRow(index: Int, s: SetSpec, step: Float, onChange: (SetSpec) -> Uni
         } else {
             MiniStepper("${s.reps}", "reps", Modifier.weight(1f),
                 { onChange(s.copy(reps = (s.reps - 1).coerceAtLeast(1))) }, { onChange(s.copy(reps = (s.reps + 1).coerceAtMost(100))) })
-            MiniStepper(if (s.weightKg > 0f) s.weightKg.trimZero() else "BW", "kg", Modifier.weight(1f),
+            MiniStepper(weightLabel(s.weightKg, exerciseId), "kg", Modifier.weight(1f),
                 { onChange(s.copy(weightKg = (s.weightKg - step).coerceAtLeast(0f))) }, { onChange(s.copy(weightKg = s.weightKg + step)) })
         }
         // IconButton keeps a 48dp target around its smaller icon.

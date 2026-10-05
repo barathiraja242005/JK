@@ -29,12 +29,12 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.ExerciseRepo
+import com.barathiraja.jk.data.repsAndWeight
 import com.barathiraja.jk.gym.Assignment
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.formatDuration
-import com.barathiraja.jk.ui.screens.trimZero
 
 /** How many workouts a member's page lists before "Show all". */
 private const val WORKOUTS_PREVIEW = 5
@@ -157,7 +157,7 @@ private fun AssignmentDetails(a: Assignment) {
         val name = ExerciseRepo.get(e.exerciseId)?.name ?: e.exerciseId.replace('_', ' ')
         Text((if (e.done) "✓ " else "• ") + name, style = plex(15.sp), color = Owner.Ink)
         Text(e.sets.joinToString("  ") { st ->
-            val v = if (st.timed) formatDuration(st.seconds.toLong()) else "${st.reps}×${if (st.weightKg > 0) st.weightKg.trimZero() + "kg" else "BW"}"
+            val v = if (st.timed) formatDuration(st.seconds.toLong()) else repsAndWeight(st.reps, st.weightKg, e.exerciseId)
             if (st.done) v else "($v)"
         }, Modifier.padding(start = 14.dp, bottom = 4.dp), style = plex(13.sp), color = Owner.Muted)
     }

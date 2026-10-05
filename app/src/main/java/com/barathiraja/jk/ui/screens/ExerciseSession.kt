@@ -1,7 +1,5 @@
 package com.barathiraja.jk.ui.screens
 
-import com.barathiraja.jk.ui.components.formatDuration
-import com.barathiraja.jk.ui.components.BackScreenBar
 import android.media.AudioManager
 import android.media.ToneGenerator
 import androidx.compose.animation.AnimatedVisibility
@@ -70,20 +68,24 @@ import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.ExerciseRepo
 import com.barathiraja.jk.data.SetSpec
 import com.barathiraja.jk.data.cap
+import com.barathiraja.jk.data.repsAndWeight
+import com.barathiraja.jk.data.weightLabel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.TrainingViewModel
+import com.barathiraja.jk.ui.components.BackScreenBar
 import com.barathiraja.jk.ui.components.BodyMap
 import com.barathiraja.jk.ui.components.Confetti
 import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.components.Pill
 import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.components.SectionTitle
+import com.barathiraja.jk.ui.components.formatDuration
 import com.barathiraja.jk.ui.components.openUrl
 import com.barathiraja.jk.ui.theme.Good
 import com.barathiraja.jk.ui.theme.Yellow
-import kotlinx.coroutines.delay
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.delay
 
 private val logFmt = DateTimeFormatter.ofPattern("d MMM")
 
@@ -189,7 +191,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
                         Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = RoundedCornerShape(12.dp)) {
                             val p = previous.sortedBy { it.setIndex }
                             Text("Last time (${LocalDate.ofEpochDay(p.first().epochDay).format(logFmt)}): " +
-                                p.joinToString("  ·  ") { if (it.seconds > 0) formatDuration(it.seconds.toLong()) else "${it.reps}×${if (it.weightKg > 0) it.weightKg.trimZero() + "kg" else "BW"}" },
+                                p.joinToString("  ·  ") { if (it.seconds > 0) formatDuration(it.seconds.toLong()) else repsAndWeight(it.reps, it.weightKg, ex.id) },
                                 Modifier.padding(10.dp), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -202,7 +204,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
                 }
                 sets.forEachIndexed { i, s ->
                     item(key = "set$i") {
-                        SetRow(i, s, editing,
+                        SetRow(i, s, ex.id, editing,
                             onToggle = { if (s.done) tvm.toggleSet(item.id, i, false) else if (s.timed) { timerLeft = s.seconds; setTimer = i } else complete(i) },
                             onChange = { ns -> tvm.updateSets(item.id, sets.toMutableList().also { it[i] = ns }) },
                             onDelete = { if (sets.size > 1) tvm.updateSets(item.id, sets.toMutableList().also { it.removeAt(i) }) },
@@ -295,7 +297,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
 }
 
 @Composable
-internal fun SetRow(i: Int, s: SetSpec, editing: Boolean, onToggle: () -> Unit, onChange: (SetSpec) -> Unit, onDelete: () -> Unit, step: Float) {
+internal fun SetRow(i: Int, s: SetSpec, exerciseId: String, editing: Boolean, onToggle: () -> Unit, onChange: (SetSpec) -> Unit, onDelete: () -> Unit, step: Float) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(enabled = !editing, onClick = onToggle), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = if (s.done) Good.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainer),
@@ -313,7 +315,7 @@ internal fun SetRow(i: Int, s: SetSpec, editing: Boolean, onToggle: () -> Unit, 
             } else {
                 Value("${s.reps}", "Reps", Modifier.weight(1f), editing,
                     { onChange(s.copy(reps = (s.reps - 1).coerceAtLeast(1))) }, { onChange(s.copy(reps = (s.reps + 1).coerceAtMost(100))) })
-                Value(if (s.weightKg > 0f) s.weightKg.trimZero() else "BW", "KG", Modifier.weight(1f), editing,
+                Value(weightLabel(s.weightKg, exerciseId), "KG", Modifier.weight(1f), editing,
                     { onChange(s.copy(weightKg = (s.weightKg - step).coerceAtLeast(0f))) }, { onChange(s.copy(weightKg = s.weightKg + step)) })
             }
             if (editing) IconButton(onClick = onDelete) { Icon(Icons.Filled.Close, "Delete set") }

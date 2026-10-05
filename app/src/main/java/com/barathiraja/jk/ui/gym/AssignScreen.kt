@@ -300,7 +300,7 @@ private fun ExerciseEditorCard(
             val step = if (ex.equipment == "dumbbell" || ex.equipment == "kettlebells") 1f else 2.5f
             Spacer(Modifier.height(6.dp))
             e.sets.forEachIndexed { si, s ->
-                SetEditorRow(si, s, step,
+                SetEditorRow(si, s, ex.id, step,
                     onChange = { ns ->
                         // Editing a set also updates the sets after it that were the same, so
                         // "3 × 12 @ 60kg" is one change instead of three.

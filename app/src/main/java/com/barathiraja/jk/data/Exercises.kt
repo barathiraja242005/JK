@@ -115,3 +115,20 @@ object ExerciseRepo {
         }
     }
 }
+
+/**
+ * How a set's weight reads (without the unit): the kilos, "BW" for a bodyweight exercise, or "–" while a weighted
+ * exercise has no weight set yet (so a machine press never looks like a bodyweight move).
+ */
+fun weightLabel(kg: Float, exerciseId: String): String = when {
+    kg > 0f -> if (kg % 1f == 0f) kg.toInt().toString() else "%.1f".format(kg)
+    ExerciseRepo.get(exerciseId)?.equipment == "body only" -> "BW"
+    else -> "–"
+}
+
+/** One set as "10×20kg", "10×BW" for bodyweight, or "10 reps" while no weight is set (see [weightLabel]). */
+fun repsAndWeight(reps: Int, kg: Float, exerciseId: String): String = when (val w = weightLabel(kg, exerciseId)) {
+    "BW" -> "$reps×BW"
+    "–" -> "$reps reps"
+    else -> "$reps×${w}kg"
+}
