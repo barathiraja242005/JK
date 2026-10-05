@@ -31,7 +31,8 @@ data class Person(
     }
 }
 
-data class AssignedExercise(val exerciseId: String, val bodyPart: String, val sets: List<SetSpec>) {
+/** One exercise in a workout; [cue] is the trainer's short how-to for it (empty when there is none). */
+data class AssignedExercise(val exerciseId: String, val bodyPart: String, val sets: List<SetSpec>, val cue: String = "") {
     val done get() = sets.isNotEmpty() && sets.all { it.done }
 }
 

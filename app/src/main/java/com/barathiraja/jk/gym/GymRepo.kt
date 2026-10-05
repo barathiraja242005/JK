@@ -276,7 +276,7 @@ class GymRepo {
     )
 
     private fun exerciseMap(e: AssignedExercise) = mapOf(
-        "exerciseId" to e.exerciseId, "bodyPart" to e.bodyPart,
+        "exerciseId" to e.exerciseId, "bodyPart" to e.bodyPart, "cue" to e.cue,
         "sets" to e.sets.map { mapOf("reps" to it.reps, "weightKg" to it.weightKg.toDouble(), "seconds" to it.seconds, "done" to it.done) },
     )
 
@@ -310,6 +310,7 @@ class GymRepo {
                     SetSpec((s["reps"] as? Number)?.toInt() ?: 0, (s["weightKg"] as? Number)?.toFloat() ?: 0f,
                         (s["seconds"] as? Number)?.toInt() ?: 0, s["done"] as? Boolean ?: false)
                 },
+                cue = e["cue"] as? String ?: "",
             )
         }
 

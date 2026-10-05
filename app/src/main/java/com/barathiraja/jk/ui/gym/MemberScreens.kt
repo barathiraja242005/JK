@@ -275,6 +275,7 @@ private fun SessionExerciseCard(
                         style = plex(13.sp), color = Owner.Muted)
                 }
             }
+            if (e.cue.isNotBlank()) CueText(e.cue)
             val step = if (ex?.equipment == "dumbbell" || ex?.equipment == "kettlebells") 1f else 2.5f
             e.sets.forEachIndexed { si, s ->
                 Spacer(Modifier.height(6.dp))

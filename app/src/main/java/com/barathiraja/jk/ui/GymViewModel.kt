@@ -332,10 +332,10 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         act("Name saved") { repo.setName(gymIdOrThrow, p.uid, n) }
     }
 
-    /** Creates one assignment per member per day. */
-    fun assign(title: String, members: Collection<String>, days: Collection<Long>, exercises: List<AssignedExercise>, onDone: () -> Unit) {
+    /** Creates one assignment per member per day; [note] reaches the member as the coach's note. */
+    fun assign(title: String, members: Collection<String>, days: Collection<Long>, exercises: List<AssignedExercise>, note: String = "", onDone: () -> Unit) {
         val clean = exercises.map { e -> e.copy(sets = e.sets.map { it.copy(done = false) }) }
-        val list = members.flatMap { m -> days.map { d -> Assignment("", uid, m, title.trim().ifBlank { "Workout" }, d, clean) } }
+        val list = members.flatMap { m -> days.map { d -> Assignment("", uid, m, title.trim().ifBlank { "Workout" }, d, clean, trainerNote = note.trim()) } }
         val n = list.size
         act("Assigned ${plural(n, "workout")}") { repo.assign(gymIdOrThrow, list); onDone() }
     }

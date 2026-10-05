@@ -327,3 +327,10 @@ internal fun memberEntry(
     } + (extra?.let { " · $it" } ?: ""),
     onClick = onClick, value = value, isMe = isMe,
 )
+
+/** A trainer's how-to for one exercise, in a quiet panel under its name. */
+@Composable
+internal fun CueText(cue: String) {
+    Text(cue, Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Owner.Well).padding(10.dp),
+        style = plex(13.sp, line = 18.sp), color = Owner.Ink)
+}
