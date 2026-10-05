@@ -64,7 +64,6 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
     val me by gvm.me.collectAsStateWithLifecycle()
     val gym by gvm.gym.collectAsStateWithLifecycle()
     val s by vm.settings.collectAsStateWithLifecycle()
-    val demo by gvm.demo.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var renamingGym by remember { mutableStateOf(false) }
     var renamingMe by remember { mutableStateOf(false) }
@@ -131,17 +130,6 @@ fun OwnerMeScreen(vm: JkViewModel, gvm: GymViewModel, nav: NavHostController) {
                                 }
                             }
                         }
-                    }
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(Owner.Line))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("Sample gym", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink)
-                            Text("Try the app with made-up trainers and members. Your real gym isn't changed.",
-                                style = plex(13.sp, line = 18.sp), color = Owner.Muted)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Switch(checked = demo != null, onCheckedChange = { gvm.setDemo(it) },
-                            colors = SwitchDefaults.colors(checkedTrackColor = Owner.Red, checkedThumbColor = Color.White))
                     }
                 }
             }

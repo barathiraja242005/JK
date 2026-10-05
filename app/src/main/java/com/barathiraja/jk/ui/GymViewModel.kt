@@ -13,7 +13,6 @@ import com.barathiraja.jk.domain.TrainingEngine
 import com.barathiraja.jk.gym.AssignStatus
 import com.barathiraja.jk.gym.AssignedExercise
 import com.barathiraja.jk.gym.Assignment
-import com.barathiraja.jk.gym.DemoData
 import com.barathiraja.jk.gym.GivenAward
 import com.barathiraja.jk.gym.Gym
 import com.barathiraja.jk.gym.MonthAwards
@@ -91,33 +90,18 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
 
     val gym: StateFlow<Gym?> = gymId.flatMapLatest { if (it.isNullOrEmpty()) flowOf(null) else repo.gym(it) }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    /** Sample gym shown instead of the real one while set (owner's Me → Demo data). Never saved anywhere. */
-    val demo = MutableStateFlow<DemoData.Gym?>(null)
-    private fun <T> orDemo(real: StateFlow<T>, pick: (DemoData.Gym) -> T): StateFlow<T> =
-        combine(real, demo) { r, d -> if (d == null) r else pick(d) }.stateIn(viewModelScope, SharingStarted.Eagerly, real.value)
-
-    val people: StateFlow<List<Person>> = orDemo(perGym(emptyList()) { repo.people(it) }) { it.people }
-    val awards: StateFlow<List<MonthAwards>> = orDemo(perGym(emptyList()) { repo.awards(it) }) { it.awards }
+    val people: StateFlow<List<Person>> = perGym(emptyList()) { repo.people(it) }
+    val awards: StateFlow<List<MonthAwards>> = perGym(emptyList()) { repo.awards(it) }
     /** Awards the owner gave by hand, newest first. */
     val givenAwards: StateFlow<List<GivenAward>> =
-        orDemo(perGym(emptyList()) { id -> repo.givenAwards(id) }) { it.given }.mapState { l -> l.sortedByDescending { it.givenAt } }
+        perGym(emptyList()) { id -> repo.givenAwards(id) }.mapState { l -> l.sortedByDescending { it.givenAt } }
 
     /** Last month (for awards and "most improved") through the next two months (scheduled workouts). */
-    val assignments: StateFlow<List<Assignment>> = orDemo(perGym(emptyList()) {
+    val assignments: StateFlow<List<Assignment>> = perGym(emptyList()) {
         repo.assignments(it, month.minusMonths(1).atDay(1).toEpochDay(), today + 62)
-    }) { it.assignments }
+    }
 
     private fun <T, R> StateFlow<T>.mapState(f: (T) -> R): StateFlow<R> = map(f).stateIn(viewModelScope, SharingStarted.Eagerly, f(value))
-
-    fun setDemo(on: Boolean) {
-        val owner = me.value
-        demo.value = if (on && owner != null) DemoData.build(owner, today) else null
-    }
-
-    /** Applies an owner action to the demo gym instead of Firestore. */
-    private fun editDemo(success: String, f: (DemoData.Gym) -> DemoData.Gym) {
-        demo.value?.let { demo.value = f(it); message.value = "$success (demo)" }
-    }
 
     val templates: StateFlow<List<Template>> = combine(activeGymId, user) { g, u -> g to u?.uid }.flatMapLatest { (g, uid) ->
         if (g.isNullOrEmpty() || uid == null) flowOf(emptyList()) else repo.templates(g, uid)
@@ -204,8 +188,7 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         // Save last month's awards once, from whichever phone opens first after the month ends.
         viewModelScope.launch {
             combine(state, assignments, awards) { s, a, aw -> Triple(s, a, aw) }.collect { (s, a, aw) ->
-                // Never save awards computed from demo data.
-                if (s !is GymState.Ready || demo.value != null) return@collect
+                if (s !is GymState.Ready) return@collect
                 val last = month.minusMonths(1)
                 val key = last.toString()
                 if (aw.any { it.month == key } || a.none { it.epochDay in Scoring.monthRange(last) }) return@collect
@@ -217,15 +200,8 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
 
     // ---------- actions ----------
 
-    private fun act(success: String? = null, block: suspend () -> Unit): kotlinx.coroutines.Job {
-        if (demo.value != null) {
-            message.value = "Demo data is on, so this isn't saved"
-            return kotlinx.coroutines.Job().apply { complete() }
-        }
-        return launchAct(success, block)
-    }
-
-    private fun launchAct(success: String?, block: suspend () -> Unit) = viewModelScope.launch {
+    /** Runs one Firestore action: shows the busy state, then [success] or a plain-words error as a message. */
+    private fun act(success: String? = null, block: suspend () -> Unit) = viewModelScope.launch {
         busy.value = true
         try {
             block()
@@ -257,8 +233,7 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     }
 
     /** Signs out and removes this account's data from the phone so the next person starts clean. */
-    fun signOut() = launchAct(null) {
-        demo.value = null
+    fun signOut() = act {
         c.auth.signOut()
         withContext(Dispatchers.IO) { c.db.clearAllTables() }
         c.prefs.clearAll()
@@ -270,11 +245,9 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     fun leaveGym() = act { repo.leave(uid) }
 
     fun approve(p: Person) {
-        if (demo.value != null) return editDemo("${p.firstName} is now a trainer") { g -> g.copy(people = g.people.map { if (it.uid == p.uid) it.copy(status = PersonStatus.ACTIVE) else it }) }
         act("${p.firstName} is now a trainer") { repo.setStatus(gymIdOrThrow, p.uid, PersonStatus.ACTIVE) }
     }
     fun reject(p: Person) {
-        if (demo.value != null) return editDemo("${p.firstName} rejected") { g -> g.copy(people = g.people.map { if (it.uid == p.uid) it.copy(status = PersonStatus.REMOVED) else it }) }
         act { repo.setStatus(gymIdOrThrow, p.uid, PersonStatus.REMOVED) }
     }
     fun removeMember(p: Person) = act("${p.firstName} removed") { repo.setStatus(gymIdOrThrow, p.uid, PersonStatus.REMOVED) }
@@ -285,7 +258,6 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     /** Owner: moves one member to another trainer. */
     fun changeTrainer(member: Person, trainer: Person) {
         val done = "${member.firstName} now trains with ${trainer.firstName}"
-        if (demo.value != null) return editDemo(done) { g -> g.copy(people = g.people.map { if (it.uid == member.uid) it.copy(trainerUid = trainer.uid) else it }) }
         act(done) { repo.setTrainer(gymIdOrThrow, listOf(member.uid), trainer.uid) }
     }
 
@@ -296,15 +268,6 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     fun removeFromGym(p: Person, moveTo: Person?) {
         val theirs = if (p.role == Role.TRAINER) membersOf(p.uid).map { it.uid }.toSet() else emptySet()
         val done = "${p.firstName} removed from the gym"
-        if (demo.value != null) return editDemo(done) { g ->
-            g.copy(people = g.people.map {
-                when {
-                    it.uid == p.uid -> it.copy(status = PersonStatus.REMOVED)
-                    it.uid in theirs -> it.copy(trainerUid = moveTo?.uid)
-                    else -> it
-                }
-            })
-        }
         act(done) { repo.removeFromGym(gymIdOrThrow, p.uid, theirs.toList(), moveTo?.uid) }
     }
 
@@ -312,9 +275,8 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     fun renameMe(name: String) {
         val n = tidyName(name)
         if (n.isBlank()) return
-        if (demo.value != null) { message.value = "Demo data is on, so this isn't saved"; return }
         val p = me.value ?: return
-        launchAct("Name saved") { repo.setName(gymIdOrThrow, p.uid, n) }
+        act("Name saved") { repo.setName(gymIdOrThrow, p.uid, n) }
     }
 
     /** Creates one assignment per member per day. */
@@ -334,11 +296,6 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
         repo.saveTemplate(gymIdOrThrow, Template("", uid, title.trim().ifBlank { "Workout" }, exercises.map { e -> e.copy(sets = e.sets.map { it.copy(done = false) }) }))
     }
     fun giveAward(title: String, emoji: String, person: Person, note: String, onDone: () -> Unit) {
-        if (demo.value != null) {
-            val a = GivenAward("demo-g${System.nanoTime()}", title.trim(), emoji, person.uid, note.trim(), month.toString(), System.currentTimeMillis())
-            editDemo("$emoji ${title.trim()} given to ${person.firstName}") { g -> g.copy(given = g.given + a) }
-            return onDone()
-        }
         act("${emoji} ${title.trim()} given to ${person.firstName}") {
             repo.giveAward(gymIdOrThrow, GivenAward("", title.trim(), emoji, person.uid, note.trim(), month.toString(), System.currentTimeMillis()))
             onDone()
@@ -346,11 +303,9 @@ class GymViewModel(private val c: AppContainer) : ViewModel() {
     }
     fun editGivenAward(a: GivenAward, title: String, note: String) {
         val t = title.trim(); val n = note.trim()
-        if (demo.value != null) return editDemo("Award updated") { g -> g.copy(given = g.given.map { if (it.id == a.id) it.copy(title = t, note = n) else it }) }
         act("Award updated") { repo.editGivenAward(gymIdOrThrow, a.id, t, n) }
     }
     fun removeGivenAward(a: GivenAward) {
-        if (demo.value != null) return editDemo("Award removed") { g -> g.copy(given = g.given.filter { it.id != a.id }) }
         act("Award removed") { repo.deleteGivenAward(gymIdOrThrow, a.id) }
     }
     fun renameGym(name: String) = act("Gym name saved") { repo.renameGym(gymIdOrThrow, name.trim()) }

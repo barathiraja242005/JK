@@ -70,7 +70,6 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
     val gym by gvm.gym.collectAsStateWithLifecycle()
     val people by gvm.people.collectAsStateWithLifecycle()
     val digest by gvm.ownerDigest.collectAsStateWithLifecycle()
-    val demoOn = gvm.demo.collectAsStateWithLifecycle().value != null
     val me by gvm.me.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var rejecting by remember { mutableStateOf<Person?>(null) }
@@ -87,15 +86,6 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 OwnerAvatar(me?.photoUrl, me?.name ?: "Owner", 40.dp)
-            }
-        }
-        if (demoOn) item {
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Tone.WARN.fill)
-                .padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("Sample gym, not your real data", Modifier.weight(1f), style = plex(14.sp), color = Tone.WARN.ink)
-                TextButton(onClick = { gvm.setDemo(false) }, Modifier.heightIn(min = 48.dp)) {
-                    Text("Turn off", style = plex(14.sp, FontWeight.SemiBold), color = Tone.WARN.ink)
-                }
             }
         }
         val d = digest ?: return@OwnerPage
