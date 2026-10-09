@@ -10,6 +10,7 @@ import com.barathiraja.jk.domain.Health
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.abs
 
 class HealthTest {
     @Test fun bmi() = assertEquals(22.86f, Health.bmi(70f, 175f), 0.01f)
@@ -31,14 +32,7 @@ class HealthTest {
         val p = Profile(weightKg = 80f, heightCm = 180f, age = 28, goal = Goal.LOSE)
         val m = Health.macros(p)
         val kcal = m.proteinG * 4 + m.carbsG * 4 + m.fatG * 9
-        assertTrue(kotlin.math.abs(kcal - Health.targetCalories(p)) < 15)
-    }
-
-    @Test fun streakCountsConsecutiveDays() {
-        assertEquals(3, Health.streak(listOf(100, 99, 98, 96), today = 100))
-        assertEquals(2, Health.streak(listOf(99, 98), today = 100)) // not yet trained today
-        assertEquals(0, Health.streak(listOf(97), today = 100))
-        assertEquals(0, Health.streak(emptyList(), today = 100))
+        assertTrue(abs(kcal - Health.targetCalories(p)) < 15)
     }
 
     @Test fun todaysWorkoutMatchesPlace() {

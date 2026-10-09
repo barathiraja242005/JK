@@ -25,9 +25,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -60,16 +58,19 @@ import com.barathiraja.jk.ui.theme.Bad
 import com.barathiraja.jk.ui.theme.Good
 import com.barathiraja.jk.ui.theme.Watch
 import com.barathiraja.jk.ui.theme.Calm
+import androidx.compose.foundation.layout.PaddingValues
+import com.barathiraja.jk.ui.components.SegmentedTabs
+import com.barathiraja.jk.ui.components.SegmentTab
+import com.barathiraja.jk.ui.components.ProgressBar
+import com.barathiraja.jk.ui.theme.Jk
 
 @Composable
 fun DietScreen(vm: JkViewModel, nav: NavHostController) {
     var tab by rememberSaveable { mutableStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         BackScreenBar("Diet", onBack = { nav.popBackStack() })
-        PrimaryTabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.background) {
-            Tab(tab == 0, { tab = 0 }, text = { Text("Food log") })
-            Tab(tab == 1, { tab = 1 }, text = { Text("Meal plans") })
-        }
+        SegmentedTabs(listOf(SegmentTab("Food log"), SegmentTab("Meal plans")), tab, { tab = it },
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         if (tab == 0) FoodLog(vm) else MealPlanTab(vm)
     }
 }
@@ -85,7 +86,7 @@ private fun FoodLog(vm: JkViewModel) {
 
     addTo?.let { meal -> AddFoodDialog(vm, meal, onDismiss = { addTo = null }) }
 
-    LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             JkCard(Modifier.fillMaxWidth()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -145,7 +146,7 @@ private fun MacroBar(label: String, value: Float, goal: Int, color: Color) {
             Text(label, Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
             Text("${value.toInt()} / ${goal}g", style = MaterialTheme.typography.labelMedium)
         }
-        androidx.compose.material3.LinearProgressIndicator(progress = { value / goal.coerceAtLeast(1) }, Modifier.fillMaxWidth(), color = color)
+        ProgressBar(value / goal.coerceAtLeast(1).toFloat(), Jk.Well, color, key = label, height = 6.dp)
     }
 }
 
@@ -239,7 +240,7 @@ private fun MealPlanTab(vm: JkViewModel) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     var veg by remember { mutableStateOf(vm.vegOnly) }
     val target = Health.targetCalories(profile)
-    LazyColumn(contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("Sample days for '${profile.goal.label}' · aim for about $target kcal. Adjust portions to hit your target.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -27,7 +27,7 @@ import com.barathiraja.jk.ui.components.openUrl
 private val faq = listOf(
     "How does JK pick today's workout?" to "It rotates through programs that match where you train (home or gym) and your goal, with a recovery session every 7th day for home users.",
     "Why aren't my steps counting?" to "Tap Enable on the Health tab to allow activity access. JK reads your phone's built-in step sensor while the app is open and catches up on steps when you reopen it.",
-    "Do I need internet?" to "No for the main features. Built-in workouts, tracking, diet and meditation work offline. Browsing the full 870+ exercise library and Shorts loads photos online the first time, then caches them. Tutorial videos open on YouTube.",
+    "Do I need internet?" to "No for the main features. Built-in workouts, tracking, diet and meditation work offline. Photos for the common exercises are built in; the rest of the library loads online the first time, then is cached. Tutorial videos open on YouTube.",
     "Where is my data stored?" to "Only on this phone. JK has no account and sends nothing to a server. Uninstalling the app deletes your data.",
     "How are calories calculated?" to "Workout calories use MET values × your weight × time. Daily targets use the Mifflin–St Jeor equation. Treat them as estimates.",
     "How do challenges work?" to "Each day unlocks a workout that gets slightly harder. Finish it in the player and the day is ticked off automatically. 💤 days are for recovery.",
@@ -37,7 +37,6 @@ private val faq = listOf(
 private val guide = listOf(
     "Today" to "Your daily plan: workout of the day, streak, steps, water and calorie burn, and quick actions.",
     "Train" to "Programs for home and gym, 30-day challenges, the exercise library with photos and video tutorials, and your custom workouts.",
-    "Shorts" to "Swipe up through exercise demos. Double-tap to like, save the ones you want to try, or open a tutorial.",
     "Health" to "Water, steps and walks, diet log and meal plans, fasting, meditation, breathing, calculators, timers and guides.",
     "Progress" to "Weekly charts, weight trend, workout history and transformation photos. Your profile and settings live under the avatar.",
 )

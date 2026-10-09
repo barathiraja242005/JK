@@ -10,6 +10,7 @@ import com.barathiraja.jk.data.BodyPart.LEGS
 import com.barathiraja.jk.data.BodyPart.SHOULDER
 import com.barathiraja.jk.data.BodyPart.TRICEPS
 import com.barathiraja.jk.data.Equipment
+import com.barathiraja.jk.data.weightStep
 import com.barathiraja.jk.data.Exercise
 import com.barathiraja.jk.data.Goal
 import com.barathiraja.jk.data.Level
@@ -153,7 +154,7 @@ class TrainingEngine(private val lookup: (String) -> Exercise?) {
         val w = last.maxOf { it.weightKg }
         if (w <= 0f) return 0f
         val allHit = last.all { it.reps >= targetReps }
-        val step = when (e.equipment) { "dumbbell", "kettlebells" -> 1f; else -> 2.5f }
+        val step = e.weightStep
         return if (allHit) w + step else w
     }
 

@@ -56,6 +56,14 @@ import com.barathiraja.jk.ui.components.LocalNavBarInset
 import com.barathiraja.jk.ui.theme.HeroFill
 import com.barathiraja.jk.ui.theme.Red
 import com.barathiraja.jk.ui.theme.Yellow
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.ProgressRing
+import com.barathiraja.jk.ui.components.StatusChip
+import com.barathiraja.jk.ui.components.rememberFillIn
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /*
  * One person's page (a trainer for the owner, a member for the owner or their trainer): a black top card with
@@ -99,30 +107,30 @@ internal fun PersonHero(
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(p.photoUrl, p.name, 44.dp, onDark = true)
+            PersonAvatar(p.photoUrl, p.name, 44.dp, onDark = true)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(p.name, style = plex(18.sp, FontWeight.Bold, line = 22.sp), color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    OwnerChip(chip.first, chip.second, onDark = true)
+                    StatusChip(chip.first, chip.second, onDark = true)
                     // "Top …" already says first place, so the rank only shows for everyone else.
                     if (rank != null && chip.second != Tone.TOP) Text(
                         "$rank this month",
-                        Modifier.clip(RoundedCornerShape(50)).background(Owner.DarkStrip).padding(horizontal = 10.dp, vertical = 4.dp),
+                        Modifier.clip(RoundedCornerShape(50)).background(Jk.DarkStrip).padding(horizontal = 10.dp, vertical = 4.dp),
                         style = plex(12.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1,
                     )
                 }
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerRing(fraction ?: 0f, 76.dp, 8.dp, Owner.DarkTrack, Yellow, "hero-" + p.uid) {
+            ProgressRing(fraction ?: 0f, 76.dp, 8.dp, Jk.DarkTrack, Yellow, "hero-" + p.uid) {
                 Text(if (fraction == null) "–" else "${Math.round(fraction * 100)}%",
                     style = plex(if ((fraction ?: 0f) >= 1f) 15.sp else 17.sp, FontWeight.Bold, tracking = (-0.5).sp), color = Color.White, maxLines = 1)
             }
             Spacer(Modifier.width(16.dp))
-            Text(line, style = plex(15.sp, line = 19.sp), color = Owner.OnDarkSoft)
+            Text(line, style = plex(15.sp, line = 19.sp), color = Jk.OnDarkSoft)
         }
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Owner.DarkStrip).heightIn(min = 48.dp)
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Jk.DarkStrip).heightIn(min = 48.dp)
             .padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(strip, style = plex(14.sp, FontWeight.SemiBold), color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -144,7 +152,7 @@ internal fun StatTiles(tiles: List<Tile>) {
                 Text(t.value, style = plex(21.sp, FontWeight.SemiBold, tracking = (-0.5).sp), color = if (t.dark) Color.White else cs.onSurface, maxLines = 1)
                 Text(t.label, style = plex(13.sp, FontWeight.SemiBold), color = if (t.dark) Color.White else cs.onSurface,
                     modifier = Modifier.padding(top = 2.dp))
-                Text(t.note, style = plex(11.sp, line = 14.sp), color = if (t.dark) Owner.OnDarkMuted else cs.onSurfaceVariant)
+                Text(t.note, style = plex(11.sp, line = 14.sp), color = if (t.dark) Jk.OnDarkMuted else cs.onSurfaceVariant)
             }
         }
     }
@@ -205,7 +213,7 @@ fun TrainerDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) 
     val trainer = people.firstOrNull { it.uid == uid }?.takeIf { it.active }
     if (d == null || (trainer == null && people.isEmpty())) { GymLoading(); return }
     if (trainer == null) {
-        PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(15.sp), color = Owner.Muted) } }
+        PersonPage("Back", { nav.popBackStack() }) { item { Text("This trainer isn't in the gym anymore.", style = plex(15.sp), color = Jk.Muted) } }
         return
     }
     val row = d.trainers.firstOrNull { it.trainer.uid == uid }

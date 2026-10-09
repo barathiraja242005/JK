@@ -47,10 +47,8 @@ class TrainingViewModel(private val c: AppContainer) : ViewModel() {
 
     private val week = c.currentDay.map { mondayOf(it) }.distinctUntilChanged()
 
-    val todayDay = c.currentDay.flatMapLatest { repo.day(it) }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val todayItems = c.currentDay.flatMapLatest { repo.items(it) }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val weekDays = week.flatMapLatest { repo.week(it, it + WEEK_LAST) }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
-    val weekItems = week.flatMapLatest { repo.weekItems(it, it + WEEK_LAST) }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val completedDays = repo.completedDays().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     init {

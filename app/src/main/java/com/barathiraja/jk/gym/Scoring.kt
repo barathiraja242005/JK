@@ -4,6 +4,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import java.time.Instant
 
 /**
  * Points, rankings and monthly awards. Everything is computed from the raw assignments that every phone in
@@ -36,7 +37,7 @@ object Scoring {
     data class TrainerScore(val uid: String, val score: Int, val members: Int, val activeMembers: Int, val rate: Float)
 
     fun dayOf(millis: Long, zone: ZoneId = ZoneId.systemDefault()): Long =
-        java.time.Instant.ofEpochMilli(millis).atZone(zone).toLocalDate().toEpochDay()
+        Instant.ofEpochMilli(millis).atZone(zone).toLocalDate().toEpochDay()
 
     fun monthRange(month: YearMonth): LongRange = month.atDay(1).toEpochDay()..month.atEndOfMonth().toEpochDay()
 
@@ -111,6 +112,15 @@ object Scoring {
             .firstOrNull()?.let { out[Award.IRON_LIFTER] = it.uid }
         return out
     }
+
+    /**
+     * Workouts done in a row: counts back from the latest workout that's due (today's only once it's done, since the
+     * member still has the day), stopping at the first missed one. Days with nothing set are rest days and don't break it.
+     */
+    fun workoutStreak(mine: List<Assignment>, today: Long): Int =
+        mine.filter { it.epochDay < today || (it.epochDay == today && it.done) }
+            .sortedByDescending { it.epochDay }
+            .takeWhile { it.done }.size
 
     private fun weekOf(day: Long): Long = ChronoUnit.WEEKS.between(LocalDate.of(2024, 1, 1), LocalDate.ofEpochDay(day)) // 2024-01-01 is a Monday
 }

@@ -24,11 +24,13 @@ data class Person(
     val joinedAt: Long = 0,
 ) {
     val active get() = status == PersonStatus.ACTIVE
-    /** What to call them: the first real word of the name, skipping initials ("S. Janarthanan" -> "Janarthanan"). */
-    val firstName: String get() {
-        val words = name.split(' ').filter { it.isNotBlank() }
-        return words.firstOrNull { it.trimEnd('.').length > 1 } ?: words.firstOrNull() ?: name
-    }
+    val firstName: String get() = firstNameOf(name)
+}
+
+/** What to call someone: the first real word of the name, skipping initials ("S. Janarthanan", "S.Janarthanan" -> "Janarthanan"). */
+fun firstNameOf(name: String): String {
+    val words = name.split(' ', '.').filter { it.isNotBlank() }
+    return words.firstOrNull { it.length > 1 } ?: words.firstOrNull() ?: name
 }
 
 /** One exercise in a workout; [cue] is the trainer's short how-to for it (empty when there is none). */
@@ -56,7 +58,10 @@ data class Assignment(
     val setsDone get() = exercises.sumOf { e -> e.sets.count { it.done } }
     val exercisesDone get() = exercises.count { it.done }
     /** Kilograms moved in completed sets. */
-    val volumeKg get() = exercises.sumOf { e -> e.sets.filter { it.done && !it.timed }.sumOf { (it.reps * it.weightKg).toDouble() } }
+    /** Kilos lifted; each set is capped at believable numbers, since the server can't check every set. */
+    val volumeKg get() = exercises.sumOf { e ->
+        e.sets.filter { it.done && !it.timed }.sumOf { (it.reps.coerceIn(0, MAX_REPS) * it.weightKg.coerceIn(0f, MAX_KG)).toDouble() }
+    }
 }
 
 data class Template(val id: String, val trainerUid: String, val title: String, val exercises: List<AssignedExercise>)
@@ -82,3 +87,7 @@ data class GivenAward(
     val month: String,
     val givenAt: Long,
 )
+
+/** The most reps and kilos one set can count for in scores and strength records. */
+const val MAX_REPS = 100
+const val MAX_KG = 500f

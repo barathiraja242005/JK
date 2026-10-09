@@ -15,6 +15,7 @@ import org.junit.Test
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneOffset
+import com.barathiraja.jk.gym.tidyName
 
 class ScoringTest {
     private val utc = ZoneOffset.UTC
@@ -72,11 +73,11 @@ class ScoringTest {
     }
 
     @Test fun tidiesGoogleNames() {
-        assertEquals("S. Janarthanan", com.barathiraja.jk.ui.GymViewModel.tidyName("_S. Janarthanan_"))
-        assertEquals("Koundar Barathiraja", com.barathiraja.jk.ui.GymViewModel.tidyName("KOUNDAR  BARATHIRAJA"))
-        assertEquals("Ravi Kumar", com.barathiraja.jk.ui.GymViewModel.tidyName("Ravi Kumar"))
-        assertEquals("Barathiraja K", com.barathiraja.jk.ui.GymViewModel.tidyName("BARATHIRAJA K 2023-2027"))
-        assertEquals("Sanjay M", com.barathiraja.jk.ui.GymViewModel.tidyName("Sanjay M (2021 - 25)"))
+        assertEquals("S. Janarthanan", tidyName("_S. Janarthanan_"))
+        assertEquals("Koundar Barathiraja", tidyName("KOUNDAR  BARATHIRAJA"))
+        assertEquals("Ravi Kumar", tidyName("Ravi Kumar"))
+        assertEquals("Barathiraja K", tidyName("BARATHIRAJA K 2023-2027"))
+        assertEquals("Sanjay M", tidyName("Sanjay M (2021 - 25)"))
     }
 
     @Test fun firstNameSkipsInitials() {
@@ -84,6 +85,7 @@ class ScoringTest {
         assertEquals("Janarthanan", p("S. Janarthanan").firstName)
         assertEquals("Ravi", p("Ravi Kumar").firstName)
         assertEquals("K", p("K").firstName)
+        assertEquals("Barathiraja", p("S.Barathiraja").firstName)
     }
 
     @Test fun missedWorkoutBreaksPerfectWeek() {
@@ -124,5 +126,16 @@ class ScoringTest {
     @Test fun removedMembersCannotWin() {
         val people = listOf(trainer("t1"), member("m").copy(status = PersonStatus.REMOVED))
         assertFalse(Award.BEST_MEMBER in Scoring.awards(people, listOf(a("m", 1, true)), month))
+    }
+
+    @Test fun workoutStreakSkipsRestDaysAndWaitsForToday() {
+        // Done on the 1st, 3rd and 5th (rest days between), today's (7th) not done yet: still a streak of 3.
+        val list = listOf(a("m", 1, true), a("m", 3, true), a("m", 5, true), a("m", 7, false))
+        assertEquals(3, Scoring.workoutStreak(list, day(7)))
+        // Once today's is done it counts.
+        assertEquals(4, Scoring.workoutStreak(list.dropLast(1) + a("m", 7, true), day(7)))
+        // A missed workout ends it.
+        assertEquals(1, Scoring.workoutStreak(listOf(a("m", 1, true), a("m", 3, false), a("m", 5, true)), day(7)))
+        assertEquals(0, Scoring.workoutStreak(emptyList(), day(7)))
     }
 }

@@ -1,5 +1,6 @@
 package com.barathiraja.jk.gym
 
+import android.util.Log
 import com.barathiraja.jk.data.SetSpec
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
@@ -13,9 +14,13 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.CancellationException
 
 /**
  * Firestore layout (see firestore.rules):
@@ -28,7 +33,7 @@ import kotlinx.coroutines.tasks.await
  *   gyms/{gymId}/awards/{yyyy-MM}  { winners: {AWARD: uid} }
  *   gyms/{gymId}/given/{id}        GivenAward (owner hands these out)
  */
-class GymRepo {
+class GymRepo : GymBackend {
     private val db = FirebaseFirestore.getInstance()
     private fun gymDoc(gymId: String) = db.collection("gyms").document(gymId)
     private fun peopleCol(gymId: String) = gymDoc(gymId).collection("people")
@@ -39,40 +44,57 @@ class GymRepo {
 
     // ---------- live reads ----------
 
-    fun userGymId(uid: String): Flow<String?> = db.collection("users").document(uid).listen { it.getString("gymId") }
+    override fun userGymId(uid: String): Flow<String?> = db.collection("users").document(uid).listen { it.getString("gymId") }
 
-    fun gym(gymId: String): Flow<Gym?> = gymDoc(gymId).listen { d ->
+    override fun gym(gymId: String): Flow<Gym?> = gymDoc(gymId).listen { d ->
         Gym(d.id, d.getString("name").orEmpty(), d.getString("ownerUid").orEmpty(), d.getString("gymCode").orEmpty())
     }
 
     /** Your own record; readable even while a trainer is still waiting for approval. */
-    fun person(gymId: String, uid: String): Flow<Person?> = peopleCol(gymId).document(uid).listen(::toPerson)
+    override fun person(gymId: String, uid: String): Flow<Person?> = peopleCol(gymId).document(uid).listen(::toPerson)
 
-    fun people(gymId: String): Flow<List<Person>> = peopleCol(gymId).listenAll(::toPerson)
+    override fun people(gymId: String): Flow<List<Person>> = peopleCol(gymId).listenAll(::toPerson)
 
     /** All assignments in the gym between two days (inclusive); one range filter needs no composite index. */
-    fun assignments(gymId: String, from: Long, to: Long): Flow<List<Assignment>> =
+    override fun assignments(gymId: String, from: Long, to: Long): Flow<List<Assignment>> =
         assignmentsCol(gymId).whereGreaterThanOrEqualTo("epochDay", from).whereLessThanOrEqualTo("epochDay", to).listenAll(::toAssignment)
 
-    fun templates(gymId: String, trainerUid: String): Flow<List<Template>> =
+    /**
+     * One person's assignments (a member's own, or a trainer's members'), so a phone reads only what it shows rather
+     * than the whole gym. Needs a composite index on [field] + epochDay (see firestore.indexes.json); until that index
+     * exists Firestore refuses the query, and this falls back to the gym-wide range filtered on the phone.
+     */
+    override fun assignmentsOf(gymId: String, field: String, uid: String, from: Long, to: Long): Flow<List<Assignment>> {
+        val inRange = { q: Query -> q.whereGreaterThanOrEqualTo("epochDay", from).whereLessThanOrEqualTo("epochDay", to) }
+        return inRange(assignmentsCol(gymId).whereEqualTo(field, uid)).snapshots(::toAssignment)
+            .catch { e ->
+                if (e !is FirebaseFirestoreException || e.code != FirebaseFirestoreException.Code.FAILED_PRECONDITION) throw e
+                Log.e("GymRepo", "Missing Firestore index for assignments by $field; reading the whole gym instead", e)
+                emitAll(inRange(assignmentsCol(gymId)).snapshots(::toAssignment)
+                    .map { l -> l.filter { (if (field == "memberUid") it.memberUid else it.trainerUid) == uid } })
+            }
+            .retryWithBackoff()
+    }
+
+    override fun templates(gymId: String, trainerUid: String): Flow<List<Template>> =
         templatesCol(gymId).whereEqualTo("trainerUid", trainerUid).listenAll { d ->
             Template(d.id, d.getString("trainerUid").orEmpty(), d.getString("title").orEmpty(), exercisesOf(d))
         }
 
-    fun awards(gymId: String): Flow<List<MonthAwards>> = awardsCol(gymId).listenAll { d ->
+    override fun awards(gymId: String): Flow<List<MonthAwards>> = awardsCol(gymId).listenAll { d ->
         @Suppress("UNCHECKED_CAST")
         val w = (d.get("winners") as? Map<String, String>).orEmpty()
         MonthAwards(d.id, w.mapNotNull { (k, v) -> Award.entries.firstOrNull { it.name == k }?.let { it to v } }.toMap())
     }
 
-    fun givenAwards(gymId: String): Flow<List<GivenAward>> = givenCol(gymId).listenAll { d ->
+    override fun givenAwards(gymId: String): Flow<List<GivenAward>> = givenCol(gymId).listenAll { d ->
         GivenAward(d.id, d.getString("title").orEmpty(), d.getString("emoji").orEmpty(), d.getString("uid").orEmpty(),
             d.getString("note").orEmpty(), d.getString("month").orEmpty(), d.getLong("givenAt") ?: 0)
     }
 
     // ---------- joining ----------
 
-    suspend fun createGym(name: String, uid: String, displayName: String, photo: String?): String {
+    override suspend fun createGym(name: String, uid: String, displayName: String, photo: String?): String {
         val gym = db.collection("gyms").document()
         val code = freeCode()
         db.batch()
@@ -85,19 +107,21 @@ class GymRepo {
     }
 
     /** Trainers join with the gym code and wait for the owner; their member code is created now so it never changes. */
-    suspend fun joinAsTrainer(gymCode: String, uid: String, displayName: String, photo: String?) {
+    override suspend fun joinAsTrainer(gymCode: String, uid: String, displayName: String, photo: String?) {
         val c = lookup(gymCode, "gym")
         val gymId = c.getString("gymId")!!
         val trainerCode = freeCode()
         joinBatch {
             db.batch()
-                .set(peopleCol(gymId).document(uid), personMap(displayName, photo, Role.TRAINER, PersonStatus.PENDING) + ("trainerCode" to trainerCode))
+                // joinCode (the gym code) lets the rules check they were invited.
+                .set(peopleCol(gymId).document(uid), personMap(displayName, photo, Role.TRAINER, PersonStatus.PENDING) +
+                    mapOf("trainerCode" to trainerCode, "joinCode" to c.id))
                 .set(db.collection("codes").document(trainerCode), mapOf("gymId" to gymId, "type" to "trainer", "trainerUid" to uid))
                 .set(db.collection("users").document(uid), mapOf("gymId" to gymId), SetOptions.merge())
         }
     }
 
-    suspend fun joinAsMember(trainerCode: String, uid: String, displayName: String, photo: String?) {
+    override suspend fun joinAsMember(trainerCode: String, uid: String, displayName: String, photo: String?) {
         val c = lookup(trainerCode, "trainer")
         val gymId = c.getString("gymId")!!
         val trainerUid = c.getString("trainerUid")!!
@@ -122,16 +146,16 @@ class GymRepo {
         }
     }
 
-    suspend fun setName(gymId: String, uid: String, name: String) {
-        peopleCol(gymId).document(uid).update("name", name).await()
+    override suspend fun setName(gymId: String, uid: String, name: String) {
+        peopleCol(gymId).document(uid).update("name", name.take(MAX_NAME)).await()
     }
 
-    suspend fun setStatus(gymId: String, uid: String, status: PersonStatus) {
+    override suspend fun setStatus(gymId: String, uid: String, status: PersonStatus) {
         peopleCol(gymId).document(uid).update("status", status.name.lowercase()).await()
     }
 
     /** Owner: moves members to another trainer ([trainerUid] null = no trainer for now). */
-    suspend fun setTrainer(gymId: String, memberUids: List<String>, trainerUid: String?) {
+    override suspend fun setTrainer(gymId: String, memberUids: List<String>, trainerUid: String?) {
         if (memberUids.isEmpty()) return
         val batch = db.batch()
         memberUids.forEach { batch.update(peopleCol(gymId).document(it), "trainerUid", trainerUid) }
@@ -139,7 +163,7 @@ class GymRepo {
     }
 
     /** Owner: takes someone out of the gym; a trainer's members move to [moveTo] in the same write. */
-    suspend fun removeFromGym(gymId: String, uid: String, members: List<String>, moveTo: String?) {
+    override suspend fun removeFromGym(gymId: String, uid: String, members: List<String>, moveTo: String?) {
         val batch = db.batch()
         members.forEach { batch.update(peopleCol(gymId).document(it), "trainerUid", moveTo) }
         batch.update(peopleCol(gymId).document(uid), "status", PersonStatus.REMOVED.name.lowercase())
@@ -148,22 +172,45 @@ class GymRepo {
 
     /**
      * Leaving unlinks the account and marks them removed, so they drop out of rankings and lose access. The gym keeps
-     * their history and they keep their backup; they can join again with a code.
+     * their history and they keep their backup. leftSelf tells the rules it was their choice, so they may join again
+     * with a code (someone the gym removed can't).
      */
-    suspend fun leave(gymId: String, uid: String) {
+    override suspend fun leave(gymId: String, uid: String) {
         db.batch()
             .update(db.collection("users").document(uid), "gymId", FieldValue.delete())
-            .update(peopleCol(gymId).document(uid), "status", PersonStatus.REMOVED.name.lowercase())
+            .update(peopleCol(gymId).document(uid), mapOf("status" to PersonStatus.REMOVED.name.lowercase(), "leftSelf" to true))
             .commit().await()
     }
 
+    override suspend fun newTrainerCode(gymId: String, uid: String, oldCode: String?): String {
+        val code = freeCode()
+        db.batch()
+            .set(db.collection("codes").document(code), mapOf("gymId" to gymId, "type" to "trainer", "trainerUid" to uid))
+            .update(peopleCol(gymId).document(uid), "trainerCode", code)
+            .apply { if (!oldCode.isNullOrBlank()) update(db.collection("codes").document(oldCode), "active", false) }
+            .commit().await()
+        return code
+    }
+
+    /**
+     * Deleting an account: the gym record keeps its workouts (they're part of other people's rankings) but loses the
+     * name and photo and is marked as left; the private backup and the account's gym link are deleted.
+     */
+    override suspend fun deleteAccount(gymId: String?, uid: String) {
+        if (gymId != null) {
+            peopleCol(gymId).document(uid).update(mapOf("name" to "Former member", "photoUrl" to null)).await()
+            peopleCol(gymId).document(uid).update(mapOf("status" to PersonStatus.REMOVED.name.lowercase(), "leftSelf" to true)).await()
+        }
+        db.collection("users").document(uid).delete().await()
+    }
+
     /** Private per-account backup of profile and settings (users/{uid}.prefs), so signing in again restores them. */
-    suspend fun loadBackup(uid: String): Map<String, String>? {
+    override suspend fun loadBackup(uid: String): Map<String, String>? {
         @Suppress("UNCHECKED_CAST")
         return db.collection("users").document(uid).get().await().get("prefs") as? Map<String, String>
     }
 
-    suspend fun saveBackup(uid: String, prefs: Map<String, String>) {
+    override suspend fun saveBackup(uid: String, prefs: Map<String, String>) {
         db.collection("users").document(uid).set(mapOf("prefs" to prefs), SetOptions.merge()).await()
     }
 
@@ -173,7 +220,7 @@ class GymRepo {
      * Writes assignments in small batches: the rules read each member's record, and a batch may only make
      * [RULE_READS_PER_BATCH] such reads. Returns how many were saved; throws [PartialSave] if a later batch fails.
      */
-    suspend fun assign(gymId: String, list: List<Assignment>): Int {
+    override suspend fun assign(gymId: String, list: List<Assignment>): Int {
         var saved = 0
         list.chunked(RULE_READS_PER_BATCH).forEach { chunk ->
             val batch = db.batch()
@@ -190,7 +237,7 @@ class GymRepo {
     }
 
     /** Member progress: sets ticked, status and timestamps. */
-    suspend fun saveProgress(gymId: String, a: Assignment) {
+    override suspend fun saveProgress(gymId: String, a: Assignment) {
         assignmentsCol(gymId).document(a.id).update(
             mapOf(
                 "exercises" to a.exercises.map(::exerciseMap),
@@ -202,25 +249,25 @@ class GymRepo {
         ).await()
     }
 
-    suspend fun verify(gymId: String, id: String, verified: Boolean, note: String) {
+    override suspend fun verify(gymId: String, id: String, verified: Boolean, note: String) {
         assignmentsCol(gymId).document(id).update(mapOf("verified" to verified, "trainerNote" to note)).await()
     }
 
-    suspend fun deleteAssignment(gymId: String, id: String) {
+    override suspend fun deleteAssignment(gymId: String, id: String) {
         assignmentsCol(gymId).document(id).delete().await()
     }
 
-    suspend fun saveTemplate(gymId: String, t: Template) {
+    override suspend fun saveTemplate(gymId: String, t: Template) {
         val doc = if (t.id.isBlank()) templatesCol(gymId).document() else templatesCol(gymId).document(t.id)
         doc.set(mapOf("trainerUid" to t.trainerUid, "title" to t.title, "exercises" to t.exercises.map(::exerciseMap))).await()
     }
 
-    suspend fun deleteTemplate(gymId: String, id: String) {
+    override suspend fun deleteTemplate(gymId: String, id: String) {
         templatesCol(gymId).document(id).delete().await()
     }
 
     /** Monthly awards are written once (only by the owner); an existing month is left as it is. */
-    suspend fun saveAwards(gymId: String, month: String, winners: Map<Award, String>) {
+    override suspend fun saveAwards(gymId: String, month: String, winners: Map<Award, String>) {
         db.runTransaction { tx ->
             val ref = awardsCol(gymId).document(month)
             if (!tx.get(ref).exists()) tx.set(ref, mapOf("winners" to winners.mapKeys { it.key.name }, "savedAt" to System.currentTimeMillis()))
@@ -228,27 +275,27 @@ class GymRepo {
     }
 
     /** Everyone in the gym, straight from the server (not the phone's cache), for decisions that are saved for good. */
-    suspend fun fetchPeople(gymId: String): List<Person> = peopleCol(gymId).get(Source.SERVER).await().documents.map(::toPerson)
+    override suspend fun fetchPeople(gymId: String): List<Person> = peopleCol(gymId).get(Source.SERVER).await().documents.map(::toPerson)
 
     /** Assignments between two days from the server, for the same reason. */
-    suspend fun fetchAssignments(gymId: String, from: Long, to: Long): List<Assignment> =
+    override suspend fun fetchAssignments(gymId: String, from: Long, to: Long): List<Assignment> =
         assignmentsCol(gymId).whereGreaterThanOrEqualTo("epochDay", from).whereLessThanOrEqualTo("epochDay", to)
             .get(Source.SERVER).await().documents.map(::toAssignment)
 
-    suspend fun giveAward(gymId: String, a: GivenAward) {
+    override suspend fun giveAward(gymId: String, a: GivenAward) {
         givenCol(gymId).add(mapOf("title" to a.title, "emoji" to a.emoji, "uid" to a.uid, "note" to a.note,
             "month" to a.month, "givenAt" to a.givenAt)).await()
     }
 
-    suspend fun editGivenAward(gymId: String, id: String, title: String, note: String) {
+    override suspend fun editGivenAward(gymId: String, id: String, title: String, note: String) {
         givenCol(gymId).document(id).update(mapOf("title" to title, "note" to note)).await()
     }
 
-    suspend fun deleteGivenAward(gymId: String, id: String) {
+    override suspend fun deleteGivenAward(gymId: String, id: String) {
         givenCol(gymId).document(id).delete().await()
     }
 
-    suspend fun renameGym(gymId: String, name: String) {
+    override suspend fun renameGym(gymId: String, name: String) {
         gymDoc(gymId).update("name", name).await()
     }
 
@@ -271,7 +318,8 @@ class GymRepo {
     }
 
     private fun personMap(name: String, photo: String?, role: Role, status: PersonStatus) = mapOf(
-        "name" to name, "photoUrl" to photo, "role" to role.name.lowercase(), "status" to status.name.lowercase(),
+        // The rules only accept a short name and a Google profile photo.
+        "name" to name.take(MAX_NAME), "photoUrl" to photo?.takeIf { GOOGLE_PHOTO.matches(it) && it.length <= 500 }, "role" to role.name.lowercase(), "status" to status.name.lowercase(),
         "joinedAt" to System.currentTimeMillis(),
     )
 
@@ -331,17 +379,20 @@ class GymRepo {
     }.retryWithBackoff().distinctUntilChanged()
 
     /** A refused listener is dead in Firestore, so retry (e.g. right after joining or approval). */
-    private fun <T> Query.listenAll(map: (DocumentSnapshot) -> T): Flow<List<T>> = callbackFlow {
+    private fun <T> Query.listenAll(map: (DocumentSnapshot) -> T): Flow<List<T>> = snapshots(map).retryWithBackoff()
+
+    /** A query's results as they change; ends with the error if Firestore refuses it. */
+    private fun <T> Query.snapshots(map: (DocumentSnapshot) -> T): Flow<List<T>> = callbackFlow {
         val reg = addSnapshotListener { snap, err ->
             if (err != null) { close(err); return@addSnapshotListener }
             trySend(snap?.documents?.map(map).orEmpty())
         }
         awaitClose { reg.remove() }
-    }.retryWithBackoff()
+    }
 
     /** Keeps a listener alive: retries after 1s, 2s, 4s… up to [MAX_RETRY_DELAY_MS], for as long as it is collected. */
     private fun <T> Flow<T>.retryWithBackoff(): Flow<T> = retryWhen { e, attempt ->
-        if (e is kotlinx.coroutines.CancellationException) return@retryWhen false
+        if (e is CancellationException) return@retryWhen false
         delay((1000L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(MAX_RETRY_DELAY_MS))
         true
     }
@@ -351,6 +402,8 @@ class GymRepo {
         /** Firestore rules allow 20 document reads per batch; each assignment needs one, plus a little headroom. */
         const val RULE_READS_PER_BATCH = 15
         const val MAX_RETRY_DELAY_MS = 30_000L
+        const val MAX_NAME = 60
+        val GOOGLE_PHOTO = Regex("https://[a-z0-9-]+[.]googleusercontent[.]com/.*")
     }
 }
 

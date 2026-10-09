@@ -26,6 +26,20 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.shareText
+import androidx.compose.runtime.remember
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import com.barathiraja.jk.ui.components.Heading
+import com.barathiraja.jk.ui.components.JkPage
+import com.barathiraja.jk.ui.components.PageTitle
+import com.barathiraja.jk.ui.components.RedButton
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /*
  * The trainer's app, laid out like the owner's: Home answers "how are my members doing today and what do I need to
@@ -57,7 +71,7 @@ fun TrainerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
     val month = members.mapNotNull { scores[it.uid] }
     val needs = trainerNeeds(mine, members, digest?.idle.orEmpty(), today, gvm, nav, context)
 
-    OwnerPage {
+    JkPage {
         item { GreetingHeader(trainer) }
         item {
             TodayHero(
@@ -74,21 +88,24 @@ fun TrainerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
             RedButton("Assign a workout", { nav.navigate(Routes.assign("")) }, Modifier.fillMaxWidth(), Icons.Outlined.Add,
                 enabled = members.isNotEmpty())
         }
+        item {
+            MemberCodesCard(listOf(MemberCode(trainer, trainer.trainerCode.orEmpty())), gym?.name ?: "the gym", gvm, mine = true)
+        }
 
         item {
-            OwnerHeading("Needs you", if (needs.isEmpty()) null else
+            Heading("Needs you", if (needs.isEmpty()) null else
                 "${if (needs.size == 1) "1 thing" else "${needs.size} things"} to check or sort out.")
         }
         item {
             when {
-                members.isEmpty() -> AllClearCard("No members yet. Share your member code from the Members tab.")
+                members.isEmpty() -> AllClearCard("No members yet. Share your member code above.")
                 needs.isEmpty() -> AllClearCard("Every finished workout is checked and every member has a plan.")
                 else -> NeedsList(needs, showAllNeeds) { showAllNeeds = !showAllNeeds }
             }
         }
 
         if (todays.isNotEmpty()) {
-            item { OwnerHeading("Today's workouts", "Tap a member to see their sets.") }
+            item { Heading("Today's workouts", "Tap a member to see their sets.") }
             item {
                 val rows = todays.sortedBy { if (it.done) 2 else if (it.status == AssignStatus.IN_PROGRESS) 0 else 1 }.mapNotNull { a ->
                     val m = byUid[a.memberUid] ?: return@mapNotNull null
@@ -147,7 +164,7 @@ private fun daysText(days: Int) = if (days > 30) "30+ days" else plural(days, "d
 /** Finished workouts this many days back still show up to be checked. */
 private const val CHECK_DAYS = 7
 
-/** The trainer's members, best this month first, and the code new members join with (the only place it shows). */
+/** The trainer's members, best this month first, and the code new members join with (also on Home). */
 @Composable
 fun TrainerMembersScreen(gvm: GymViewModel, nav: NavHostController) {
     val me by gvm.me.collectAsStateWithLifecycle()
@@ -160,16 +177,25 @@ fun TrainerMembersScreen(gvm: GymViewModel, nav: NavHostController) {
     val idle = digest?.idle.orEmpty().associateBy { it.member.uid }
     val mine = ranking.mapNotNull { s -> people.firstOrNull { it.uid == s.uid && it.active && it.trainerUid == trainer.uid }?.let { it to s } }
     val code = trainer.trainerCode.orEmpty()
+    var newCode by remember { mutableStateOf(false) }
+    if (newCode) AlertDialog(onDismissRequest = { newCode = false },
+        title = { Text("Make a new member code?") },
+        text = { Text("New members will need the new code. $code stops working, so someone who has it can't join " +
+            "anymore. Members who already joined stay with you.", style = plex(15.sp, line = 21.sp)) },
+        confirmButton = { TextButton(onClick = { newCode = false; gvm.newMemberCode() }) {
+            Text("Make new code", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText) } },
+        dismissButton = { TextButton(onClick = { newCode = false }) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } })
     val codeCard: LazyListScope.() -> Unit = {
-        item { OwnerHeading("Add a member", "New members sign in to JK, choose \"I'm a member\" and type this code.") }
+        item { Heading("Add a member", "New members sign in to JK, choose \"I'm a member\" and type this code.") }
         item {
             CodeHeroCard("Your member code", "Members join you with", code, onRename = null,
                 onShare = { context.shareText("Join me on the JK app at ${gym?.name ?: "the gym"}! Open JK → Sign in with Google → I'm a member → enter code $code") },
-                onCopy = { copyText(context, "Member code", code); gvm.showMessage("Member code copied") })
+                onCopy = { copyText(context, "Member code", code); gvm.showMessage("Member code copied") },
+                onNewCode = { newCode = true })
         }
     }
 
-    OwnerPage {
+    JkPage {
         item { PageTitle("Members", "Your members, best this month first. Tap someone to assign, check or message.") }
         if (mine.isEmpty()) codeCard()
         else {

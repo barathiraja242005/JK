@@ -30,7 +30,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -42,6 +41,9 @@ import kotlinx.coroutines.launch
 class JkViewModel(private val c: AppContainer) : ViewModel() {
     /** Day new logs go to; reading it also moves [AppContainer.currentDay] on if midnight has passed. */
     private val today get() = c.today()
+
+    /** Today's epoch day for screens: the app's one clock, which ticks over at midnight. */
+    val currentDay: StateFlow<Long> = c.currentDay
 
     /** Runs [query] for the current day and re-runs it when the day rolls over. */
     private fun <T> daily(query: (Long) -> Flow<T>): Flow<T> = c.currentDay.flatMapLatest(query)
@@ -59,8 +61,6 @@ class JkViewModel(private val c: AppContainer) : ViewModel() {
     val weights: StateFlow<List<WeightEntry>> = c.dao.weights().state(emptyList())
     val activeFast: StateFlow<Fast?> = c.dao.activeFast().state(null)
     val pastFasts = c.dao.pastFasts().state(emptyList())
-    val streak: StateFlow<Int> = combine(c.dao.activeDays(), c.currentDay) { days, today -> Health.streak(days, today) }.state(0)
-
     fun saveProfile(p: Profile, logWeight: Boolean = true) {
         val first = !c.prefs.profile.value.onboarded
         c.prefs.saveProfile(p)
@@ -92,16 +92,10 @@ class JkViewModel(private val c: AppContainer) : ViewModel() {
         c.dao.activeFast().first()?.let { c.dao.updateFast(it.copy(endedAt = System.currentTimeMillis())) }
     }
 
-
     fun startSteps() = c.steps.start()
 
     // ---- Exercise flags (likes / saves) ----
     val flags = c.dao.flags().map { list -> list.associateBy { it.exerciseId } }.state(emptyMap())
-
-    fun toggleLike(id: String) = viewModelScope.launch {
-        val f = c.dao.flag(id) ?: ExerciseFlag(id)
-        c.dao.upsertFlag(f.copy(liked = !f.liked))
-    }
 
     fun toggleSave(id: String) = viewModelScope.launch {
         val f = c.dao.flag(id) ?: ExerciseFlag(id)
@@ -180,7 +174,8 @@ class JkViewModel(private val c: AppContainer) : ViewModel() {
     val walks = c.dao.walks().state(emptyList())
     val mindSessions = c.dao.mindSessions().state(emptyList())
 
-    fun saveWalk(w: WalkSession) = viewModelScope.launch { c.dao.insertWalk(w) }
+    /** Saves a walk, dated today. */
+    fun saveWalk(w: WalkSession) = viewModelScope.launch { c.dao.insertWalk(w.copy(epochDay = today)) }
     fun saveMind(title: String, sec: Int) = viewModelScope.launch {
         if (sec >= MIN_MIND_SEC) c.dao.insertMind(MindSession(epochDay = today, title = title, durationSec = sec))
     }

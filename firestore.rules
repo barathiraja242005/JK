@@ -25,16 +25,33 @@ service cloud.firestore {
       return (m < 10 && month < y + '-0' + string(m)) || (m >= 10 && month < y + '-' + string(m));
     }
 
-    // A valid way into a gym: trainers ask and wait for the owner; members need their trainer's code, and the
-    // trainer must be approved. Codes can't be listed, so knowing one is the proof of being invited.
+    // Today's day number in UTC; phones use local days, so checks against it leave a day of slack either way.
+    function utcDay() { return math.floor(request.time.toMillis() / 86400000); }
+
+    // Name and photo anyone in the gym will see: a short name, and only a Google profile photo (no outside links,
+    // which every phone in the gym would load).
+    function validProfile(d) {
+      return d.name is string && d.name.size() <= 60 &&
+        (d.get('photoUrl', null) == null ||
+          (d.photoUrl is string && d.photoUrl.size() <= 500 && d.photoUrl.matches('https://[a-z0-9-]+[.]googleusercontent[.]com/.*')));
+    }
+
+    function codeOk(code, type, gymId) {
+      return code is string && get(codePath(code)).data.type == type && get(codePath(code)).data.gymId == gymId &&
+        get(codePath(code)).data.get('active', true) == true;
+    }
+
+    // A valid way into a gym. Trainers need the gym code and then wait for the owner; they can't name a trainer
+    // (which would let that trainer approve them). Members need an active trainer code from an approved trainer.
+    // Codes can't be listed, so knowing one is the proof of being invited.
     function validJoin(gymId, d) {
-      return (d.role == 'trainer' && d.status == 'pending') ||
-        (d.role == 'member' && d.status == 'active' && d.joinCode is string &&
-           get(codePath(d.joinCode)).data.type == 'trainer' &&
-           get(codePath(d.joinCode)).data.gymId == gymId &&
+      return validProfile(d) && d.get('leftSelf', false) == false && (
+        (d.role == 'trainer' && d.status == 'pending' && d.get('trainerUid', null) == null &&
+           codeOk(d.get('joinCode', null), 'gym', gymId)) ||
+        (d.role == 'member' && d.status == 'active' && codeOk(d.get('joinCode', null), 'trainer', gymId) &&
            get(codePath(d.joinCode)).data.trainerUid == d.trainerUid &&
            get(personPath(gymId, d.trainerUid)).data.role == 'trainer' &&
-           get(personPath(gymId, d.trainerUid)).data.status == 'active');
+           get(personPath(gymId, d.trainerUid)).data.status == 'active'));
     }
 
     // Which gym this account belongs to, plus its private settings backup.
@@ -52,7 +69,10 @@ service cloud.firestore {
         (request.resource.data.type == 'trainer' && request.resource.data.trainerUid == me() &&
            getAfter(personPath(request.resource.data.gymId, me())).data.role == 'trainer')
       );
-      allow update, delete: if false;
+      // A trainer can retire their own code (after making a new one), so an old code stops letting people in.
+      allow update: if signedIn() && resource.data.get('trainerUid', null) == me() && onlyChanged(['active']) &&
+        request.resource.data.active == false;
+      allow delete: if false;
     }
 
     match /gyms/{gymId} {
@@ -66,36 +86,60 @@ service cloud.firestore {
       match /people/{uid} {
         allow read: if activeIn(gymId) || me() == uid || isOwner(gymId);
         allow create: if signedIn() && me() == uid && (
-          (request.resource.data.role == 'owner' && request.resource.data.status == 'active' &&
+          (request.resource.data.role == 'owner' && request.resource.data.status == 'active' && validProfile(request.resource.data) &&
              getAfter(gymPath(gymId)).data.ownerUid == me()) ||
           validJoin(gymId, request.resource.data)
         );
         allow update: if
-          // Owner approves, removes and moves people between trainers.
+          // Owner approves, removes (which sticks: only the person can set leftSelf) and moves people between trainers.
           (isOwner(gymId) && onlyChanged(['status', 'trainerUid'])) ||
-          // Trainers can remove their own members.
-          (isTrainer(gymId) && resource.data.trainerUid == me() && onlyChanged(['status'])) ||
-          // Everyone can update their own name and photo, and leave.
-          (me() == uid && onlyChanged(['name', 'photoUrl'])) ||
-          (me() == uid && onlyChanged(['status']) && request.resource.data.status == 'removed') ||
-          // Someone who left or was removed can come back the normal way.
-          (me() == uid && resource.data.status == 'removed' && validJoin(gymId, request.resource.data));
+          // Trainers can remove their own members, and only members, and only remove (never approve).
+          (isTrainer(gymId) && resource.data.trainerUid == me() && resource.data.role == 'member' &&
+             onlyChanged(['status', 'leftSelf']) && request.resource.data.status == 'removed' &&
+             request.resource.data.get('leftSelf', false) == false) ||
+          // Everyone can update their own name and photo.
+          (me() == uid && onlyChanged(['name', 'photoUrl']) && validProfile(request.resource.data)) ||
+          // A trainer can switch to a new member code they just created.
+          (me() == uid && resource.data.role == 'trainer' && onlyChanged(['trainerCode']) &&
+             getAfter(codePath(request.resource.data.trainerCode)).data.trainerUid == me() &&
+             getAfter(codePath(request.resource.data.trainerCode)).data.gymId == gymId) ||
+          // Leaving: marked removed, and remembered as their own choice so they may come back.
+          (me() == uid && onlyChanged(['status', 'leftSelf']) && request.resource.data.status == 'removed' &&
+             request.resource.data.leftSelf == true) ||
+          // Someone who left by themselves can come back the normal way; someone removed by the gym can't.
+          (me() == uid && resource.data.status == 'removed' && resource.data.get('leftSelf', false) == true &&
+             validJoin(gymId, request.resource.data));
         allow delete: if false;
       }
 
       match /assignments/{id} {
         allow read: if activeIn(gymId) || isOwner(gymId);
+        // A trainer sends a fresh workout to one of their own active members, for yesterday onwards (time zones).
         allow create: if isTrainer(gymId) && request.resource.data.trainerUid == me() &&
           get(personPath(gymId, request.resource.data.memberUid)).data.trainerUid == me() &&
-          request.resource.data.verified == false && request.resource.data.status == 'assigned';
+          get(personPath(gymId, request.resource.data.memberUid)).data.status == 'active' &&
+          request.resource.data.verified == false && request.resource.data.status == 'assigned' &&
+          request.resource.data.get('completedAt', null) == null && request.resource.data.get('startedAt', null) == null &&
+          request.resource.data.epochDay is int && request.resource.data.epochDay >= utcDay() - 2;
         allow update: if
           // Trainers only verify and leave notes; they can't mark a member's workout as done.
           (isTrainer(gymId) && resource.data.trainerUid == me() && onlyChanged(['verified', 'trainerNote'])) ||
-          // Members log their own sets; the workout itself (which exercises, how many) stays as given.
-          (activeIn(gymId) && resource.data.memberUid == me() &&
+          // Members log their own sets on a workout that has opened (not a future one). Rules can't check each set
+          // (no loops), so the app caps reps and weights when scoring; here: same number of exercises, a known
+          // status, and a finish time that isn't in the future or before the workout's day.
+          (activeIn(gymId) && resource.data.memberUid == me() && resource.data.verified == false &&
              onlyChanged(['exercises', 'status', 'startedAt', 'completedAt', 'memberNote']) &&
-             request.resource.data.exercises.size() == resource.data.exercises.size());
-        allow delete: if isTrainer(gymId) && resource.data.trainerUid == me();
+             request.resource.data.exercises.size() == resource.data.exercises.size() &&
+             request.resource.data.status in ['assigned', 'in_progress', 'done'] &&
+             resource.data.epochDay <= utcDay() + 1 &&
+             (request.resource.data.get('completedAt', null) == null ||
+               (request.resource.data.completedAt is int &&
+                request.resource.data.completedAt <= request.time.toMillis() + 300000 &&
+                request.resource.data.completedAt >= (resource.data.epochDay - 1) * 86400000))) ||
+          // Once the coach has checked it, the member can still answer with a note.
+          (activeIn(gymId) && resource.data.memberUid == me() && onlyChanged(['memberNote']));
+        // Only a workout nobody has started can be taken back.
+        allow delete: if isTrainer(gymId) && resource.data.trainerUid == me() && resource.data.status == 'assigned';
       }
 
       match /templates/{id} {

@@ -35,9 +35,9 @@ import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.theme.Good
 import kotlinx.coroutines.delay
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.foundation.layout.Spacer
 
 private val walkFmt = DateTimeFormatter.ofPattern("d MMM, HH:mm").withZone(ZoneId.systemDefault())
 
@@ -79,7 +79,7 @@ fun WalkScreen(vm: JkViewModel, nav: NavHostController) {
                         Stat("$kcal", "kcal")
                         Stat(if (pace > 0) "%.1f".format(pace) else "–", "min/km")
                     }
-                    androidx.compose.foundation.layout.Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
                     if (!active) {
                         Button(onClick = {
                             startedAt = System.currentTimeMillis(); startSteps = stepsToday; pausedTotal = 0; pausedAt = 0; saved = false
@@ -94,7 +94,7 @@ fun WalkScreen(vm: JkViewModel, nav: NavHostController) {
                             Button(onClick = {
                                 if (!saved && elapsedSec >= 30) {
                                     saved = true
-                                    vm.saveWalk(WalkSession(epochDay = LocalDate.now().toEpochDay(), startedAt = startedAt,
+                                    vm.saveWalk(WalkSession(epochDay = 0, startedAt = startedAt,
                                         durationSec = elapsedSec, steps = steps, calories = kcal))
                                 }
                                 startedAt = 0

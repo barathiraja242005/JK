@@ -1,12 +1,12 @@
 package com.barathiraja.jk.ui.gym
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,24 +21,34 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.Groups
+import androidx.compose.material.icons.outlined.Repeat
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.listSaver
@@ -59,21 +69,35 @@ import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.BodyPart
 import com.barathiraja.jk.data.Exercise
 import com.barathiraja.jk.data.ExerciseRepo
+import com.barathiraja.jk.data.weightStep
 import com.barathiraja.jk.data.SetSpec
 import com.barathiraja.jk.data.TrainingPool
+import com.barathiraja.jk.data.weightLabel
 import com.barathiraja.jk.gym.AssignedExercise
+import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.gym.PlanLibrary
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Template
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.components.BackScreen
 import com.barathiraja.jk.ui.components.ExerciseDemo
+import com.barathiraja.jk.ui.components.formatDuration
 import com.barathiraja.jk.ui.screens.ExercisePicker
-import com.barathiraja.jk.ui.theme.HeroFill
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.Heading
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.PlainButton
+import com.barathiraja.jk.ui.components.RedButton
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
-private val chipDay = DateTimeFormatter.ofPattern("EEE d")
+private val weekday = DateTimeFormatter.ofPattern("EEE")
+private val month = DateTimeFormatter.ofPattern("MMM")
 
 /** Default prescription for a newly added exercise; the trainer adjusts it. */
 private fun defaultExercise(id: String): AssignedExercise {
@@ -115,58 +139,77 @@ fun AssignScreen(memberUid: String, gvm: GymViewModel, nav: NavHostController) {
     var showTemplates by rememberSaveable { mutableStateOf(false) }
     // The coach's note sent with the workout; a suggested plan fills it with its tempo and warm-up advice.
     var note by rememberSaveable { mutableStateOf("") }
+    // The one exercise whose sets are open for editing; the rest show as a single "4 × 6–8" line.
+    var open by rememberSaveable { mutableIntStateOf(-1) }
+
+    fun loadPlan(d: PlanLibrary.PlanDay) {
+        exercises.clear(); exercises.addAll(d.exercises)
+        title = "${d.title} · ${d.day}"; note = d.note; open = -1
+    }
 
     if (picking) {
-        ExercisePicker(onDismiss = { picking = false }) { id -> exercises += defaultExercise(id); picking = false }
+        ExercisePicker(onDismiss = { picking = false }) { id -> exercises += defaultExercise(id); open = exercises.lastIndex; picking = false }
     }
     if (showTemplates) {
         StartFromSheet(templates, onDismiss = { showTemplates = false }, onDelete = { gvm.deleteTemplate(it) },
-            onPlan = { d ->
-                exercises.clear(); exercises.addAll(d.exercises)
-                title = "${d.title} · ${d.day}"; note = d.note; showTemplates = false
-            },
+            onPlan = { d -> loadPlan(d); showTemplates = false },
             onTemplate = { t ->
                 exercises.clear(); exercises.addAll(t.exercises.filter { ExerciseRepo.get(it.exerciseId) != null })
-                title = t.title; showTemplates = false
+                title = t.title; note = ""; open = -1; showTemplates = false
             })
     }
 
     val finalDays = (if (weekly) days.flatMap { d -> (0..3).map { d + it * 7L } } else days.toList()).distinct()
     val count = chosen.size * finalDays.size
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().background(Jk.Paper)) {
         Column(Modifier.weight(1f)) {
             BackScreen("Assign workout", onBack = { nav.popBackStack() }) {
-                item { OwnerHeading("1. Who") }
-                item { WhoPicker(members.map { it.uid to it.name }, chosen) }
-                item { OwnerHeading("2. When") }
+                item { StepHeading(1, "Who", if (chosen.isEmpty()) null else plural(chosen.size, "member")) }
+                item { WhoPicker(members, chosen) }
+                item { StepHeading(2, "When", if (finalDays.isEmpty()) null else plural(finalDays.size, "day")) }
                 item { WhenPicker(today, days, weekly) { weekly = it } }
-                item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) { OwnerHeading("3. Workout") }
-                        PlainButton("Plans & templates", { showTemplates = true }, Modifier.padding(top = 10.dp))
+                item { StepHeading(3, "Workout", null) }
+                if (exercises.isEmpty()) {
+                    PlanLibrary.plans.forEach { plan ->
+                        item(key = plan.name) { PlanStrip(plan, ::loadPlan) }
                     }
-                }
-                item {
-                    OutlinedTextField(title, { title = it.take(40) }, Modifier.fillMaxWidth(), singleLine = true,
-                        label = { Text("Name") }, placeholder = { Text(autoTitle(exercises)) })
-                }
-                item {
-                    OutlinedTextField(note, { note = it.take(400) }, Modifier.fillMaxWidth(), minLines = 2,
-                        label = { Text("Note for your members (optional)") }, placeholder = { Text("e.g. Slow, controlled reps today") })
-                }
-                exercises.forEachIndexed { i, e ->
-                    item(key = "e$i${e.exerciseId}") {
-                        val ex = ExerciseRepo.get(e.exerciseId) ?: return@item
-                        ExerciseEditorCard(ex, e, canMoveUp = i > 0,
-                            onMoveUp = { exercises.add(i - 1, exercises.removeAt(i)) },
-                            onRemove = { exercises.removeAt(i) },
-                            onChange = { exercises[i] = it })
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PlainButton("My templates", { showTemplates = true }, Modifier.weight(1f))
+                            PlainButton("Build my own", { picking = true }, Modifier.weight(1f), icon = Icons.Filled.Add)
+                        }
                     }
-                }
-                item { PlainButton("Add exercise", { picking = true }, Modifier.fillMaxWidth().height(52.dp), icon = Icons.Filled.Add) }
-                if (exercises.isNotEmpty()) item {
-                    PlainButton("Save as template", { gvm.saveTemplate(title.ifBlank { autoTitle(exercises) }, exercises.toList()) }, Modifier.fillMaxWidth())
+                } else {
+                    item {
+                        WorkoutHeader(title.ifBlank { autoTitle(exercises) }, exercises.size, exercises.sumOf { it.sets.size },
+                            onRename = { title = it.take(40) },
+                            onChange = { showTemplates = true }, onClear = { exercises.clear(); title = ""; note = ""; open = -1 })
+                    }
+                    item {
+                        CardBox(padding = 14.dp) {
+                            OutlinedTextField(note, { note = it.take(400) }, Modifier.fillMaxWidth(), minLines = 2, maxLines = 5,
+                                label = { Text("Note for your members") }, placeholder = { Text("e.g. Slow, controlled reps today") })
+                        }
+                    }
+                    item {
+                        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Card)) {
+                            exercises.forEachIndexed { i, e ->
+                                val ex = ExerciseRepo.get(e.exerciseId) ?: return@forEachIndexed
+                                if (i > 0) RowDivider(inset = 0.dp)
+                                ExerciseRow(i, ex, e, expanded = open == i,
+                                    onToggle = { open = if (open == i) -1 else i },
+                                    onMoveUp = { exercises.add(i - 1, exercises.removeAt(i)); open = i - 1 }.takeIf { i > 0 },
+                                    onRemove = { exercises.removeAt(i); open = -1 },
+                                    onChange = { exercises[i] = it })
+                            }
+                        }
+                    }
+                    item { PlainButton("Add exercise", { picking = true }, Modifier.fillMaxWidth(), icon = Icons.Filled.Add) }
+                    item {
+                        PlainButton("Save as template", { gvm.saveTemplate(title.ifBlank { autoTitle(exercises) }, exercises.toList()) },
+                            Modifier.fillMaxWidth(), icon = Icons.Outlined.BookmarkBorder)
+                    }
                 }
             }
         }
@@ -174,13 +217,160 @@ fun AssignScreen(memberUid: String, gvm: GymViewModel, nav: NavHostController) {
             when {
                 chosen.isEmpty() -> "Choose who"
                 days.isEmpty() -> "Choose a day"
-                exercises.isEmpty() -> "Add exercises"
+                exercises.isEmpty() -> "Pick a workout"
                 else -> "Assign to ${plural(chosen.size, "member")} · ${plural(finalDays.size, "day")}"
             },
             onClick = { gvm.assign(title.ifBlank { autoTitle(exercises) }, chosen.toList(), finalDays, exercises.toList(), note) { nav.popBackStack() } },
             modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).height(56.dp),
             enabled = !busy && count > 0 && exercises.isNotEmpty(),
         )
+    }
+}
+
+/** A step's number in a red disc, its name, and what's been chosen so far on the right. */
+@Composable
+private fun StepHeading(n: Int, title: String, chosen: String?) {
+    Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(26.dp).clip(CircleShape).background(Jk.Red), contentAlignment = Alignment.Center) {
+            Text("$n", style = plex(14.sp, FontWeight.Bold), color = Color.White)
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(title, Modifier.weight(1f), style = plex(18.sp, FontWeight.Bold), color = Jk.Ink)
+        if (chosen != null) Text(chosen, style = plex(14.sp, FontWeight.SemiBold), color = Jk.Muted)
+    }
+}
+
+/** One suggested plan: its name and how to run it, then its days as dark tiles to swipe through. */
+@Composable
+private fun PlanStrip(plan: PlanLibrary.Plan, onPlan: (PlanLibrary.PlanDay) -> Unit) {
+    Column {
+        Text(plan.name, Modifier.padding(horizontal = 4.dp), style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink)
+        Text(plan.about, Modifier.padding(start = 4.dp, end = 4.dp, top = 2.dp, bottom = 10.dp), style = plex(13.sp, line = 18.sp), color = Jk.Muted)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            items(plan.days) { d -> PlanDayTile(d) { onPlan(d) } }
+        }
+    }
+}
+
+/** A plan day as a poster: the day in red, the split in big white letters, what it trains, and its size. */
+@Composable
+private fun PlanDayTile(d: PlanLibrary.PlanDay, onClick: () -> Unit) {
+    Column(
+        Modifier.width(148.dp).height(156.dp).clip(RoundedCornerShape(20.dp)).background(Jk.Hero)
+            .clickable(onClickLabel = "Load ${d.day}, ${d.title}", onClick = onClick).padding(14.dp),
+    ) {
+        Text(d.day.uppercase(), style = plex(12.sp, FontWeight.Bold, tracking = 1.sp), color = Jk.RedOnDark)
+        Text(d.title.uppercase(), Modifier.padding(top = 4.dp), style = plex(20.sp, FontWeight.Bold, line = 22.sp), color = Color.White,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(d.focus, Modifier.padding(top = 4.dp), style = plex(12.sp, line = 16.sp), color = Jk.OnDarkSoft, maxLines = 2,
+            overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.weight(1f))
+        Text("${plural(d.exercises.size, "exercise")} · ${d.exercises.sumOf { it.sets.size }} sets", style = plex(12.sp, FontWeight.SemiBold),
+            color = Jk.OnDarkMuted)
+    }
+}
+
+/** The loaded workout on the dark card: its name, how big it is, and ways to swap or clear it. */
+@Composable
+private fun WorkoutHeader(
+    name: String, exerciseCount: Int, setCount: Int, onRename: (String) -> Unit, onChange: () -> Unit, onClear: () -> Unit,
+) {
+    var renaming by rememberSaveable { mutableStateOf(false) }
+    if (renaming) {
+        var draft by rememberSaveable { mutableStateOf(name) }
+        AlertDialog(onDismissRequest = { renaming = false }, title = { Text("Workout name") },
+            text = { OutlinedTextField(draft, { draft = it.take(40) }, singleLine = true) },
+            confirmButton = { TextButton(onClick = { onRename(draft.trim()); renaming = false }) { Text("Save") } },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } })
+    }
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Hero).padding(start = 18.dp, end = 6.dp, top = 8.dp, bottom = 18.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(name, Modifier.weight(1f).padding(top = 10.dp), style = plex(22.sp, FontWeight.Bold, line = 27.sp), color = Color.White,
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
+            IconButton(onClick = { renaming = true }) { Icon(Icons.Outlined.Edit, "Rename workout", tint = Jk.OnDarkSoft) }
+        }
+        // About 2½ minutes a set, rest included.
+        Text("${plural(exerciseCount, "exercise")} · $setCount sets · about ${(setCount * 2.5).roundToInt()} min",
+            Modifier.padding(top = 4.dp), style = plex(14.sp), color = Jk.OnDarkSoft)
+        Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            DarkPill("Change", onChange)
+            DarkPill("Clear", onClear)
+        }
+    }
+}
+
+@Composable
+private fun DarkPill(text: String, onClick: () -> Unit) {
+    Text(text, Modifier.clip(RoundedCornerShape(50)).border(1.5.dp, Jk.OnDarkMuted, RoundedCornerShape(50))
+        .clickable(onClick = onClick).heightIn(min = 40.dp).padding(horizontal = 18.dp, vertical = 10.dp),
+        style = plex(14.sp, FontWeight.SemiBold), color = Color.White)
+}
+
+private val rangeCue = Regex("""^\d+(?:–\d+)? sets of (\d+)–(\d+)""")
+
+/**
+ * The sets as one line, the way a plan poster writes them: "4 × 6–8" (the range comes from a plan's cue while the
+ * reps still match it), "3 × 12", "3 × 0:30", or "4 sets" when the reps differ; plus the weight when it's the same.
+ */
+private fun setsLine(e: AssignedExercise): String {
+    val s = e.sets
+    if (s.isEmpty()) return "No sets"
+    val first = s.first()
+    val reps = when {
+        s.all { it.timed && it.seconds == first.seconds } -> "${s.size} × ${formatDuration(first.seconds.toLong())}"
+        s.any { it.timed } || s.any { it.reps != first.reps } -> plural(s.size, "set")
+        else -> rangeCue.find(e.cue)?.takeIf { it.groupValues[2].toInt() == first.reps }
+            ?.let { m -> if (m.groupValues[1] == m.groupValues[2]) null else "${s.size} × ${m.groupValues[1]}–${m.groupValues[2]}" }
+            ?: "${s.size} × ${first.reps}"
+    }
+    return if (first.weightKg > 0f && s.all { it.weightKg == first.weightKg }) "$reps · ${weightLabel(first.weightKg, e.exerciseId)} kg" else reps
+}
+
+/** The cue without the "4 sets of 6–8." the pill already shows. */
+private fun cueBody(cue: String): String = cue.replace(Regex("""^\d+(?:–\d+)? sets of \d+–\d+\.\s*"""), "")
+
+/**
+ * One exercise as a numbered row, like a plan poster: number, picture, name and its sets in a red pill. Tapping
+ * opens it to show the how-to, edit each set, move it up or remove it.
+ */
+@Composable
+private fun ExerciseRow(
+    i: Int, ex: Exercise, e: AssignedExercise, expanded: Boolean, onToggle: () -> Unit,
+    onMoveUp: (() -> Unit)?, onRemove: () -> Unit, onChange: (AssignedExercise) -> Unit,
+) {
+    Column(Modifier.fillMaxWidth().animateContentSize()) {
+        Row(Modifier.fillMaxWidth().clickable(onClickLabel = if (expanded) "Close ${ex.name}" else "Edit ${ex.name}", onClick = onToggle)
+            .heightIn(min = 76.dp).padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("${i + 1}", Modifier.width(30.dp), style = plex(24.sp, FontWeight.Bold), color = Jk.RedText)
+            ExerciseDemo(ex, Modifier.size(52.dp).clip(RoundedCornerShape(12.dp)), animate = false)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(ex.name, style = plex(15.sp, FontWeight.SemiBold, line = 19.sp), color = Jk.Ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(setsLine(e), Modifier.padding(top = 6.dp).clip(RoundedCornerShape(8.dp)).background(Jk.Red)
+                    .padding(horizontal = 8.dp, vertical = 2.dp), style = plex(13.sp, FontWeight.Bold), color = Color.White, maxLines = 1)
+            }
+            Icon(if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown, null, Modifier.size(24.dp), tint = Jk.Muted)
+        }
+        if (expanded) Column(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) {
+            cueBody(e.cue).takeIf { it.isNotBlank() }?.let { CueText(it) }
+            val step = ex.weightStep
+            Spacer(Modifier.height(6.dp))
+            e.sets.forEachIndexed { si, s ->
+                SetEditorRow(si, s, ex.id, step,
+                    onChange = { ns ->
+                        // Editing a set also updates the sets after it that were the same, so
+                        // "3 × 12 @ 60kg" is one change instead of three.
+                        onChange(e.copy(sets = e.sets.mapIndexed { k, x -> if (k == si || (k > si && x == s)) ns else x }))
+                    },
+                    onDelete = { onChange(e.copy(sets = e.sets.toMutableList().also { it.removeAt(si) })) }.takeIf { e.sets.size > 1 })
+            }
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                PlainButton("Add set", { onChange(e.copy(sets = e.sets + (e.sets.lastOrNull() ?: SetSpec(12)))) }, icon = Icons.Filled.Add)
+                Spacer(Modifier.weight(1f))
+                if (onMoveUp != null) IconButton(onClick = onMoveUp) { Icon(Icons.Filled.ArrowUpward, "Move ${ex.name} up", tint = Jk.Ink) }
+                IconButton(onClick = onRemove) { Icon(Icons.Outlined.Delete, "Remove ${ex.name}", tint = Jk.RedText) }
+            }
+        }
     }
 }
 
@@ -194,32 +384,20 @@ private fun StartFromSheet(
     templates: List<Template>, onDismiss: () -> Unit, onDelete: (Template) -> Unit,
     onPlan: (PlanLibrary.PlanDay) -> Unit, onTemplate: (Template) -> Unit,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Owner.Paper) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Jk.Paper) {
         LazyColumn(Modifier.fillMaxWidth().navigationBarsPadding(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            item { Text("Start from", style = plex(21.sp, FontWeight.Bold), color = Owner.Ink, modifier = Modifier.padding(start = 4.dp)) }
-            PlanLibrary.all.groupBy { it.plan }.forEach { (plan, days) ->
-                item {
-                    OwnerHeading("Suggested plan", "$plan. Each muscle twice a week; rest after Day 3 and Day 6. Load one day at a time.")
-                }
-                item {
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)) {
-                        days.forEachIndexed { i, d ->
-                            if (i > 0) RowDivider()
-                            PlanDayRow(d) { onPlan(d) }
-                        }
-                    }
-                }
-            }
-            item { OwnerHeading("Your templates", if (templates.isEmpty()) "Build a workout and tap \"Save as template\" to keep it here." else null) }
+            verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            item { Text("Start from", style = plex(21.sp, FontWeight.Bold), color = Jk.Ink, modifier = Modifier.padding(start = 4.dp)) }
+            items(PlanLibrary.plans, key = { it.name }) { plan -> PlanStrip(plan, onPlan) }
+            item { Heading("Your templates", if (templates.isEmpty()) "Build a workout and tap \"Save as template\" to keep it here." else null) }
             items(templates, key = { it.id }) { t ->
-                OwnerCardBox(onClick = { onTemplate(t) }, onClickLabel = "Load ${t.title}", padding = 12.dp) {
+                CardBox(onClick = { onTemplate(t) }, onClickLabel = "Load ${t.title}", padding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(t.title, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1)
-                            Text(plural(t.exercises.size, "exercise"), style = plex(13.sp), color = Owner.Muted)
+                            Text(t.title, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1)
+                            Text(plural(t.exercises.size, "exercise"), style = plex(13.sp), color = Jk.Muted)
                         }
-                        IconButton(onClick = { onDelete(t) }) { Icon(Icons.Filled.Close, "Delete template ${t.title}", tint = Owner.Muted) }
+                        IconButton(onClick = { onDelete(t) }) { Icon(Icons.Filled.Close, "Delete template ${t.title}", tint = Jk.Muted) }
                     }
                 }
             }
@@ -227,88 +405,78 @@ private fun StartFromSheet(
     }
 }
 
-/** One day of a suggested plan: its number in a charcoal disc, its name and what it trains. */
+/** The trainer's members as photos with first names, plus "All" when there are several; picked ones get a red ring. */
 @Composable
-private fun PlanDayRow(d: PlanLibrary.PlanDay, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClickLabel = "Load ${d.day}, ${d.title}", onClick = onClick)
-        .heightIn(min = 64.dp).padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(HeroFill), contentAlignment = Alignment.Center) {
-            Text(d.day.removePrefix("Day ").trim(), style = plex(16.sp, FontWeight.Bold), color = Color.White)
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(d.title, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1)
-            Text("${d.focus} · ${plural(d.exercises.size, "exercise")}", style = plex(13.sp), color = Owner.Muted, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-        }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
+private fun WhoPicker(members: List<Person>, chosen: SnapshotStateList<String>) {
+    if (members.isEmpty()) {
+        Text("You don't have members yet. Share your member code from the Members tab.",
+            Modifier.padding(horizontal = 4.dp), style = plex(15.sp, line = 21.sp), color = Jk.Muted)
+        return
     }
-}
-
-/** Chips for each of the trainer's members ([members] as uid to name), plus "Everyone" when there are several. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun WhoPicker(members: List<Pair<String, String>>, chosen: SnapshotStateList<String>) {
-    Column {
-        if (members.isEmpty()) Text("You don't have members yet. Share your member code from the Members tab.",
-            style = plex(15.sp, line = 21.sp), color = Owner.Muted)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (members.size > 1) FilterChip(chosen.size == members.size, {
-                if (chosen.size == members.size) chosen.clear() else { chosen.clear(); chosen.addAll(members.map { it.first }) }
-            }, label = { Text("Everyone") })
-            members.forEach { (uid, name) ->
-                FilterChip(uid in chosen, { if (uid in chosen) chosen.remove(uid) else chosen.add(uid) }, label = { Text(name) })
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (members.size > 1) item {
+            val all = chosen.size == members.size
+            PersonToggle("All", all, {
+                if (all) chosen.clear() else { chosen.clear(); chosen.addAll(members.map { it.uid }) }
+            }) {
+                Box(Modifier.size(52.dp).clip(CircleShape).background(if (all) Jk.Hero else Tone.GOOD.fill), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Outlined.Groups, null, Modifier.size(26.dp), tint = if (all) Color.White else Jk.Ink)
+                }
+            }
+        }
+        items(members, key = { it.uid }) { m ->
+            PersonToggle(m.firstName, m.uid in chosen, { if (m.uid in chosen) chosen.remove(m.uid) else chosen.add(m.uid) }) {
+                PersonAvatar(m.photoUrl, m.name, 52.dp)
             }
         }
     }
 }
 
-/** The next two weeks as day chips, and whether to repeat weekly for four weeks. */
+@Composable
+private fun PersonToggle(label: String, on: Boolean, onClick: () -> Unit, avatar: @Composable () -> Unit) {
+    Column(Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).toggleable(on, onValueChange = { onClick() }).padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally) {
+        Box {
+            Box(Modifier.border(2.5.dp, if (on) Jk.Red else Color.Transparent, CircleShape).padding(4.dp)) { avatar() }
+            if (on) Box(Modifier.align(Alignment.BottomEnd).size(20.dp).clip(CircleShape).background(Jk.Red), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Check, null, Modifier.size(14.dp), tint = Color.White)
+            }
+        }
+        Text(label, Modifier.padding(top = 4.dp), style = plex(13.sp, if (on) FontWeight.SemiBold else FontWeight.Normal),
+            color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** The next two weeks as calendar tiles (picked ones in black), and whether to repeat weekly for four weeks. */
 @Composable
 private fun WhenPicker(today: Long, days: SnapshotStateList<Long>, weekly: Boolean, onWeekly: (Boolean) -> Unit) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(14) { i ->
                 val d = today + i
-                FilterChip(d in days, { if (d in days) days.remove(d) else days.add(d) },
-                    label = { Text(if (i == 0) "Today" else LocalDate.ofEpochDay(d).format(chipDay)) })
+                val on = d in days
+                val date = LocalDate.ofEpochDay(d)
+                Column(
+                    Modifier.width(56.dp).clip(RoundedCornerShape(16.dp)).background(if (on) Jk.Hero else Jk.Card)
+                        .toggleable(on, onValueChange = { if (on) days.remove(d) else days.add(d) }).padding(vertical = 10.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(if (i == 0) "TODAY" else date.format(weekday).uppercase(), style = plex(11.sp, FontWeight.Bold, tracking = 0.5.sp),
+                        color = if (on) Jk.RedOnDark else Jk.Muted)
+                    Text("${date.dayOfMonth}", style = plex(20.sp, FontWeight.Bold), color = if (on) Color.White else Jk.Ink)
+                    Text(date.format(month), style = plex(11.sp), color = if (on) Jk.OnDarkSoft else Jk.Muted)
+                }
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
-            Text("Repeat every week for 4 weeks", Modifier.weight(1f), style = plex(15.sp), color = Owner.Ink)
-            Switch(weekly, onWeekly)
-        }
-    }
-}
-
-/** One exercise being prescribed: reorder or remove it, and edit its sets. */
-@Composable
-private fun ExerciseEditorCard(
-    ex: Exercise, e: AssignedExercise, canMoveUp: Boolean,
-    onMoveUp: () -> Unit, onRemove: () -> Unit, onChange: (AssignedExercise) -> Unit,
-) {
-    OwnerCardBox(padding = 16.dp) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ExerciseDemo(ex, Modifier.size(48.dp).clip(RoundedCornerShape(10.dp)), animate = false)
-                Spacer(Modifier.width(10.dp))
-                Text(ex.name, Modifier.weight(1f), style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 2)
-                if (canMoveUp) IconButton(onClick = onMoveUp) { Icon(Icons.Filled.ArrowUpward, "Move ${ex.name} up", tint = Owner.Ink) }
-                IconButton(onClick = onRemove) { Icon(Icons.Filled.Close, "Remove ${ex.name}", tint = Owner.Ink) }
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Jk.Card)
+            .toggleable(weekly, onValueChange = onWeekly).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Repeat, null, Modifier.size(22.dp), tint = Jk.Ink)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Repeat weekly", style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink)
+                Text("Same days for the next 4 weeks", style = plex(13.sp), color = Jk.Muted)
             }
-            if (e.cue.isNotBlank()) CueText(e.cue)
-            val step = if (ex.equipment == "dumbbell" || ex.equipment == "kettlebells") 1f else 2.5f
-            Spacer(Modifier.height(6.dp))
-            e.sets.forEachIndexed { si, s ->
-                SetEditorRow(si, s, ex.id, step,
-                    onChange = { ns ->
-                        // Editing a set also updates the sets after it that were the same, so
-                        // "3 × 12 @ 60kg" is one change instead of three.
-                        onChange(e.copy(sets = e.sets.mapIndexed { k, x -> if (k == si || (k > si && x == s)) ns else x }))
-                    },
-                    onDelete = { onChange(e.copy(sets = e.sets.toMutableList().also { it.removeAt(si) })) }.takeIf { e.sets.size > 1 })
-            }
-            PlainButton("Add set", { onChange(e.copy(sets = e.sets + (e.sets.lastOrNull() ?: SetSpec(12)))) }, Modifier.padding(top = 6.dp), icon = Icons.Filled.Add)
+            Switch(weekly, onCheckedChange = null)
         }
     }
 }

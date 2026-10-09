@@ -46,7 +46,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -73,6 +72,7 @@ import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.BodyPart
 import com.barathiraja.jk.data.DayMode
 import com.barathiraja.jk.data.ExerciseRepo
+import com.barathiraja.jk.data.trimZero
 import com.barathiraja.jk.data.PlanItem
 import com.barathiraja.jk.data.cap
 import com.barathiraja.jk.domain.Health
@@ -87,6 +87,11 @@ import com.barathiraja.jk.ui.theme.Good
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
+import androidx.compose.ui.graphics.vector.ImageVector
+import com.barathiraja.jk.data.PlanDay
+import com.barathiraja.jk.data.SetSpec
+import com.barathiraja.jk.ui.components.ProgressBar
+import com.barathiraja.jk.ui.theme.Jk
 
 /** Daily plan view: the heart of training. */
 @Composable
@@ -116,7 +121,7 @@ fun TodayWorkoutTab(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostControl
     val parts = day?.parts?.let(BodyPart::parseList)
         ?: split[LocalDate.ofEpochDay(selected).dayOfWeek].orEmpty()
     val totalSec = items.sumOf { TrainingEngine.estimateSec(it.setList, prefs.restSec) }
-    val kcal = items.sumOf { Health.caloriesBurned(ExerciseRepo.get(it.exerciseId)?.met ?: 5f, profile.weightKg, TrainingEngine.estimateSec(it.setList, prefs.restSec)) }
+    val kcal = items.sumOf { Health.exerciseKcal(it.exerciseId, profile.weightKg, TrainingEngine.estimateSec(it.setList, prefs.restSec)) }
     val doneCount = items.count { it.done }
 
     adding?.let { part ->
@@ -154,9 +159,9 @@ fun TodayWorkoutTab(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostControl
                     if (items.isNotEmpty()) Pill("$doneCount / ${items.size}", MaterialTheme.colorScheme.primary)
                 }
                 if (items.isNotEmpty()) {
-                    LinearProgressIndicator(progress = { doneCount / items.size.toFloat() }, Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                    Box(Modifier.padding(vertical = 8.dp)) { ProgressBar(doneCount / items.size.toFloat(), Jk.Well, Jk.Red, key = "day", height = 6.dp) }
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Stat(Icons.Outlined.Timer, "${(totalSec + 59) / 60} min")
+                        Stat(Icons.Outlined.Timer, "${Health.minutesUp(totalSec)} min")
                         Stat(Icons.Outlined.Flag, "${items.size} exercises")
                         Stat(Icons.Filled.LocalFireDepartment, "$kcal kcal")
                     }
@@ -288,7 +293,7 @@ fun TrainingMenu(tvm: TrainingViewModel, nav: NavHostController) {
 }
 
 @Composable
-private fun Stat(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String) {
+private fun Stat(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(4.dp))
@@ -297,7 +302,7 @@ private fun Stat(icon: androidx.compose.ui.graphics.vector.ImageVector, text: St
 }
 
 @Composable
-fun WeekStrip(tvm: TrainingViewModel, selected: Long, plans: Map<Long, com.barathiraja.jk.data.PlanDay>) {
+fun WeekStrip(tvm: TrainingViewModel, selected: Long, plans: Map<Long, PlanDay>) {
     val start = tvm.weekStart
     val split by tvm.split.collectAsStateWithLifecycle()
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -349,8 +354,11 @@ private fun ExerciseRow(item: PlanItem, readOnly: Boolean, onOpen: () -> Unit, o
                         Text(ex.name, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                         if (!readOnly) {
                             Box {
-                                Icon(Icons.Filled.MoreVert, "More", Modifier.size(20.dp).clickable { menu = true },
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                // IconButton gives the small icon a 48dp touch target.
+                                IconButton(onClick = { menu = true }, modifier = Modifier.size(48.dp)) {
+                                    Icon(Icons.Filled.MoreVert, "More options for ${ex.name}", Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 DropdownMenu(menu, { menu = false }) {
                                     DropdownMenuItem({ Text("Replace exercise") }, { menu = false; onReplace() })
                                     DropdownMenuItem({ Text("Remove from today") }, { menu = false; onRemove() })
@@ -369,7 +377,7 @@ private fun ExerciseRow(item: PlanItem, readOnly: Boolean, onOpen: () -> Unit, o
 
 /** Compact "Set · Reps · Weight" table like a gym log. */
 @Composable
-fun SetTable(sets: List<com.barathiraja.jk.data.SetSpec>) {
+fun SetTable(sets: List<SetSpec>) {
     val timed = sets.any { it.timed }
     val weighted = sets.any { it.weightKg > 0f }
     val dim = MaterialTheme.colorScheme.onSurfaceVariant
@@ -389,8 +397,6 @@ fun SetTable(sets: List<com.barathiraja.jk.data.SetSpec>) {
     }
     if (sets.size > 5) Text("+${sets.size - 5} more", style = MaterialTheme.typography.labelSmall, color = dim)
 }
-
-fun Float.trimZero(): String = if (this % 1f == 0f) toInt().toString() else "%.1f".format(this)
 
 @Composable
 private fun RestDayCard(isPast: Boolean, nav: NavHostController) {

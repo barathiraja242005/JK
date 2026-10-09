@@ -1,5 +1,7 @@
 package com.barathiraja.jk.data
 
+import com.barathiraja.jk.domain.Health
+
 enum class Level(val label: String) { BEGINNER("Beginner"), INTERMEDIATE("Intermediate"), ADVANCED("Advanced") }
 
 /** One block in a workout: either timed ([seconds]) or counted ([reps]). */
@@ -39,7 +41,7 @@ data class Workout(
             val work = blocks.sumOf { if (it.isTimed) it.seconds else it.reps * 3 }
             return rounds * (work + restSec * blocks.size)
         }
-    val estimatedMin get() = (estimatedSec + 59) / 60
+    val estimatedMin get() = Health.minutesUp(estimatedSec)
     val cover: Exercise get() = blocks.firstOrNull()?.exercise ?: missingExercise(id)
 }
 

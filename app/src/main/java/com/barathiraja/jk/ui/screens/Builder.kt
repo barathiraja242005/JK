@@ -33,6 +33,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -55,17 +58,23 @@ import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.components.ExerciseDemo
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.SectionTitle
+import androidx.compose.material3.Surface
 
 @Composable
 fun BuilderScreen(editId: Long, vm: JkViewModel, nav: NavHostController) {
-    var name by remember { mutableStateOf("My workout") }
-    var rounds by remember { mutableIntStateOf(3) }
-    var rest by remember { mutableIntStateOf(30) }
-    val blocks = remember { mutableStateListOf<Block>() }
-    var picking by remember { mutableStateOf(false) }
+    // Everything typed survives rotation and the app being put away; the saved workout is loaded only once.
+    var name by rememberSaveable { mutableStateOf("My workout") }
+    var rounds by rememberSaveable { mutableIntStateOf(3) }
+    var rest by rememberSaveable { mutableIntStateOf(30) }
+    val blocks = rememberSaveable(saver = listSaver<SnapshotStateList<Block>, String>(
+        save = { listOf(Block.encodeAll(it)) }, restore = { mutableStateListOf<Block>().apply { addAll(Block.decodeAll(it.first())) } },
+    )) { mutableStateListOf() }
+    var loaded by rememberSaveable { mutableStateOf(false) }
+    var picking by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(editId) {
-        if (editId != 0L) {
+        if (editId != 0L && !loaded) {
+            loaded = true
             vm.customWorkouts.value.firstOrNull { it.id == editId }?.let { cw ->
                 name = cw.name; rounds = cw.rounds; rest = cw.restSec
                 blocks.clear(); blocks.addAll(Block.decodeAll(cw.blocks).filter { ExerciseRepo.get(it.exerciseId) != null })
@@ -152,7 +161,7 @@ fun ExercisePicker(onDismiss: () -> Unit, onPick: (String) -> Unit) {
     var q by remember { mutableStateOf("") }
     val results = remember(q) { ExerciseRepo.search(q, null, null, null).take(150) }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Add exercise", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)

@@ -22,6 +22,7 @@ import com.barathiraja.jk.ui.JkViewModel
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.components.KeyValue
 import com.barathiraja.jk.ui.components.SectionTitle
+import java.util.Locale
 
 /** What-if calculators. Prefilled from the profile but edits here don't change it. */
 @Composable
@@ -30,7 +31,7 @@ fun CalculatorsScreen(vm: JkViewModel, nav: NavHostController) {
     var sex by remember { mutableStateOf(p0.sex) }
     var age by remember { mutableStateOf(p0.age.toString()) }
     var height by remember { mutableStateOf(p0.heightCm.toInt().toString()) }
-    var weight by remember { mutableStateOf("%.1f".format(java.util.Locale.US, p0.weightKg)) }
+    var weight by remember { mutableStateOf("%.1f".format(Locale.US, p0.weightKg)) }
     var activity by remember { mutableStateOf(p0.activity) }
     var goal by remember { mutableStateOf(p0.goal) }
 

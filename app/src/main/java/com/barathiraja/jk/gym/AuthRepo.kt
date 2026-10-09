@@ -41,6 +41,15 @@ class AuthRepo(private val app: Context) {
             ?: error("Sign-in failed")
     }
 
+    /**
+     * Deletes the Firebase account itself. Firebase only allows it soon after a sign-in; when it's been too long the
+     * account stays (with nothing left in it) and the person is simply signed out.
+     */
+    suspend fun deleteUser() {
+        runCatching { auth.currentUser?.delete()?.await() }
+        signOut()
+    }
+
     suspend fun signOut() {
         auth.signOut()
         runCatching { CredentialManager.create(app).clearCredentialState(ClearCredentialStateRequest()) }

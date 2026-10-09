@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.barathiraja.jk.gym.Award
+import com.barathiraja.jk.ui.theme.Jk
 
 /*
  * Award badges: every award is drawn as a medal (a gold, silver or rose disc with a black ring and a line icon,
@@ -93,7 +94,7 @@ internal fun rewardIcon(emoji: String): ImageVector = when (emoji) {
  * A medal [size] wide (and a little taller, for the ribbon). [ribbon] is the tails' colour: brand red.
  */
 @Composable
-internal fun AwardBadge(look: AwardLook, size: Dp, ribbon: Color = Owner.Red, modifier: Modifier = Modifier) {
+internal fun AwardBadge(look: AwardLook, size: Dp, ribbon: Color = Jk.Red, modifier: Modifier = Modifier) {
     Box(modifier.size(size, size * 1.12f)) {
         Canvas(Modifier.fillMaxSize()) {
             val w = this.size.width

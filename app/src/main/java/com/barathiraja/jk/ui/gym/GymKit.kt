@@ -50,6 +50,14 @@ import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.theme.Charcoal
 import com.barathiraja.jk.ui.theme.Watch
 import java.time.LocalTime
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.ProgressBar
+import com.barathiraja.jk.ui.components.StatusChip
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /*
  * Pieces the owner's and the trainer's Home share: the greeting, the "Needs you" list (one card, aligned rows with a
@@ -82,7 +90,7 @@ internal val NEED_ACTION_SLOT = 96.dp
 @Composable
 internal fun NeedsList(rows: List<NeedRow>, showAll: Boolean, onToggle: () -> Unit) {
     val shown = if (showAll) rows else rows.take(NEEDS_PREVIEW)
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Card)) {
         shown.forEachIndexed { i, r ->
             if (i > 0) RowDivider()
             key(r.key) { NeedLine(r) }
@@ -93,9 +101,9 @@ internal fun NeedsList(rows: List<NeedRow>, showAll: Boolean, onToggle: () -> Un
                 Modifier.fillMaxWidth().clickable(onClick = onToggle).heightIn(min = 52.dp),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(if (showAll) "Show fewer" else "Show all ${rows.size}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink)
+                Text(if (showAll) "Show fewer" else "Show all ${rows.size}", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink)
                 Spacer(Modifier.width(4.dp))
-                Icon(if (showAll) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, Modifier.size(20.dp), tint = Owner.Ink)
+                Icon(if (showAll) Icons.Outlined.KeyboardArrowUp else Icons.Outlined.KeyboardArrowDown, null, Modifier.size(20.dp), tint = Jk.Ink)
             }
         }
     }
@@ -104,7 +112,7 @@ internal fun NeedsList(rows: List<NeedRow>, showAll: Boolean, onToggle: () -> Un
 /** A fine line between rows, starting under the text column (after the photo) unless [inset] says otherwise. */
 @Composable
 internal fun RowDivider(inset: Dp = 68.dp) {
-    Box(Modifier.padding(start = inset).fillMaxWidth().height(1.dp).background(Owner.Line))
+    Box(Modifier.padding(start = inset).fillMaxWidth().height(1.dp).background(Jk.Line))
 }
 
 @Composable
@@ -115,25 +123,25 @@ internal fun NeedLine(r: NeedRow) {
             .heightIn(min = 72.dp).padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OwnerAvatar(r.person.photoUrl, r.person.name, 44.dp)
+        PersonAvatar(r.person.photoUrl, r.person.name, 44.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(r.person.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(r.person.name, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(r.status, style = plex(13.sp, FontWeight.SemiBold), color = if (r.tone == Tone.WARN) Watch else r.tone.ink, maxLines = 1)
-            Text(r.reason, style = plex(13.sp), color = Owner.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(r.reason, style = plex(13.sp), color = Jk.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Spacer(Modifier.width(8.dp))
         // Rows without an action show a chevron instead, so every row still ends at the same edge.
         if (r.action != null) Box(Modifier.width(NEED_ACTION_SLOT), contentAlignment = Alignment.CenterEnd) { r.action.invoke() }
-        else Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
+        else Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Jk.Muted)
     }
 }
 
 /** A round 48dp icon button: red for the yes, outlined otherwise. [label] is read out by TalkBack. */
 @Composable
 internal fun SmallAction(icon: ImageVector, label: String, red: Boolean, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = CircleShape, color = if (red) Owner.Red else Owner.Card, contentColor = if (red) Color.White else Owner.Ink,
-        border = if (red) null else BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
+    Surface(onClick = onClick, shape = CircleShape, color = if (red) Jk.Red else Jk.Card, contentColor = if (red) Color.White else Jk.Ink,
+        border = if (red) null else BorderStroke(1.5.dp, Jk.Line), modifier = Modifier.size(48.dp)) {
         Box(contentAlignment = Alignment.Center) { Icon(icon, label, Modifier.size(20.dp)) }
     }
 }
@@ -141,7 +149,7 @@ internal fun SmallAction(icon: ImageVector, label: String, red: Boolean, onClick
 /** A short outlined pill with a word, for an action an icon can't say. */
 @Composable
 internal fun SmallPill(text: String, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = Owner.Ink, contentColor = Owner.OnInk, modifier = Modifier.heightIn(min = 48.dp)) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(50), color = Jk.Ink, contentColor = Jk.OnInk, modifier = Modifier.heightIn(min = 48.dp)) {
         Box(Modifier.padding(horizontal = 14.dp), contentAlignment = Alignment.Center) { Text(text, style = plex(13.sp, FontWeight.SemiBold)) }
     }
 }
@@ -152,22 +160,22 @@ internal fun SmallPill(text: String, onClick: () -> Unit) {
  */
 @Composable
 internal fun TodayHero(label: String, done: Int, total: Int, unit: String, compare: AnnotatedString, monthDone: Int, monthDue: Int) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Hero).padding(16.dp)) {
-        Text(label, style = plex(14.sp), color = Owner.OnDarkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Jk.Hero).padding(16.dp)) {
+        Text(label, style = plex(14.sp), color = Jk.OnDarkMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             Text("$done", style = plex(40.sp, FontWeight.Bold, line = 50.sp, tracking = (-2).sp), color = Color.White)
-            Text("  of $total", style = plex(20.sp, FontWeight.SemiBold), color = Owner.OnDarkMuted, modifier = Modifier.padding(bottom = 8.dp))
+            Text("  of $total", style = plex(20.sp, FontWeight.SemiBold), color = Jk.OnDarkMuted, modifier = Modifier.padding(bottom = 8.dp))
         }
         Text(unit, style = plex(15.sp, FontWeight.SemiBold), color = Color.White)
         Box(Modifier.padding(top = 14.dp, bottom = 12.dp)) {
-            OwnerBar(if (total == 0) 0f else done / total.toFloat(), Owner.DarkTrack, Owner.Yellow, "today-$label-$done-$total", 10.dp)
+            ProgressBar(if (total == 0) 0f else done / total.toFloat(), Jk.DarkTrack, Jk.Yellow, "today-$label-$done-$total", 10.dp)
         }
-        Text(compare, style = plex(14.sp, line = 18.sp), color = Owner.OnDarkSoft)
-        if (monthDue > 0) Row(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Owner.DarkStrip)
+        Text(compare, style = plex(14.sp, line = 18.sp), color = Jk.OnDarkSoft)
+        if (monthDue > 0) Row(Modifier.padding(top = 16.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Jk.DarkStrip)
             .padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("${Math.round(monthDone * 100f / monthDue)}%", style = plex(18.sp, FontWeight.Bold), color = Owner.Yellow)
+            Text("${Math.round(monthDone * 100f / monthDue)}%", style = plex(18.sp, FontWeight.Bold), color = Jk.Yellow)
             Spacer(Modifier.width(12.dp))
-            Text("of this month's workouts finished ($monthDone of $monthDue)", style = plex(13.sp, line = 17.sp), color = Owner.OnDarkSoft)
+            Text("of this month's workouts finished ($monthDone of $monthDue)", style = plex(13.sp, line = 17.sp), color = Jk.OnDarkSoft)
         }
     }
 }
@@ -185,15 +193,15 @@ internal fun comparedWithYesterday(today: Int, yesterday: Int, extra: String? = 
 /** The "nothing to do" state of a Needs-you list: a yellow tick, "All clear" and what would show up here. */
 @Composable
 internal fun AllClearCard(explain: String) {
-    OwnerCardBox {
+    CardBox {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(48.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
-                Icon(Icons.Outlined.Check, null, Modifier.size(22.dp), tint = Owner.Black)
+            Box(Modifier.size(48.dp).clip(CircleShape).background(Jk.Yellow), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.Check, null, Modifier.size(22.dp), tint = Jk.Black)
             }
             Spacer(Modifier.width(14.dp))
             Column {
-                Text("All clear", style = plex(15.sp, FontWeight.Bold), color = Owner.Ink)
-                Text(explain, style = plex(14.sp, line = 18.sp), color = Owner.Muted)
+                Text("All clear", style = plex(15.sp, FontWeight.Bold), color = Jk.Ink)
+                Text(explain, style = plex(14.sp, line = 18.sp), color = Jk.Muted)
             }
         }
     }
@@ -204,11 +212,11 @@ internal fun AllClearCard(explain: String) {
 internal fun GreetingHeader(me: Person?) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 4.dp, top = 8.dp, bottom = 8.dp)) {
         Column(Modifier.weight(1f)) {
-            Text(greeting(), style = plex(15.sp), color = Owner.Muted)
-            Text(me?.firstName ?: "", style = plex(23.sp, FontWeight.Bold, tracking = (-0.6).sp), color = Owner.Ink,
+            Text(greeting(), style = plex(15.sp), color = Jk.Muted)
+            Text(me?.firstName ?: "", style = plex(23.sp, FontWeight.Bold, tracking = (-0.6).sp), color = Jk.Ink,
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        OwnerAvatar(me?.photoUrl, me?.name ?: "", 40.dp)
+        PersonAvatar(me?.photoUrl, me?.name ?: "", 40.dp)
     }
 }
 
@@ -238,7 +246,7 @@ internal fun Podium(top: List<RankEntry>) {
     // Visual order: 2nd, 1st, 3rd.
     val order = listOfNotNull(top.getOrNull(1)?.let { 2 to it }, top.getOrNull(0)?.let { 1 to it }, top.getOrNull(2)?.let { 3 to it })
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card).padding(horizontal = 8.dp, vertical = 18.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Card).padding(horizontal = 8.dp, vertical = 18.dp),
         horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.Bottom,
     ) {
         order.forEach { (rank, e) ->
@@ -250,16 +258,16 @@ internal fun Podium(top: List<RankEntry>) {
             ) {
                 val size = if (first) 72.dp else 56.dp
                 Box(Modifier.size(size + 10.dp), contentAlignment = Alignment.TopCenter) {
-                    Box(Modifier.size(size).clip(CircleShape).background(if (first) Owner.Yellow else Owner.Line).padding(3.dp)
-                        .clip(CircleShape).background(Owner.Card).padding(2.dp)) {
-                        OwnerAvatar(e.person.photoUrl, e.person.name, size - 10.dp)
+                    Box(Modifier.size(size).clip(CircleShape).background(if (first) Jk.Yellow else Jk.Line).padding(3.dp)
+                        .clip(CircleShape).background(Jk.Card).padding(2.dp)) {
+                        PersonAvatar(e.person.photoUrl, e.person.name, size - 10.dp)
                     }
                     RankBadge(rank, Modifier.align(Alignment.BottomCenter))
                 }
                 Spacer(Modifier.height(6.dp))
-                Text(if (e.isMe) "You" else e.person.firstName, style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(e.shownValue, style = plex(if (first) 20.sp else 17.sp, FontWeight.Bold), color = Owner.Ink)
-                Text(e.status.first, style = plex(11.sp, FontWeight.SemiBold), color = Owner.Muted, maxLines = 1)
+                Text(if (e.isMe) "You" else e.person.firstName, style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(e.shownValue, style = plex(if (first) 20.sp else 17.sp, FontWeight.Bold), color = Jk.Ink)
+                if (e.status.first.isNotBlank()) Text(e.status.first, style = plex(11.sp, FontWeight.SemiBold), color = Jk.Muted, maxLines = 1)
             }
         }
     }
@@ -269,36 +277,38 @@ internal fun Podium(top: List<RankEntry>) {
 @Composable
 internal fun RankBadge(rank: Int, modifier: Modifier = Modifier) {
     Box(
-        modifier.size(24.dp).clip(CircleShape).background(Owner.Card).padding(2.dp).clip(CircleShape)
-            .background(if (rank == 1) Owner.Yellow else Charcoal),
+        modifier.size(24.dp).clip(CircleShape).background(Jk.Card).padding(2.dp).clip(CircleShape)
+            .background(if (rank == 1) Jk.Yellow else Charcoal),
         contentAlignment = Alignment.Center,
-    ) { Text("$rank", style = plex(11.sp, FontWeight.Bold), color = if (rank == 1) Owner.Black else Color.White) }
+    ) { Text("$rank", style = plex(11.sp, FontWeight.Bold), color = if (rank == 1) Jk.Black else Color.White) }
 }
 
 /** Everyone after the podium in one card: rank number, photo, name with status and numbers, percentage. */
 @Composable
 internal fun RankList(entries: List<RankEntry>, firstRank: Int) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Card)) {
         entries.forEachIndexed { i, e ->
-            if (i > 0) Box(Modifier.padding(start = 92.dp).fillMaxWidth().height(1.dp).background(Owner.Line))
+            if (i > 0) Box(Modifier.padding(start = 92.dp).fillMaxWidth().height(1.dp).background(Jk.Line))
             Row(
                 Modifier.fillMaxWidth().openable(e).padding(start = 8.dp, end = 12.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(if (e.ranked) "${firstRank + i}" else "–", Modifier.width(32.dp), style = plex(15.sp, FontWeight.Bold),
-                    color = Owner.Muted, textAlign = TextAlign.Center)
-                OwnerAvatar(e.person.photoUrl, e.person.name, 44.dp)
+                    color = Jk.Muted, textAlign = TextAlign.Center)
+                PersonAvatar(e.person.photoUrl, e.person.name, 44.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text(e.shownName, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(e.shownName, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        OwnerChip(e.status.first, e.status.second, small = true)
-                        Spacer(Modifier.width(6.dp))
-                        Text(e.detail, style = plex(12.sp), color = Owner.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (e.status.first.isNotBlank()) {
+                            StatusChip(e.status.first, e.status.second, small = true)
+                            Spacer(Modifier.width(6.dp))
+                        }
+                        Text(e.detail, style = plex(12.sp), color = Jk.Muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 Spacer(Modifier.width(8.dp))
-                Text(e.shownValue, style = plex(16.sp, FontWeight.Bold), color = Owner.Ink)
+                Text(e.shownValue, style = plex(16.sp, FontWeight.Bold), color = Jk.Ink)
             }
         }
     }
@@ -322,6 +332,7 @@ internal fun memberEntry(
     pct = if (s.due > 0) Math.round(s.rate * 100) else null,
     detail = when {
         idle != null -> "No workout for ${if (idle.days > 30) "30+ days" else plural(idle.days, "day")}"
+        s.due == 0 && s.setsDone > 0 -> "First workout under way"
         s.due == 0 -> "No workouts yet"
         else -> "${s.completed} of ${s.due} done"
     } + (extra?.let { " · $it" } ?: ""),
@@ -331,6 +342,6 @@ internal fun memberEntry(
 /** A trainer's how-to for one exercise, in a quiet panel under its name. */
 @Composable
 internal fun CueText(cue: String) {
-    Text(cue, Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Owner.Well).padding(10.dp),
-        style = plex(13.sp, line = 18.sp), color = Owner.Ink)
+    Text(cue, Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Jk.Well).padding(10.dp),
+        style = plex(13.sp, line = 18.sp), color = Jk.Ink)
 }

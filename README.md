@@ -1,75 +1,79 @@
 # JK — Train smarter. Live stronger.
 
-Offline-first fitness app for Android: Kotlin + Jetpack Compose + Material 3 + Room.
+A single-gym fitness app for Android: the owner runs the gym, trainers coach, members train.
+Kotlin + Jetpack Compose + Material 3 + Room, with Firebase (Google sign-in + Firestore, free Spark plan) for the gym.
+Everyone signs in with Google and joins the gym with a code.
 
-## Features
-| Tab | What's in it |
-|---|---|
-| **Today** | Daily rotating workout, streak, steps/water/calorie rings, active challenge, today's read, macro target |
-| **Train** | 24 home & gym programs · 6 progressive challenges (30-day push-up, squat, plank, abs, transformation, 21-day HIIT) · 873-exercise library with animated photo demos, filters, saves and YouTube tutorials · custom workout builder |
-| **Shorts** | Full-screen vertical feed of exercise demos: double-tap like, save, share, tutorial |
-| **Health** | Water bottle tracker, steps + walk/run sessions, diet log (130+ Indian & common foods, macros, veg filter) + meal plans, fasting, guided meditation with generated ambient sound, breathing, calculators, stopwatch & interval/Tabata timer, guides |
-| **Progress** | Weekly charts, weight trend, walks/mindful minutes, before/after photo slider, history; **Me** (avatar) for profile, settings, reminders, help |
-
-Guided player: get-ready, timed/rep sets, rest, rounds, voice coach, beeps, animated exercise demo, confetti on finish.
-
-## Training system (daily plan)
-Modelled on GymFaction's flow, but generated on-device (`domain/TrainingEngine.kt`, `data/TrainingRepo.kt`):
-- **Setup** (after onboarding, or ⋮ → Edit Workout Preferences): gym/home, level, goal, active days, equipment, injuries, rest time.
-- **Weekly split** (⋮ → Edit Workout Days): body parts per weekday, e.g. Mon Chest+Abdomen+Triceps; rest days.
-- **Today's Workout**: week strip, progress, warm-up, exercises grouped by body part with **+ Add**, replace/remove,
-  set · reps · weight tables, fat-loss switch, complete all, rest-day card, history.
-- **Exercise session**: complete sets, edit reps/weight/sets, rest timer with beeps, timed sets, last-session numbers, prev/next.
-- **Progressive overload**: weights carry over from your last session and go up when every set hit its reps.
-- Curated pool of 175 exercises across 8 body parts with injury filters; photos bundled offline.
-
-## Gym mode (single gym)
-Trainers assign workouts, members complete them, the owner watches live reports, and everyone competes on a leaderboard.
-Uses Firebase (free Spark plan): Google sign-in + Firestore. Code in `gym/` and `ui/gym/`; rules in `firestore.rules`.
-
+## Who sees what
 | Role | Tabs | Can do |
 |---|---|---|
-| **Owner** | Gym · Ranks · Me | Create the gym (gets a gym code), approve trainers, see today's totals and every trainer's completion rate |
-| **Trainer** | Members · Assign · Ranks · Train · Me | Join with the gym code (owner approves), invite members with their own code, assign workouts (many members/days, weekly repeat, templates), verify sessions, notes |
-| **Member** | Today · Train · Gym · Health · Progress | Join with the trainer's code, do the assigned workout (pinned on Today), log sets, see points/rank/awards; all personal JK features stay |
+| **Owner** | Home · People · Awards · Me | Create the gym (gets a gym code), approve trainers, see today's turnout and every trainer's results, move or remove people, give awards |
+| **Trainer** | Home · Members · Ranks · Me | Join with the gym code (the owner approves), invite members with their own member code (can make a new one), assign workouts (many members and days, templates), check finished workouts, leave notes |
+| **Member** | Today · Train · Gym · Health · Progress | Join with a trainer's code, do the coach's workouts (week plan on Train), log sets and weights, see rank, points and awards; plus water, steps, diet, fasting, meditation, breathing, calculators, timers and guides. **Me** opens from the photo. |
 
-**Points** (`gym/Scoring.kt`, unit-tested): workout done +10, done on the day +5, each set +1 (max 30/day), coach verified +5, every workout in a week +20.
-Trainers are scored on their members' completion rate, not on how much they assign.
-**Monthly awards** on the 1st: Best Member, Best Trainer, Most Consistent, Most Improved, Iron Lifter.
+Members whose coach hasn't sent a workout yet get a plan JK generates on the phone (`domain/TrainingEngine.kt`).
+Programs, challenges and custom workouts are extras: they count toward the streak, not gym points.
 
-**Set up Firebase once:** create a project, add Android app `com.barathiraja.jk` with the debug key's SHA-1, enable
-Authentication → Google and Firestore, put `google-services.json` in `app/` (git-ignored), and paste `firestore.rules`.
-Without `google-services.json` the app builds and runs as a personal app.
+**Points** (`gym/Scoring.kt`, unit-tested): workout done +10, done on the day +5, each set +1 (max 30 a day), checked by the
+coach +5, every workout in a week done +20. Trainers are scored on their members' completion rate, not on how much they assign.
+**Monthly awards** are saved by the owner's phone a day into the new month: Best Member, Best Trainer, Most Consistent,
+Most Improved, Iron Lifter.
 
-## Builds
-- `./gradlew assembleRelease` — fast build for the phone (signed with the local debug key; replace with an upload key for Play Store).
-- `./gradlew testDebugUnitTest` — 34 unit tests (health maths, catalog, training engine, gym scoring).
+**Test mode** (link at the bottom of Me, or on the sign-in screen) runs every screen on a made-up gym kept in memory
+(`gym/TestGym.kt`), switchable between owner, trainer, member, waiting trainer and newcomer. Your real settings are put
+back when you leave it.
 
-## Assets & licences
-- Exercises + photos: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain).
-  Photos for the 68 exercises used by built-in programs are bundled in `assets/exercise_images`; the rest load online and are cached by Coil.
-- Font: IBM Plex Sans & Mono (SIL OFL 1.1, licence in `third_party/ibm-plex/`). Icons: Material Symbols (Apache 2.0).
-- Animations (confetti, water wave, breathing) are Compose code; meditation soundscapes are synthesised at runtime (`audio/Ambient.kt`).
-- Food values are typical-serving estimates; articles and meditation scripts are original.
+## Firebase setup (once)
+1. Create a project and add the Android app `com.barathiraja.jk` with your signing key's SHA-1.
+2. Enable Authentication → Google, and Firestore.
+3. Put `google-services.json` in `app/` (git-ignored).
+4. Firestore → Rules: paste `firestore.rules` and Publish. **Republish whenever that file changes.**
+5. Firestore → Indexes: add the two composite indexes in `firestore.indexes.json` (assignments: `memberUid` + `epochDay`,
+   and `trainerUid` + `epochDay`, both ascending). Until they exist the app reads the whole gym instead (slower, more reads).
 
 ## Build
 ```
 export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
-./gradlew assembleDebug testDebugUnitTest
-adb install app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleRelease testDebugUnitTest
+adb install -r app/build/outputs/apk/release/app-release.apk
 ```
-Or open this folder in Android Studio and press Run.
+- Release builds are shrunk with R8. They're signed with the key in `keystore.properties` (git-ignored, see below),
+  or the local debug key when that file doesn't exist (fine for your own phones, not for the Play Store).
+- `keystore.properties`: `storeFile=/path/to/jk-upload.jks`, `storePassword=…`, `keyAlias=…`, `keyPassword=…`.
+  Add that key's SHA-1 in Firebase. Switching keys means uninstalling the old app first (its local history goes).
+- `./gradlew testDebugUnitTest` runs 77 unit tests: scoring, awards, history sync, lifts, health maths, catalog, training engine, the test gym.
+
+## Privacy and security
+- Firestore rules (`firestore.rules`): only the owner approves trainers; removals stick (only someone who left by
+  themselves can rejoin); trainer codes can be retired; members can only log their own open, unchecked workouts; names
+  and photos are checked. Everyone in the gym can read the gym's workouts (the leaderboard needs them).
+- Phone backups include only JK's own history and settings, never Firestore's copy of the gym or sign-in tokens.
+- Signing out clears the phone, including Firestore's offline copy. **Delete my account** (Me) removes your name and
+  photo from the gym, your cloud backup and your Firebase account.
 
 ## Layout
 ```
 app/src/main/java/com/barathiraja/jk/
-  JkApp.kt, MainActivity.kt      app container (manual DI), entry point
-  data/                          Room entities/DAO/DB, UserPrefs, workout Catalog
-  domain/Health.kt               all health math (unit-tested)
-  steps/StepTracker.kt           TYPE_STEP_COUNTER -> steps today
-  reminders/Reminders.kt         AlarmManager reminders + boot receiver
-  ui/                            JkViewModel, navigation root, theme, components, screens/
+  JkApp.kt, MainActivity.kt   app container (manual DI): database, prefs, Firebase, test mode, phone wipe
+  data/                       Room entities, DAO, database, UserPrefs, workout catalog, exercise library
+  domain/                     Health maths, TrainingEngine (generated plans)
+  gym/                        Firestore repo, TestGym, models, Scoring, OwnerStats, Lifts, HistorySync, AwardsJob
+  steps/                      step counter and its permission
+  reminders/                  AlarmManager reminders + boot receiver
+  ui/theme/                   palette (Jk), typography, Tone
+  ui/components/              shared kit: pages, cards, buttons, rings, avatars, scaffolds
+  ui/member/                  member Today, Train plan, Gym, workout screen
+  ui/gym/                     owner and trainer screens, ranks, awards, workout cards, rest timer
+  ui/screens/                 Train extras, Health tools, Progress, Me, diet, meditation, player…
 ```
 
+## Assets & licences
+- Exercises + photos: [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (Unlicense / public domain).
+  Photos for the common exercises are bundled in `assets/exercise_images`; the rest load online and are cached by Coil.
+- Font: IBM Plex Sans & Mono (SIL OFL 1.1, licence in `third_party/ibm-plex/`). Icons: Material Symbols (Apache 2.0).
+- Animations (confetti, water wave, breathing) are Compose code; meditation soundscapes are synthesised at runtime (`audio/Ambient.kt`).
+- Food values are typical-serving estimates; articles and meditation scripts are original.
+
 ## Roadmap
-Push notifications for new workouts (needs Cloud Functions / Blaze plan), cloud backup of personal data, community feed, premium/payments, multi-language (GymFaction ships 8), background step counting via a foreground service, home-screen widget.
+Push notifications for new workouts (needs Cloud Functions / Blaze plan), steps counted in the background (Health Connect),
+multi-language, home-screen widget.

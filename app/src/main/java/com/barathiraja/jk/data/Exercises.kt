@@ -49,7 +49,7 @@ fun String.cap() = replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.
 
 object ExerciseRepo {
     @Volatile private var all: List<Exercise> = emptyList()
-    private var byId: Map<String, Exercise> = emptyMap()
+    @Volatile private var byId: Map<String, Exercise> = emptyMap()
     var bundled: Set<String> = emptySet()
         private set
 
@@ -116,12 +116,15 @@ object ExerciseRepo {
     }
 }
 
+/** A weight without a needless ".0": 20 → "20", 22.5 → "22.5". */
+fun Float.trimZero(): String = if (this % 1f == 0f) toInt().toString() else "%.1f".format(this)
+
 /**
  * How a set's weight reads (without the unit): the kilos, "BW" for a bodyweight exercise, or "–" while a weighted
  * exercise has no weight set yet (so a machine press never looks like a bodyweight move).
  */
 fun weightLabel(kg: Float, exerciseId: String): String = when {
-    kg > 0f -> if (kg % 1f == 0f) kg.toInt().toString() else "%.1f".format(kg)
+    kg > 0f -> kg.trimZero()
     ExerciseRepo.get(exerciseId)?.equipment == "body only" -> "BW"
     else -> "–"
 }
@@ -132,3 +135,6 @@ fun repsAndWeight(reps: Int, kg: Float, exerciseId: String): String = when (val 
     "–" -> "$reps reps"
     else -> "$reps×${w}kg"
 }
+
+/** How much the weight goes up or down per tap: dumbbells and kettlebells come in 1 kg steps, plates in 2.5 kg. */
+val Exercise.weightStep: Float get() = if (equipment == "dumbbell" || equipment == "kettlebells") 1f else 2.5f

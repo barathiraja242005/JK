@@ -9,3 +9,11 @@
 # Keep line numbers in crash reports readable.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# Release builds drop debug/info/warning logs, so nothing about the gym ends up in the phone's log. Errors stay.
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+}

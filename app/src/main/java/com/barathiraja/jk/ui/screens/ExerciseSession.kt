@@ -1,8 +1,5 @@
 package com.barathiraja.jk.ui.screens
 
-import android.media.AudioManager
-import android.media.ToneGenerator
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,7 +44,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -59,13 +55,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import com.barathiraja.jk.data.ExerciseRepo
+import com.barathiraja.jk.ui.gym.RestBar
+import com.barathiraja.jk.ui.gym.rememberWorkoutClock
+import com.barathiraja.jk.data.weightStep
 import com.barathiraja.jk.data.SetSpec
 import com.barathiraja.jk.data.cap
 import com.barathiraja.jk.data.repsAndWeight
@@ -82,7 +80,6 @@ import com.barathiraja.jk.ui.components.SectionTitle
 import com.barathiraja.jk.ui.components.formatDuration
 import com.barathiraja.jk.ui.components.openUrl
 import com.barathiraja.jk.ui.theme.Good
-import com.barathiraja.jk.ui.theme.Yellow
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.delay
@@ -112,44 +109,28 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
     val previous = logs.filter { it.epochDay != item.epochDay }.let { l -> l.filter { it.epochDay == l.maxOfOrNull { x -> x.epochDay } } }
 
     var editing by remember(itemId) { mutableStateOf(false) }
-    var resting by remember { mutableIntStateOf(0) }
     var setTimer by remember { mutableIntStateOf(-1) } // index of the timed set running, -1 = none
     var timerLeft by remember { mutableIntStateOf(0) }
     var showMore by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
-    val tone = remember { runCatching { ToneGenerator(AudioManager.STREAM_MUSIC, 80) }.getOrNull() }
-    val view = LocalView.current
-    DisposableEffect(Unit) {
-        view.keepScreenOn = true
-        onDispose { view.keepScreenOn = false; tone?.release() }
-    }
-
-    // Rest countdown between sets.
-    LaunchedEffect(resting > 0) {
-        while (resting > 0) {
-            delay(1000)
-            resting--
-            if (resting in 1..3) tone?.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
-            if (resting == 0) tone?.startTone(ToneGenerator.TONE_PROP_BEEP2, 300)
-        }
-    }
+    val clock = rememberWorkoutClock(prefs.restSec)
     // Timed set countdown (planks, cardio).
     LaunchedEffect(setTimer) {
         if (setTimer < 0) return@LaunchedEffect
         while (timerLeft > 0) {
             delay(1000)
             timerLeft--
-            if (timerLeft in 1..3) tone?.startTone(ToneGenerator.TONE_PROP_BEEP, 120)
+            if (timerLeft in 1..3) clock.beep()
         }
-        tone?.startTone(ToneGenerator.TONE_PROP_BEEP2, 300)
+        clock.beep(long = true)
         tvm.toggleSet(item.id, setTimer, true)
         setTimer = -1
-        if (sets.count { !it.done } > 1) resting = prefs.restSec
+        if (sets.count { !it.done } > 1) clock.start()
     }
 
     fun complete(i: Int) {
         tvm.toggleSet(item.id, i, true)
-        if (sets.count { !it.done } > 1) resting = prefs.restSec
+        if (sets.count { !it.done } > 1) clock.start()
     }
 
     val nextUndone = sets.indexOfFirst { !it.done }
@@ -208,7 +189,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
                             onToggle = { if (s.done) tvm.toggleSet(item.id, i, false) else if (s.timed) { timerLeft = s.seconds; setTimer = i } else complete(i) },
                             onChange = { ns -> tvm.updateSets(item.id, sets.toMutableList().also { it[i] = ns }) },
                             onDelete = { if (sets.size > 1) tvm.updateSets(item.id, sets.toMutableList().also { it.removeAt(i) }) },
-                            step = if (ex.equipment == "dumbbell" || ex.equipment == "kettlebells") 1f else 2.5f)
+                            step = ex.weightStep)
                     }
                 }
                 if (editing) {
@@ -273,25 +254,7 @@ fun ExerciseSessionScreen(itemId: Long, tvm: TrainingViewModel, nav: NavHostCont
             }
         }
 
-        // Rest timer overlay.
-        AnimatedVisibility(resting > 0, modifier = Modifier.align(Alignment.BottomCenter)) {
-            Card(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.inverseSurface)) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Ring(resting / prefs.restSec.toFloat().coerceAtLeast(1f), Yellow, size = 64.dp, stroke = 6.dp, track = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.2f)) {
-                        Text("$resting", color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.titleMedium)
-                    }
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Rest", color = MaterialTheme.colorScheme.inverseOnSurface, style = MaterialTheme.typography.titleMedium)
-                        Text("Next: set ${nextUndone + 1} of ${sets.size}", color = MaterialTheme.colorScheme.inverseOnSurface.copy(alpha = 0.7f),
-                            style = MaterialTheme.typography.bodySmall)
-                    }
-                    TextButton(onClick = { resting += 15 }) { Text("+15s", color = MaterialTheme.colorScheme.inverseOnSurface) }
-                    TextButton(onClick = { resting = 0 }) { Text("Skip", color = Yellow) }
-                }
-            }
-        }
+        RestBar(clock, next = "Next: set ${nextUndone + 1} of ${sets.size}", modifier = Modifier.align(Alignment.BottomCenter))
         if (dayDone && allDone) Confetti()
     }
 }

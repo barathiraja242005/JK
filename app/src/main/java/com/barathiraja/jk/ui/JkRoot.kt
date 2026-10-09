@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -35,7 +37,6 @@ import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Insights
 import androidx.compose.material.icons.outlined.Person
-import androidx.compose.material.icons.outlined.SlowMotionVideo
 import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -85,19 +86,20 @@ import com.barathiraja.jk.data.Profile
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.components.LocalNavBarInset
 import com.barathiraja.jk.ui.gym.AssignScreen
-import com.barathiraja.jk.ui.gym.AssignedSessionScreen
+import com.barathiraja.jk.ui.member.AssignedSessionScreen
 import com.barathiraja.jk.ui.gym.ChooseRoleScreen
 import com.barathiraja.jk.ui.gym.GiveAwardScreen
 import com.barathiraja.jk.ui.gym.GymLoading
 import com.barathiraja.jk.ui.gym.MemberDetailScreen
-import com.barathiraja.jk.ui.gym.MemberGymScreen
-import com.barathiraja.jk.ui.gym.Owner
+import com.barathiraja.jk.ui.member.MemberGymScreen
+import com.barathiraja.jk.ui.theme.Jk
 import com.barathiraja.jk.ui.gym.OwnerAwardsScreen
 import com.barathiraja.jk.ui.gym.OwnerHomeScreen
 import com.barathiraja.jk.ui.gym.OwnerPeopleScreen
 import com.barathiraja.jk.ui.gym.RanksScreen
 import com.barathiraja.jk.ui.gym.SignInScreen
 import com.barathiraja.jk.ui.gym.StaffMeScreen
+import com.barathiraja.jk.ui.gym.TestModeBar
 import com.barathiraja.jk.ui.gym.TrainerDetailScreen
 import com.barathiraja.jk.ui.gym.TrainerHomeScreen
 import com.barathiraja.jk.ui.gym.TrainerMembersScreen
@@ -121,8 +123,7 @@ import com.barathiraja.jk.ui.screens.OnboardingScreen
 import com.barathiraja.jk.ui.screens.PhotosScreen
 import com.barathiraja.jk.ui.screens.ProfileScreen
 import com.barathiraja.jk.ui.screens.ProgressScreen
-import com.barathiraja.jk.ui.screens.ShortsScreen
-import com.barathiraja.jk.ui.screens.TodayScreen
+import com.barathiraja.jk.ui.member.MemberTodayScreen
 import com.barathiraja.jk.ui.screens.ToolsScreen
 import com.barathiraja.jk.ui.screens.TrackScreen
 import com.barathiraja.jk.ui.screens.TrainingHistoryScreen
@@ -139,7 +140,6 @@ import com.barathiraja.jk.ui.theme.Red
 object Routes {
     const val TODAY = "today"
     const val WORKOUTS = "workouts"
-    const val SHORTS = "shorts"
     const val TRACK = "track"
     const val PROGRESS = "progress"
     const val PROFILE = "profile"
@@ -192,13 +192,6 @@ object Routes {
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
 
-private val soloTabs = listOf(
-    Tab(Routes.TODAY, "Today", Icons.Outlined.WbSunny),
-    Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
-    Tab(Routes.SHORTS, "Shorts", Icons.Outlined.SlowMotionVideo),
-    Tab(Routes.TRACK, "Health", Icons.Outlined.FavoriteBorder),
-    Tab(Routes.PROGRESS, "Progress", Icons.Outlined.Insights),
-)
 private val memberTabs = listOf(
     Tab(Routes.TODAY, "Today", Icons.Outlined.WbSunny),
     Tab(Routes.WORKOUTS, "Train", Icons.Outlined.FitnessCenter),
@@ -249,7 +242,7 @@ private fun DipBottomBar(tabs: List<Tab>, route: String?, modifier: Modifier = M
     ) {
         val slot = (maxWidth - inner * 2) / tabs.size
         val cx = inner + slot * (pos + 0.5f)
-        val barShape = DipShape(radius = 28.dp, center = cx, dipHalfWidth = hw, dipDepth = depth, roundBottom = false)
+        val barShape = DipShape(radius = 28.dp, center = cx, dipHalfWidth = hw, dipDepth = depth)
         Row(
             Modifier.align(Alignment.BottomCenter).fillMaxWidth().height(BAR_HEIGHT + navInset)
                 .shadow(24.dp, barShape, ambientColor = Color.Black.copy(alpha = 0.18f),
@@ -276,7 +269,7 @@ private val BAR_HEIGHT = 60.dp
 /** One slot: icon over label in light grey; when open, just its label in white, low in the dip under the button. */
 @Composable
 private fun SideTab(tab: Tab, on: Boolean, modifier: Modifier, onSelect: (String) -> Unit) {
-    val idle = Owner.OnDarkMuted
+    val idle = Jk.OnDarkMuted
     Column(
         modifier.clip(RoundedCornerShape(18.dp))
             .selectable(selected = on, role = A11yRole.Tab) { onSelect(tab.route) }
@@ -305,7 +298,6 @@ private class DipShape(
     private val center: Dp,
     private val dipHalfWidth: Dp,
     private val dipDepth: Dp,
-    private val roundBottom: Boolean = true,
 ) : Shape {
     override fun createOutline(
         size: Size, layoutDirection: LayoutDirection,
@@ -318,7 +310,6 @@ private class DipShape(
         val hw = dipHalfWidth.toPx().coerceAtMost(cx - edge).coerceAtMost(w - cx - edge)
         val rl = radius.toPx().coerceAtMost(cx - hw)
         val rr = radius.toPx().coerceAtMost(w - cx - hw)
-        val r = radius.toPx()
         Outline.Generic(Path().apply {
             moveTo(0f, rl)
             if (rl > 0f) arcTo(Rect(0f, 0f, 2 * rl, 2 * rl), 180f, 90f, false)
@@ -328,15 +319,9 @@ private class DipShape(
             cubicTo(cx + hw * 0.5f, d, cx + hw * 0.5f, 0f, cx + hw, 0f)
             lineTo(w - rr, 0f)
             if (rr > 0f) arcTo(Rect(w - 2 * rr, 0f, w, 2 * rr), 270f, 90f, false)
-            if (roundBottom) {
-                lineTo(w, h - r)
-                arcTo(Rect(w - 2 * r, h - 2 * r, w, h), 0f, 90f, false)
-                lineTo(r, h)
-                arcTo(Rect(0f, h - 2 * r, 2 * r, h), 90f, 90f, false)
-            } else {
-                lineTo(w, h)
-                lineTo(0f, h)
-            }
+            // The bar sits on the bottom edge, so its lower corners are square.
+            lineTo(w, h)
+            lineTo(0f, h)
             close()
         })
     }
@@ -346,38 +331,45 @@ private fun NavBackStackEntry.arg(name: String) = arguments?.getString(name).orE
 
 @Composable
 fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
+    if (!gvm.testMode) { JkRootContent(vm, tvm, gvm); return }
+    // Test mode: a bar on top says so and switches between owner, trainer and member; the app sits below it.
+    Column(Modifier.fillMaxSize()) {
+        TestModeBar(gvm)
+        Box(Modifier.weight(1f).consumeWindowInsets(WindowInsets.statusBars)) { JkRootContent(vm, tvm, gvm) }
+    }
+}
+
+@Composable
+private fun JkRootContent(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     val training by tvm.prefs.collectAsStateWithLifecycle()
     val gymState by gvm.state.collectAsStateWithLifecycle()
     var pendingProfile by remember { mutableStateOf<Profile?>(null) }
 
-    // Gym gate: everyone signs in and joins a gym first (only builds without Firebase run solo).
-    val solo = gymState == GymState.Disabled
-    if (!solo) when (val s = gymState) {
+    // Gym gate: everyone signs in and joins a gym first.
+    val me = when (val s = gymState) {
         GymState.Loading -> { GymLoading(); return }
         GymState.SignedOut -> { SignInScreen(gvm); return }
-        is GymState.NoGym -> { ChooseRoleScreen(gvm, s.user.displayName.orEmpty()); return }
+        is GymState.NoGym -> { ChooseRoleScreen(gvm, s.user.displayName); return }
         is GymState.Pending -> { WaitingScreen(gvm, s.gym, removed = false); return }
         is GymState.Removed -> { WaitingScreen(gvm, s.gym, removed = true); return }
-        else -> {}
+        is GymState.Ready -> s.me
     }
-    val me = (gymState as? GymState.Ready)?.me
-    val role = me?.role
+    val role = me.role
     val restoring by gvm.restoring.collectAsStateWithLifecycle()
     if (restoring && !profile.onboarded) { GymLoading(); return }
     // Owners and trainers skip the body-stats onboarding; their name comes from Google.
-    if (me != null && role != Role.MEMBER && !profile.onboarded) {
+    if (role != Role.MEMBER && !profile.onboarded && !gvm.testMode) {
         LaunchedEffect(me.uid) { vm.saveProfile(profile.copy(onboarded = true, name = me.name), logWeight = false) }
         GymLoading()
         return
     }
-    if (!profile.onboarded) {
+    // Members give their details first; staff never need them.
+    if (!profile.onboarded && role == Role.MEMBER) {
         val p = pendingProfile
         if (p == null) {
-            // Gym members start with their Google name and "Gym" picked.
-            val initial = if (me != null) Profile(name = me.name, place = Place.GYM)
-                else Profile()
-            OnboardingScreen(initial, onDone = { pendingProfile = it })
+            // Members start with their Google name and "Gym" picked.
+            OnboardingScreen(profile.copy(name = me.name, place = Place.GYM), onDone = { pendingProfile = it })
         } else {
             // Step 2 of onboarding: training preferences, then the plan is generated.
             TrainingSetupScreen(training, p.place, p.goal, onFinish = { t, place, goal ->
@@ -388,8 +380,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
         return
     }
 
-    val tabs = when (role) { Role.OWNER -> ownerTabs; Role.TRAINER -> trainerTabs; Role.MEMBER -> memberTabs; null -> soloTabs }
-    val gymVm = gvm.takeIf { gymState != GymState.Disabled }
+    val tabs = when (role) { Role.OWNER -> ownerTabs; Role.TRAINER -> trainerTabs; Role.MEMBER -> memberTabs }
     key(role) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
@@ -411,12 +402,12 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
       Box(Modifier.fillMaxSize()) {
       CompositionLocalProvider(LocalNavBarInset provides barInset) {
         NavHost(nav, startDestination = tabs.first().route, modifier = Modifier.fillMaxSize()) {
-            composable(Routes.TODAY) { TodayScreen(vm, tvm, nav, gvm.takeIf { role == Role.MEMBER }) }
+            composable(Routes.TODAY) { MemberTodayScreen(vm, gvm, nav) }
             composable(Routes.GYM) {
                 when (role) {
                     Role.OWNER -> OwnerHomeScreen(gvm, nav)
                     Role.TRAINER -> TrainerHomeScreen(gvm, nav)
-                    else -> MemberGymScreen(gvm, nav)
+                    else -> MemberGymScreen(gvm, vm, nav)
                 }
             }
             composable(Routes.MEMBERS) { TrainerMembersScreen(gvm, nav) }
@@ -428,7 +419,7 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
             composable(Routes.OWNER_AWARDS) { OwnerAwardsScreen(gvm, nav) }
             composable(Routes.GIVE_AWARD) { GiveAwardScreen(gvm, nav) }
             composable(Routes.ASSIGNED) { AssignedSessionScreen(it.arg("id"), gvm, nav) }
-            composable(Routes.WORKOUTS) { WorkoutsScreen(vm, tvm, nav) }
+            composable(Routes.WORKOUTS) { WorkoutsScreen(vm, tvm, nav, gvm) }
             composable(Routes.SESSION) { ExerciseSessionScreen(it.arg("id").toLongOrNull() ?: 0L, tvm, nav) }
             composable(Routes.EDIT_DAYS) { EditDaysScreen(tvm, nav) }
             composable(Routes.TRAIN_HISTORY) { TrainingHistoryScreen(tvm, nav) }
@@ -439,11 +430,10 @@ fun JkRoot(vm: JkViewModel, tvm: TrainingViewModel, gvm: GymViewModel) {
                     nav.popBackStack()
                 }, onBack = { nav.popBackStack() })
             }
-            composable(Routes.SHORTS) { ShortsScreen(vm, nav) }
             composable(Routes.TRACK) { TrackScreen(vm, nav) }
-            composable(Routes.PROGRESS) { ProgressScreen(vm, nav) }
+            composable(Routes.PROGRESS) { ProgressScreen(vm, nav, gvm) }
             composable(Routes.PROFILE) {
-                if (role == Role.OWNER || role == Role.TRAINER) StaffMeScreen(vm, gvm, nav) else ProfileScreen(vm, nav, gymVm)
+                if (role == Role.OWNER || role == Role.TRAINER) StaffMeScreen(vm, gvm, nav) else ProfileScreen(vm, nav, gvm)
             }
             composable(Routes.WORKOUT) { WorkoutDetailScreen(it.arg("id"), vm, nav) }
             composable(Routes.PLAYER) { WorkoutPlayerScreen(it.arg("id"), vm, nav) }

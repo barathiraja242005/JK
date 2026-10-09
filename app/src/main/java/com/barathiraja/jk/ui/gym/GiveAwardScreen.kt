@@ -75,6 +75,16 @@ import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.theme.HeroFill
 import java.time.YearMonth
 import kotlinx.coroutines.delay
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.PageTitle
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.RedButton
+import com.barathiraja.jk.ui.components.SegmentTab
+import com.barathiraja.jk.ui.components.SegmentedTabs
+import com.barathiraja.jk.ui.components.StatusChip
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
 
 private const val PEOPLE_PREVIEW = 5
 
@@ -176,8 +186,8 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
         title = { Text("Leave without giving the award?") },
         text = { Text("What you picked here will be lost.", style = plex(15.sp, line = 21.sp)) },
         confirmButton = { TextButton(onClick = { leaving = false; nav.popBackStack() }) {
-            Text("Leave", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
-        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Stay", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
+            Text("Leave", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText) } },
+        dismissButton = { TextButton(onClick = { leaving = false }) { Text("Stay", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } })
 
     PersonPage("Back", onBack = { if (started) leaving = true else nav.popBackStack() }) {
         item { PageTitle("Give an award", "Pick the award, who gets it, and a gift. Everyone in the gym will see it.") }
@@ -220,7 +230,7 @@ fun GiveAwardScreen(gvm: GymViewModel, nav: NavHostController) {
                 )
                 if (!membersAllowed || !trainersAllowed) Text(
                     "${option.title} is only for ${if (trainersAllowed) "trainers" else "members"}.",
-                    style = plex(13.sp), color = Owner.Muted, modifier = Modifier.padding(start = 6.dp, top = 10.dp),
+                    style = plex(13.sp), color = Jk.Muted, modifier = Modifier.padding(start = 6.dp, top = 10.dp),
                 )
             }
             item {
@@ -287,10 +297,10 @@ private fun PersonChoices(
 ) {
     if (people.isEmpty()) {
         Text(if (trainerTab) "No trainers yet. Share your gym code from the Me tab to add one." else "No members yet. Trainers add members with their own code.",
-            style = plex(14.sp, line = 19.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 6.dp))
+            style = plex(14.sp, line = 19.sp), color = Jk.Muted, modifier = Modifier.padding(horizontal = 6.dp))
         return
     }
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card).padding(6.dp).selectableGroup(),
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Card).padding(6.dp).selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(2.dp)) {
         val shown = if (showEveryone) people else people.take(PEOPLE_PREVIEW).let { top ->
             if (chosenUid != null && top.none { it.uid == chosenUid }) top + people.filter { it.uid == chosenUid } else top
@@ -302,12 +312,12 @@ private fun PersonChoices(
                 .selectable(selected = selected, role = A11yRole.RadioButton) { onPick(p) }
                 .padding(horizontal = 10.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically) {
-                OwnerAvatar(p.photoUrl, p.name, 44.dp)
+                PersonAvatar(p.photoUrl, p.name, 44.dp)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1)
-                    if (p.uid == suggested) OwnerChip("Leading this month", Tone.TOP, Modifier.padding(top = 3.dp))
-                    else Text(detail(p), style = plex(13.sp), color = Owner.Muted)
+                    Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1)
+                    if (p.uid == suggested) StatusChip("Leading this month", Tone.TOP, Modifier.padding(top = 3.dp))
+                    else Text(detail(p), style = plex(13.sp), color = Jk.Muted)
                 }
                 CheckDisc(selected)
             }
@@ -315,7 +325,7 @@ private fun PersonChoices(
         if (people.size > PEOPLE_PREVIEW) {
             TextButton(onClick = onShowEveryone, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                 Text(if (showEveryone) "Show fewer" else "Show all ${if (trainerTab) "trainers" else "members"} (${people.size})",
-                    style = plex(13.sp, FontWeight.SemiBold), color = Owner.Ink)
+                    style = plex(13.sp, FontWeight.SemiBold), color = Jk.Ink)
             }
         }
     }
@@ -351,19 +361,19 @@ private fun FocusedField(value: String, onChange: (String) -> Unit, label: Strin
 /** A finished step folded to one line: a yellow tick, what was picked, and Change to open the step again. */
 @Composable
 private fun StepSummary(label: String, value: String, onChange: () -> Unit) {
-    OwnerCardBox(padding = 12.dp) {
+    CardBox(padding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(30.dp).clip(CircleShape).background(Owner.Yellow), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(30.dp).clip(CircleShape).background(Jk.Yellow), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(label, style = plex(12.sp), color = Owner.Muted)
-                Text(value, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1,
+                Text(label, style = plex(12.sp), color = Jk.Muted)
+                Text(value, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
             }
             TextButton(onClick = onChange, Modifier.heightIn(min = 48.dp)) {
-                Text("Change", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink)
+                Text("Change", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink)
             }
         }
     }
@@ -374,7 +384,7 @@ private fun StepSummary(label: String, value: String, onChange: () -> Unit) {
 private fun StepTitle(n: Int, text: String, done: Boolean) {
     val cs = MaterialTheme.colorScheme
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 14.dp, start = 4.dp)) {
-        Box(Modifier.size(30.dp).clip(CircleShape).background(if (done) Owner.Yellow else cs.onSurface),
+        Box(Modifier.size(30.dp).clip(CircleShape).background(if (done) Jk.Yellow else cs.onSurface),
             contentAlignment = Alignment.Center) {
             if (done) Icon(Icons.Outlined.Check, "Done", Modifier.size(18.dp), tint = Color.Black)
             else Text("$n", style = plex(14.sp, FontWeight.SemiBold), color = cs.surface)
@@ -401,7 +411,7 @@ private fun TileGrid(count: Int, tile: @Composable (index: Int, modifier: Modifi
 @Composable
 private fun CheckDisc(on: Boolean) {
     val cs = MaterialTheme.colorScheme
-    Box(Modifier.size(24.dp).clip(CircleShape).background(if (on) Owner.Yellow else Color.Transparent)
+    Box(Modifier.size(24.dp).clip(CircleShape).background(if (on) Jk.Yellow else Color.Transparent)
         .border(1.5.dp, if (on) Color.Black else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
         if (on) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.Black)
     }
@@ -433,7 +443,7 @@ private fun RewardTile(icon: ImageVector, label: String, selected: Boolean, modi
         color = if (selected) HeroFill else cs.surfaceContainer,
         contentColor = if (selected) Color.White else cs.onSurface) {
         Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(38.dp).clip(CircleShape).background(if (selected) Owner.Yellow else cs.surfaceContainerHigh),
+            Box(Modifier.size(38.dp).clip(CircleShape).background(if (selected) Jk.Yellow else cs.surfaceContainerHigh),
                 contentAlignment = Alignment.Center) {
                 Icon(icon, null, Modifier.size(19.dp), tint = if (selected) Color.Black else cs.onSurface)
             }
@@ -446,18 +456,18 @@ private fun RewardTile(icon: ImageVector, label: String, selected: Boolean, modi
 /** What everyone will see: the medal, who it is for, the award and the gift, on a mustard card. */
 @Composable
 private fun AwardPreview(look: AwardLook, title: String, person: Person, reward: String) {
-    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Owner.Yellow).padding(22.dp),
+    Column(Modifier.padding(top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Jk.Yellow).padding(22.dp),
         horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Preview", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Black)
+        Text("Preview", style = plex(13.sp, FontWeight.SemiBold), color = Jk.Black)
         Spacer(Modifier.height(12.dp))
         AwardBadge(look, 72.dp)
         Spacer(Modifier.height(14.dp))
         Text(title, style = plex(18.sp, FontWeight.SemiBold), color = Color.Black, textAlign = TextAlign.Center)
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(person.photoUrl, person.name, 26.dp)
+            PersonAvatar(person.photoUrl, person.name, 26.dp)
             Spacer(Modifier.width(8.dp))
             Text(person.name, style = plex(15.sp, FontWeight.SemiBold), color = Color.Black)
         }
-        if (reward.isNotBlank()) OwnerChip("Gift · $reward", Tone.GOOD, Modifier.padding(top = 12.dp))
+        if (reward.isNotBlank()) StatusChip("Gift · $reward", Tone.GOOD, Modifier.padding(top = 12.dp), lines = 3)
     }
 }

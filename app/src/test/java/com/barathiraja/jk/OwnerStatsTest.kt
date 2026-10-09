@@ -14,6 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
 
 class OwnerStatsTest {
     private val month = YearMonth.of(2026, 10)
@@ -57,7 +58,7 @@ class OwnerStatsTest {
     }
 
     @Test fun newMemberIsNotIdleBeforeAWeek() {
-        val joined = LocalDate.ofEpochDay(today - 3).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val joined = LocalDate.ofEpochDay(today - 3).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
         val d = digest(listOf(member("m1").copy(joinedAt = joined), trainer("t1")), emptyList())
         assertTrue(d.idle.isEmpty())
     }

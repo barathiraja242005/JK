@@ -41,12 +41,24 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.Heading
+import com.barathiraja.jk.ui.components.JkPage
+import com.barathiraja.jk.ui.components.PageTitle
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.ProgressBar
+import com.barathiraja.jk.ui.components.SegmentTab
+import com.barathiraja.jk.ui.components.SegmentedTabs
+import com.barathiraja.jk.ui.components.StatusChip
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /*
  * The owner's Home answers two questions and nothing else: "how is my gym doing today?" (the black card) and
  * "what do I need to do?" (Needs you). People, awards and the gym code each live on their own tab, once.
  */
-
 
 @Composable
 fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
@@ -60,9 +72,9 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
     var showAll by rememberSaveable { mutableStateOf(false) }
     val gymName = gym?.name ?: "your gym"
 
-    OwnerPage {
+    JkPage {
         item { GreetingHeader(me) }
-        val d = digest ?: return@OwnerPage
+        val d = digest ?: return@JkPage
 
         item { TodayCard(d, gymName) }
 
@@ -73,7 +85,7 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
             d.idle.filter { i -> orphans.none { it.uid == i.member.uid } }.map { Need.Away(it) }
 
         item {
-            OwnerHeading("Needs you", if (needs.isEmpty()) null else
+            Heading("Needs you", if (needs.isEmpty()) null else
                 "${if (needs.size == 1) "1 person" else "${needs.size} people"} to say yes to or check on.")
         }
         if (needs.isEmpty()) item { AllClearCard("No one is waiting to join and every member trained this week.") }
@@ -88,6 +100,18 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
             }
             NeedsList(rows, showAll) { showAll = !showAll }
         }
+
+        // Members join through a trainer, so each trainer's code is here for the owner to hand out.
+        val codes = people.filter { it.role == Role.TRAINER && it.active }.sortedBy { it.name }
+            .map { MemberCode(it, it.trainerCode.orEmpty()) }
+        item {
+            Heading("Member codes", if (codes.isEmpty()) null
+                else "New members choose \"I'm a member\" and type their trainer's code.")
+        }
+        item {
+            if (codes.isEmpty()) AllClearCard("Approve a trainer first. Each trainer gets a code for their members.")
+            else MemberCodesCard(codes, gymName, gvm, mine = false)
+        }
     }
 
     rejecting?.let { p ->
@@ -95,12 +119,11 @@ fun OwnerHomeScreen(gvm: GymViewModel, nav: NavHostController) {
             title = { Text("Reject ${p.firstName}?") },
             text = { Text("${p.firstName} won't join as a trainer. They can ask again with your gym code.", style = plex(15.sp, line = 21.sp)) },
             confirmButton = { TextButton(onClick = { rejecting = null; gvm.reject(p) }) {
-                Text("Reject ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
-            dismissButton = { TextButton(onClick = { rejecting = null }) { Text("Keep waiting", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
+                Text("Reject ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText) } },
+            dismissButton = { TextButton(onClick = { rejecting = null }) { Text("Keep waiting", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } })
     }
     choosingFor?.let { m -> ChangeTrainerDialog(m, gvm) { choosingFor = null } }
 }
-
 
 /** Today on the charcoal card: members who trained, compared with yesterday, and the whole gym's month. */
 @Composable
@@ -122,7 +145,6 @@ private sealed interface Need {
     data class Away(val i: OwnerStats.Idle) : Need { override val key get() = "a" + i.member.uid }
     data class NoTrainer(val p: Person) : Need { override val key get() = "n" + p.uid }
 }
-
 
 @Composable
 private fun joiningRow(p: Person, onApprove: () -> Unit, onReject: () -> Unit) = NeedRow(
@@ -160,9 +182,9 @@ private fun awayRow(i: OwnerStats.Idle, trainer: Person?, gymName: String, conte
 @Composable
 private fun ChipLine(chip: String, tone: Tone, line: String, lines: Int) {
     Row(verticalAlignment = Alignment.Top) {
-        OwnerChip(chip, tone, Modifier.padding(top = 1.dp), small = true)
+        StatusChip(chip, tone, Modifier.padding(top = 1.dp), small = true)
         Spacer(Modifier.width(6.dp))
-        Text(line, style = plex(13.sp, line = 18.sp), color = Owner.Muted, maxLines = lines, overflow = TextOverflow.Ellipsis)
+        Text(line, style = plex(13.sp, line = 18.sp), color = Jk.Muted, maxLines = lines, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -180,7 +202,7 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
     val idle = d?.idle.orEmpty().associateBy { it.member.uid }
     val members = ranking.mapNotNull { s -> people.firstOrNull { it.uid == s.uid && it.active }?.let { it to s } }
 
-    OwnerPage {
+    JkPage {
         item { PageTitle("People", "Everyone in your gym, best this month first. Tap someone to see them or make a change.") }
         item {
             SegmentedTabs(listOf(SegmentTab("Members", members.size), SegmentTab("Trainers", trainers.size)),
@@ -190,7 +212,7 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
             Text(
                 if (trainersTab) "Workouts their members finished this month, out of those given. Higher is better."
                 else "Workouts each member finished this month, out of those given.",
-                style = plex(14.sp, line = 19.sp), color = Owner.Muted, modifier = Modifier.padding(horizontal = 4.dp),
+                style = plex(14.sp, line = 19.sp), color = Jk.Muted, modifier = Modifier.padding(horizontal = 4.dp),
             )
         }
         // Both tabs become the same kind of entries, so members and trainers look exactly alike.
@@ -218,7 +240,7 @@ fun OwnerPeopleScreen(gvm: GymViewModel, nav: NavHostController) {
 
 @Composable
 private fun Empty(text: String) {
-    OwnerCardBox { Text(text, style = plex(15.sp, line = 21.sp), color = Owner.Muted) }
+    CardBox { Text(text, style = plex(15.sp, line = 21.sp), color = Jk.Muted) }
 }
 
 internal fun trainerStatus(t: OwnerStats.TrainerRow, top: Boolean): Pair<String, Tone> = when {
@@ -237,6 +259,7 @@ internal fun memberStatus(s: Scoring.MemberScore?, top: Boolean, idle: OwnerStat
         top -> "Top member" to Tone.TOP
         noPlan -> "No plan" to Tone.WARN
         idle != null -> "Away" to Tone.BAD
+        s != null && s.due == 0 && s.setsDone > 0 -> "Started" to Tone.NONE
         s == null || s.due == 0 -> "No workouts yet" to Tone.NONE
         s.rate >= 0.7f -> "Doing well" to Tone.GOOD
         s.rate >= 0.4f -> "Could do better" to Tone.WARN
@@ -249,17 +272,17 @@ internal fun memberStatus(s: Scoring.MemberScore?, top: Boolean, idle: OwnerStat
 private fun PersonLine(
     photo: String?, name: String, status: Pair<String, Tone>, line: String, fraction: Float?, onClick: () -> Unit,
 ) {
-    OwnerCardBox(onClick = onClick, onClickLabel = "Open $name", padding = 12.dp) {
+    CardBox(onClick = onClick, onClickLabel = "Open $name", padding = 12.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(photo, name, 40.dp)
+            PersonAvatar(photo, name, 40.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(name, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 ChipLine(status.first, status.second, line, lines = 1)
-                if (fraction != null) OwnerBar(fraction, Owner.Well, if (status.second == Tone.BAD) Owner.Red else Owner.Ink, "row-$name-$fraction", 5.dp)
+                if (fraction != null) ProgressBar(fraction, Jk.Well, if (status.second == Tone.BAD) Jk.Red else Jk.Ink, "row-$name-$fraction", 5.dp)
             }
             Spacer(Modifier.width(4.dp))
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Jk.Muted)
         }
     }
 }

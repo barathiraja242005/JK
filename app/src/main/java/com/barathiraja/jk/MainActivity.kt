@@ -1,9 +1,7 @@
 package com.barathiraja.jk
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
+import com.barathiraja.jk.steps.canCountSteps
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
@@ -18,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.barathiraja.jk.data.ExerciseRepo
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,7 +46,9 @@ class MainActivity : ComponentActivity() {
             DisposableEffect(dark) {
                 val bars = if (dark) SystemBarStyle.dark(Color.TRANSPARENT)
                 else SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
-                enableEdgeToEdge(statusBarStyle = bars, navigationBarStyle = bars)
+                // Test mode's black bar sits under the status bar, so its icons are always light there.
+                val top = if (gvm.testMode) SystemBarStyle.dark(Color.TRANSPARENT) else bars
+                enableEdgeToEdge(statusBarStyle = top, navigationBarStyle = bars)
                 onDispose {}
             }
             JkTheme(settings.theme) {
@@ -60,9 +59,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        val granted = Build.VERSION.SDK_INT < 29 ||
-            ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) == PackageManager.PERMISSION_GRANTED
-        if (granted) container.steps.start()
+        if (canCountSteps()) container.steps.start()
         // A new day may have started while the app was in the background.
         container.today()
         tvm.refreshToday()

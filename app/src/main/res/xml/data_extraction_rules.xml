@@ -1,10 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+: back up everything except phone-specific prefs (step counter baseline, avatar URI); see UserPrefs. -->
+<!--
+Android 12+: back up only JK's own data, your history (jk.db) and settings (jk_prefs), named one by one.
+Everything else stays off backups: Firestore's offline copy of the gym (other members' records and notes),
+the sign-in tokens, phone-specific prefs (jk_device: step counter, photo) and the test-mode switch.
+-->
 <data-extraction-rules>
     <cloud-backup>
-        <exclude domain="sharedpref" path="jk_device.xml" />
+        <include domain="database" path="jk.db" />
+        <include domain="database" path="jk.db-wal" />
+        <include domain="database" path="jk.db-shm" />
+        <include domain="sharedpref" path="jk_prefs.xml" />
     </cloud-backup>
     <device-transfer>
-        <exclude domain="sharedpref" path="jk_device.xml" />
+        <include domain="database" path="jk.db" />
+        <include domain="database" path="jk.db-wal" />
+        <include domain="database" path="jk.db-shm" />
+        <include domain="sharedpref" path="jk_prefs.xml" />
     </device-transfer>
 </data-extraction-rules>

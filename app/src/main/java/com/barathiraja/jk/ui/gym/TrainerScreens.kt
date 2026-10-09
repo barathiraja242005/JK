@@ -35,6 +35,11 @@ import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
 import com.barathiraja.jk.ui.components.formatDuration
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.PlainButton
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /** How many workouts a member's page lists before "Show all". */
 private const val WORKOUTS_PREVIEW = 5
@@ -60,7 +65,7 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
         // An empty list means the gym's people haven't loaded yet, not that the member left.
         if (people.isEmpty()) GymLoading()
         else PersonPage("Back", onBack = { nav.popBackStack() }) {
-            item { Text("This member isn't in the gym anymore.", style = plex(15.sp), color = Owner.Ink) }
+            item { Text("This member isn't in the gym anymore.", style = plex(15.sp), color = Jk.Ink) }
         }
         return
     }
@@ -76,7 +81,7 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
                 else -> null
             })
         item { PageHeading("Workouts", "Newest first.") }
-        if (list.isEmpty()) item { Text("No workouts assigned yet.", style = plex(15.sp), color = Owner.Muted) }
+        if (list.isEmpty()) item { Text("No workouts assigned yet.", style = plex(15.sp), color = Jk.Muted) }
         val shown = if (showAllWorkouts) list else list.take(WORKOUTS_PREVIEW)
         items(shown, key = { it.id }) { a ->
             AssignmentCard(a, today, expandedByDefault = a.epochDay == today) {
@@ -101,16 +106,16 @@ fun MemberDetailScreen(uid: String, gvm: GymViewModel, nav: NavHostController) {
         AlertDialog(onDismissRequest = { deleteFor = null },
             title = { Text("Delete this workout?") },
             text = { Text("\"${a.title}\" (${dayLabel(a.epochDay, today)}) will be removed from ${member.firstName}'s workouts.") },
-            confirmButton = { TextButton(onClick = { deleteFor = null; gvm.deleteAssignment(a) }) { Text("Delete", color = Owner.RedText) } },
-            dismissButton = { TextButton(onClick = { deleteFor = null }) { Text("Cancel", color = Owner.Ink) } })
+            confirmButton = { TextButton(onClick = { deleteFor = null; gvm.deleteAssignment(a) }) { Text("Delete", color = Jk.RedText) } },
+            dismissButton = { TextButton(onClick = { deleteFor = null }) { Text("Cancel", color = Jk.Ink) } })
     }
     if (confirmRemove) {
         AlertDialog(onDismissRequest = { confirmRemove = false },
             title = { Text("Remove ${member.firstName}?") },
             text = { Text("They'll lose access to the gym in JK. Their past workouts stay in the records.") },
             confirmButton = { TextButton(onClick = { confirmRemove = false; gvm.removeMember(member); nav.popBackStack() }) {
-                Text("Remove", color = Owner.RedText) } },
-            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel", color = Owner.Ink) } })
+                Text("Remove", color = Jk.RedText) } },
+            dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel", color = Jk.Ink) } })
     }
 }
 
@@ -121,7 +126,7 @@ private fun TrainerAssignmentActions(a: Assignment, onVerify: () -> Unit, onNote
     FlowRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (a.done) PlainButton(if (a.verified) "Unverify" else "Verify", onVerify)
         PlainButton(if (a.trainerNote.isBlank()) "Add note" else "Edit note", onNote)
-        if (!a.done && a.setsDone == 0) PlainButton("Delete", onDelete, ink = Owner.RedText)
+        if (!a.done && a.setsDone == 0) PlainButton("Delete", onDelete, ink = Jk.RedText)
     }
 }
 
@@ -129,7 +134,7 @@ private fun TrainerAssignmentActions(a: Assignment, onVerify: () -> Unit, onNote
 @Composable
 fun AssignmentCard(a: Assignment, today: Long, expandedByDefault: Boolean = false, onClick: (() -> Unit)? = null, actions: @Composable () -> Unit = {}) {
     var expanded by rememberSaveable(a.id) { mutableStateOf(expandedByDefault) }
-    OwnerCardBox(
+    CardBox(
         onClick = onClick ?: { expanded = !expanded },
         onClickLabel = if (onClick != null) "Open workout" else if (expanded) "Hide exercises" else "Show exercises",
         padding = 16.dp,
@@ -137,9 +142,9 @@ fun AssignmentCard(a: Assignment, today: Long, expandedByDefault: Boolean = fals
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(dayLabel(a.epochDay, today), style = plex(14.sp, FontWeight.Medium), color = Owner.Muted)
-                    Text(a.title, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink)
-                    Text("${plural(a.exercises.size, "exercise")} · ${a.setsDone}/${a.setsTotal} sets", style = plex(13.sp), color = Owner.Muted)
+                    Text(dayLabel(a.epochDay, today), style = plex(14.sp, FontWeight.Medium), color = Jk.Muted)
+                    Text(a.title, style = plex(16.sp, FontWeight.SemiBold), color = Jk.Ink)
+                    Text("${plural(a.exercises.size, "exercise")} · ${a.setsDone}/${a.setsTotal} sets", style = plex(13.sp), color = Jk.Muted)
                 }
                 StatusPill(a, today)
             }
@@ -155,12 +160,12 @@ private fun AssignmentDetails(a: Assignment) {
     Spacer(Modifier.height(8.dp))
     a.exercises.forEach { e ->
         val name = ExerciseRepo.get(e.exerciseId)?.name ?: e.exerciseId.replace('_', ' ')
-        Text((if (e.done) "✓ " else "• ") + name, style = plex(15.sp), color = Owner.Ink)
+        Text((if (e.done) "✓ " else "• ") + name, style = plex(15.sp), color = Jk.Ink)
         Text(e.sets.joinToString("  ") { st ->
             val v = if (st.timed) formatDuration(st.seconds.toLong()) else repsAndWeight(st.reps, st.weightKg, e.exerciseId)
             if (st.done) v else "($v)"
-        }, Modifier.padding(start = 14.dp, bottom = 4.dp), style = plex(13.sp), color = Owner.Muted)
+        }, Modifier.padding(start = 14.dp, bottom = 4.dp), style = plex(13.sp), color = Jk.Muted)
     }
-    if (a.memberNote.isNotBlank()) Text("Member: ${a.memberNote}", style = plex(13.sp), color = Owner.Ink)
-    if (a.trainerNote.isNotBlank()) Text("Coach: ${a.trainerNote}", style = plex(13.sp, FontWeight.SemiBold), color = Owner.Ink)
+    if (a.memberNote.isNotBlank()) Text("Member: ${a.memberNote}", style = plex(13.sp), color = Jk.Ink)
+    if (a.trainerNote.isNotBlank()) Text("Coach: ${a.trainerNote}", style = plex(13.sp, FontWeight.SemiBold), color = Jk.Ink)
 }

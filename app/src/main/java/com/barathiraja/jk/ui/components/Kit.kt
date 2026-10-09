@@ -1,4 +1,4 @@
-package com.barathiraja.jk.ui.gym
+package com.barathiraja.jk.ui.components
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
@@ -35,7 +35,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,82 +50,21 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.barathiraja.jk.ui.components.LocalNavBarInset
-import com.barathiraja.jk.ui.theme.HeroFill
-import com.barathiraja.jk.ui.theme.Plex
-import com.barathiraja.jk.ui.theme.pick
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
 
-/*
- * The owner's look, built on the app's red / black / yellow / white palette (see Theme.kt for the reasoning).
- * One red thing per screen: the action the owner should take next. Black carries text and the one hero card.
- * Yellow marks reward and the top spot. Everything else is white space, so the owner's eye has few places to go.
- * Status is always a word in a chip ([Tone]); the colour only backs the word up.
- */
-internal object Owner {
-    val Paper: Color @Composable @ReadOnlyComposable get() = pick(0xFFF6F6F4, 0xFF0B0B0B)
-    /** Plain cards on the paper. */
-    val Card: Color @Composable @ReadOnlyComposable get() = pick(0xFFFFFFFF, 0xFF161616)
-    /** A panel or strip inside a card. */
-    val Well: Color @Composable @ReadOnlyComposable get() = pick(0xFFF1F1EE, 0xFF1F1F1F)
-    /** Text, icons and lines on paper and cards. */
-    val Ink: Color @Composable @ReadOnlyComposable get() = pick(0xFF0A0A0A, 0xFFF2F2F2)
-    val OnInk: Color @Composable @ReadOnlyComposable get() = pick(0xFFFFFFFF, 0xFF0A0A0A)
-    /** The charcoal hero card; white text on it in both modes. */
-    val Hero: Color @Composable @ReadOnlyComposable get() = HeroFill
-    /** Text on yellow, in both modes. */
-    val Black = Color(0xFF0A0A0A)
-    /** Red as a fill: the main action. White text on it (5.2:1). */
-    val Red = Color(0xFFD7141E)
-    /** Red as text or an icon on paper and cards. */
-    val RedText: Color @Composable @ReadOnlyComposable get() = pick(0xFFD7141E, 0xFFFF5A5F)
-    val Yellow = Color(0xFFFFC629)
-    val Muted: Color @Composable @ReadOnlyComposable get() = pick(0xFF5C5C5C, 0xFFA3A3A3)
-    val Line: Color @Composable @ReadOnlyComposable get() = pick(0xFFE6E6E3, 0xFF262626)
-    /** On the hero card. */
-    val OnDarkMuted = Color(0xFFA3A3A3)
-    val OnDarkSoft = Color(0xFFD4D4D4)
-    val DarkTrack = Color(0xFF44474D)
-    val DarkStrip: Color @Composable @ReadOnlyComposable get() = pick(0xFF33363B, 0xFF383B40)
-}
-
-/**
- * A status word's look. [TOP]: yellow, the best. [GOOD]: quiet grey, all fine (the usual case, so it stays calm).
- * [WARN]: pale yellow, worth a look. [BAD]: pale red, needs the owner. [NONE]: outlined, nothing yet.
- */
-internal enum class Tone {
-    TOP, GOOD, WARN, BAD, NONE;
-
-    val fill: Color @Composable @ReadOnlyComposable get() = when (this) {
-        TOP -> Owner.Yellow
-        GOOD -> pick(0xFFEFEFEC, 0xFF262626)
-        WARN -> pick(0xFFFFF2C7, 0xFF2A2410)
-        BAD -> pick(0xFFFDE4E4, 0xFF2A1214)
-        NONE -> Color.Transparent
-    }
-    val ink: Color @Composable @ReadOnlyComposable get() = when (this) {
-        TOP -> Owner.Black
-        GOOD -> Owner.Ink
-        WARN -> pick(0xFF0A0A0A, 0xFFFFD966)
-        BAD -> pick(0xFF9E0F16, 0xFFFFB4B6)
-        NONE -> pick(0xFF3D3D3D, 0xFFD4D4D4)
-    }
-}
-
-internal fun plex(size: TextUnit, weight: FontWeight = FontWeight.Normal, line: TextUnit = TextUnit.Unspecified, tracking: TextUnit = 0.sp) =
-    TextStyle(fontFamily = Plex, fontSize = size, fontWeight = weight, lineHeight = line, letterSpacing = tracking)
-
-/** Owner page shell: paper background, status-bar padding and room for the bottom bar. */
+/** A tab or page shell: paper background, status-bar padding and room for the bottom bar. */
 @Composable
-internal fun OwnerPage(spacing: Dp = 10.dp, content: LazyListScope.() -> Unit) {
+internal fun JkPage(spacing: Dp = 10.dp, content: LazyListScope.() -> Unit) {
     LazyColumn(
-        Modifier.fillMaxSize().background(Owner.Paper).windowInsetsPadding(WindowInsets.statusBars).imePadding(),
+        Modifier.fillMaxSize().background(Jk.Paper).windowInsetsPadding(WindowInsets.statusBars).imePadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp + LocalNavBarInset.current),
         verticalArrangement = Arrangement.spacedBy(spacing),
         content = content,
@@ -137,17 +75,17 @@ internal fun OwnerPage(spacing: Dp = 10.dp, content: LazyListScope.() -> Unit) {
 @Composable
 internal fun PageTitle(title: String, explain: String) {
     Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 8.dp, bottom = 4.dp)) {
-        Text(title, style = plex(24.sp, FontWeight.Bold, line = 30.sp, tracking = (-0.4).sp), color = Owner.Ink)
-        Text(explain, style = plex(15.sp, line = 21.sp), color = Owner.Muted, modifier = Modifier.padding(top = 6.dp))
+        Text(title, style = plex(24.sp, FontWeight.Bold, line = 30.sp, tracking = (-0.4).sp), color = Jk.Ink)
+        Text(explain, style = plex(15.sp, line = 21.sp), color = Jk.Muted, modifier = Modifier.padding(top = 6.dp))
     }
 }
 
 /** Section title with one plain sentence under it. */
 @Composable
-internal fun OwnerHeading(title: String, explain: String? = null) {
+internal fun Heading(title: String, explain: String? = null) {
     Column(Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp, bottom = 0.dp)) {
-        Text(title, style = plex(17.sp, FontWeight.Bold), color = Owner.Ink)
-        if (explain != null) Text(explain, style = plex(14.sp, line = 19.sp), color = Owner.Muted, modifier = Modifier.padding(top = 4.dp))
+        Text(title, style = plex(17.sp, FontWeight.Bold), color = Jk.Ink)
+        if (explain != null) Text(explain, style = plex(14.sp, line = 19.sp), color = Jk.Muted, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -159,7 +97,7 @@ internal fun RedButton(
 ) {
     Surface(
         onClick = onClick, enabled = enabled, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
-        color = if (enabled) Owner.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Owner.Muted,
+        color = if (enabled) Jk.Red else Tone.GOOD.fill, contentColor = if (enabled) Color.White else Jk.Muted,
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             if (leading != null) {
@@ -177,10 +115,10 @@ internal fun RedButton(
 
 /** A second action next to a red one: outlined, ink words. */
 @Composable
-internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ink: Color = Owner.Ink) {
+internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, ink: Color = Jk.Ink) {
     Surface(
         onClick = onClick, modifier = modifier.heightIn(min = 48.dp), shape = RoundedCornerShape(50),
-        color = Owner.Card, contentColor = ink, border = BorderStroke(1.5.dp, Owner.Line),
+        color = Jk.Card, contentColor = ink, border = BorderStroke(1.5.dp, Jk.Line),
     ) {
         Row(Modifier.padding(horizontal = 18.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
@@ -194,10 +132,10 @@ internal fun PlainButton(text: String, onClick: () -> Unit, modifier: Modifier =
 
 /** A white card with large rounds; [onClick] makes the whole card a button. */
 @Composable
-internal fun OwnerCardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, onClickLabel: String? = null, padding: Dp = 18.dp,
+internal fun CardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, onClickLabel: String? = null, padding: Dp = 18.dp,
                           content: @Composable () -> Unit) {
     Box(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Owner.Card)
+        modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Jk.Card)
             .then(if (onClick != null) Modifier.clickable(onClickLabel = onClickLabel, onClick = onClick) else Modifier)
             .padding(padding),
     ) { content() }
@@ -212,7 +150,7 @@ internal data class SegmentTab(val label: String, val count: Int? = null, val en
  */
 @Composable
 internal fun SegmentedTabs(
-    tabs: List<SegmentTab>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, track: Color = Owner.Card,
+    tabs: List<SegmentTab>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, track: Color = Jk.Card,
 ) {
     Row(
         modifier.fillMaxWidth().clip(RoundedCornerShape(50)).background(track).padding(4.dp),
@@ -224,16 +162,16 @@ internal fun SegmentedTabs(
                 onClick = { onSelect(i) }, enabled = tab.enabled && !on,
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics { role = Role.Tab; this.selected = on },
                 shape = RoundedCornerShape(50),
-                color = if (on) Owner.Ink else Color.Transparent,
-                contentColor = when { on -> Owner.OnInk; tab.enabled -> Owner.Ink; else -> Owner.Muted },
+                color = if (on) Jk.Ink else Color.Transparent,
+                contentColor = when { on -> Jk.OnInk; tab.enabled -> Jk.Ink; else -> Jk.Muted },
             ) {
                 Row(horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Text(tab.label, style = plex(15.sp, FontWeight.SemiBold), maxLines = 1)
                     if (tab.count != null) {
                         Spacer(Modifier.width(8.dp))
-                        Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (on) Owner.Yellow else Owner.Well)
+                        Box(Modifier.heightIn(min = 22.dp).clip(RoundedCornerShape(50)).background(if (on) Jk.Yellow else Jk.Well)
                             .padding(horizontal = 8.dp), contentAlignment = Alignment.Center) {
-                            Text("${tab.count}", style = plex(12.sp, FontWeight.SemiBold), color = if (on) Owner.Black else Owner.Ink)
+                            Text("${tab.count}", style = plex(12.sp, FontWeight.SemiBold), color = if (on) Jk.Black else Jk.Ink)
                         }
                     }
                 }
@@ -244,27 +182,30 @@ internal fun SegmentedTabs(
 
 /** Round photo, or the first letter on grey. */
 @Composable
-internal fun OwnerAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDark: Boolean = false) {
-    val fill = if (onDark) Owner.DarkStrip else Tone.GOOD.fill
+internal fun PersonAvatar(photoUrl: String?, name: String, size: Dp = 48.dp, onDark: Boolean = false) {
+    val fill = if (onDark) Jk.DarkStrip else Tone.GOOD.fill
     Box(Modifier.size(size).clip(CircleShape).background(fill), contentAlignment = Alignment.Center) {
         if (photoUrl != null) {
             coil3.compose.AsyncImage(photoUrl, null, Modifier.size(size).clip(CircleShape), contentScale = ContentScale.Crop)
         } else {
             Text(name.trim().take(1).uppercase().ifBlank { "J" }, style = plex((size.value * 0.4f).sp, FontWeight.SemiBold),
-                color = if (onDark) Color.White else Owner.Ink)
+                color = if (onDark) Color.White else Jk.Ink)
         }
     }
 }
 
 /** A small rounded label: always a word, never colour alone. [onDark] adds a fine ring so a black chip shows on black. */
 @Composable
-internal fun OwnerChip(text: String, tone: Tone, modifier: Modifier = Modifier, onDark: Boolean = false, small: Boolean = false) {
+internal fun StatusChip(text: String, tone: Tone, modifier: Modifier = Modifier, onDark: Boolean = false, small: Boolean = false, lines: Int = 1) {
+    // A one-line chip is a pill; free text (a gift, a note) may wrap, so it gets softer corners instead.
+    val shape = if (lines > 1) RoundedCornerShape(12.dp) else RoundedCornerShape(50)
     Text(
         text,
-        modifier.clip(RoundedCornerShape(50)).background(tone.fill)
-            .then(if (tone == Tone.NONE) Modifier.border(1.dp, if (onDark) Owner.OnDarkMuted else Owner.Line, RoundedCornerShape(50)) else Modifier)
+        modifier.clip(shape).background(tone.fill)
+            .then(if (tone == Tone.NONE) Modifier.border(1.dp, if (onDark) Jk.OnDarkMuted else Jk.Line, shape) else Modifier)
             .padding(horizontal = if (small) 8.dp else 10.dp, vertical = if (small) 2.dp else 4.dp),
-        style = plex(if (small) 11.sp else 12.sp, FontWeight.SemiBold), color = if (onDark && tone == Tone.NONE) Color.White else tone.ink, maxLines = 1,
+        style = plex(if (small) 11.sp else 12.sp, FontWeight.SemiBold), color = if (onDark && tone == Tone.NONE) Color.White else tone.ink,
+        maxLines = lines, overflow = TextOverflow.Ellipsis,
     )
 }
 
@@ -278,10 +219,11 @@ internal fun rememberFillIn(key: Any, delayMs: Int = 300): Float {
     return a.value
 }
 
-/** A progress ring that fills to [fraction] when it first appears. */
+/** A progress ring that fills to [fraction] when it first appears ([animate] false: drawn as is, e.g. a countdown). */
 @Composable
-internal fun OwnerRing(fraction: Float, size: Dp, stroke: Dp, track: Color, color: Color, key: Any, center: @Composable () -> Unit) {
-    val k = rememberFillIn(key)
+internal fun ProgressRing(fraction: Float, size: Dp, stroke: Dp, track: Color, color: Color, key: Any, animate: Boolean = true,
+                       center: @Composable () -> Unit) {
+    val k = if (animate) rememberFillIn(key) else 1f
     Box(Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(size)) {
             val s = stroke.toPx()
@@ -297,7 +239,7 @@ internal fun OwnerRing(fraction: Float, size: Dp, stroke: Dp, track: Color, colo
 
 /** A thin rounded bar that fills to [fraction] when it first appears. */
 @Composable
-internal fun OwnerBar(fraction: Float, track: Color, color: Color, key: Any, height: Dp = 8.dp) {
+internal fun ProgressBar(fraction: Float, track: Color, color: Color, key: Any, height: Dp = 8.dp) {
     val k = rememberFillIn(key, 400)
     Box(Modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(50)).background(track)) {
         Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f) * k).fillMaxHeight().clip(RoundedCornerShape(50)).background(color))

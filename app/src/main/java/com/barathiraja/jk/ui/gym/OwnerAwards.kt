@@ -45,6 +45,18 @@ import com.barathiraja.jk.gym.GivenAward
 import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.Routes
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.Heading
+import com.barathiraja.jk.ui.components.JkPage
+import com.barathiraja.jk.ui.components.PageTitle
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.PlainButton
+import com.barathiraja.jk.ui.components.RedButton
+import com.barathiraja.jk.ui.components.StatusChip
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /**
  * The owner's Awards tab: everything about awards in one place. Give one (the page's red button), see who is
@@ -62,12 +74,12 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
     val topMember = ranking.firstOrNull { it.points > 0 }?.let { s -> gvm.person(s.uid)?.let { it to s } }
     val topTrainer = digest?.trainers?.filter { it.due > 0 }?.maxByOrNull { it.rate }
 
-    OwnerPage {
+    JkPage {
         item { PageTitle("Awards", "Reward your best members and trainers. Everyone in the gym sees the awards you give.") }
         item { RedButton("Give an award", { nav.navigate(Routes.GIVE_AWARD) }, Modifier.fillMaxWidth().padding(top = 4.dp), Icons.Outlined.EmojiEvents) }
 
         if (topMember != null || topTrainer != null) {
-            item { OwnerHeading("Leading this month", "Who is ahead right now. Good picks for an award.") }
+            item { Heading("Leading this month", "Who is ahead right now. Good picks for an award.") }
             topMember?.let { (p, s) ->
                 item {
                     LeaderRow(p, "Top member", "Finished ${s.completed} of ${plural(s.due, "workout")}") { nav.navigate(Routes.gymMember(p.uid)) }
@@ -80,14 +92,14 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
             }
         }
 
-        item { OwnerHeading("Awards you gave", if (given.isEmpty()) "None yet. Tap Give an award to start." else "Tap one to change it or take it back.") }
+        item { Heading("Awards you gave", if (given.isEmpty()) "None yet. Tap Give an award to start." else "Tap one to change it or take it back.") }
         items(given, key = { "g" + it.id }) { a -> GivenAwardRow(a, gvm.person(a.uid), onClick = { editingId = a.id }) }
 
-        item { OwnerHeading("Monthly awards", "The app picks these on the 1st of each month from everyone's workouts.") }
+        item { Heading("Monthly awards", "The app picks these on the 1st of each month from everyone's workouts.") }
         if (awards.isEmpty()) item {
-            OwnerCardBox {
+            CardBox {
                 Text("The first ones come on the 1st of next month: Best Member, Best Trainer, Most Consistent, Most Improved and Iron Lifter.",
-                    style = plex(14.sp, line = 19.sp), color = Owner.Muted)
+                    style = plex(14.sp, line = 19.sp), color = Jk.Muted)
             }
         }
         awards.sortedByDescending { it.month }.forEach { m -> item(key = m.month) { AwardsCard(m, gvm) } }
@@ -98,16 +110,16 @@ fun OwnerAwardsScreen(gvm: GymViewModel, nav: NavHostController) {
 /** This month's leader: face, a yellow "Top …" chip and their numbers. Opens their page. */
 @Composable
 private fun LeaderRow(p: Person, chip: String, line: String, onClick: () -> Unit) {
-    OwnerCardBox(onClick = onClick, onClickLabel = "Open ${p.firstName}", padding = 14.dp) {
+    CardBox(onClick = onClick, onClickLabel = "Open ${p.firstName}", padding = 14.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OwnerAvatar(p.photoUrl, p.name, 44.dp)
+            PersonAvatar(p.photoUrl, p.name, 44.dp)
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                OwnerChip(chip, Tone.TOP)
-                Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(line, style = plex(13.sp), color = Owner.Muted)
+                StatusChip(chip, Tone.TOP)
+                Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(line, style = plex(13.sp), color = Jk.Muted)
             }
-            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Owner.Muted)
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, Modifier.size(22.dp), tint = Jk.Muted)
         }
     }
 }
@@ -115,17 +127,17 @@ private fun LeaderRow(p: Person, chip: String, line: String, onClick: () -> Unit
 /** One hand-given award: medal, award, who and when, and the gift. [onClick] (owner only) opens the edit sheet. */
 @Composable
 fun GivenAwardRow(a: GivenAward, person: Person?, onClick: (() -> Unit)? = null) {
-    OwnerCardBox(onClick = onClick, onClickLabel = "Change or take back", padding = 14.dp) {
+    CardBox(onClick = onClick, onClickLabel = "Change or take back", padding = 14.dp) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AwardBadge(awardLook(a.emoji, a.title), 56.dp)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("${a.title} · ${monthLabel(a.month)}", style = plex(13.sp), color = Owner.Muted)
-                Text(person?.name ?: "Former member", style = plex(15.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1,
+                Text("${a.title} · ${monthLabel(a.month)}", style = plex(13.sp), color = Jk.Muted)
+                Text(person?.name ?: "Former member", style = plex(15.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
-                if (a.note.isNotBlank()) OwnerChip("Gift · ${a.note}", Tone.WARN, Modifier.padding(top = 3.dp))
+                if (a.note.isNotBlank()) StatusChip("Gift · ${a.note}", Tone.WARN, Modifier.padding(top = 3.dp), lines = 3)
             }
-            if (onClick != null) Icon(Icons.Outlined.Edit, null, Modifier.padding(start = 8.dp).size(20.dp), tint = Owner.Muted)
+            if (onClick != null) Icon(Icons.Outlined.Edit, null, Modifier.padding(start = 8.dp).size(20.dp), tint = Jk.Muted)
         }
     }
 }
@@ -144,8 +156,8 @@ internal fun GivenAwardEditor(editing: GivenAward?, gvm: GymViewModel, onClose: 
             title = { Text("Take back this award?") },
             text = { Text("${a.title} for ${gvm.person(a.uid)?.name ?: "this person"} will disappear for everyone.", style = plex(15.sp, line = 21.sp)) },
             confirmButton = { TextButton(onClick = { removing = null; gvm.removeGivenAward(a) }) {
-                Text("Take it back", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText) } },
-            dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep it", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } })
+                Text("Take it back", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText) } },
+            dismissButton = { TextButton(onClick = { removing = null }) { Text("Keep it", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } })
     }
 }
 
@@ -156,15 +168,15 @@ private fun AwardSheet(a: GivenAward, person: Person?, onDismiss: () -> Unit, on
     var title by rememberSaveable(a.id) { mutableStateOf(a.title) }
     var note by rememberSaveable(a.id) { mutableStateOf(a.note) }
     val changed = title.trim() != a.title || note.trim() != a.note
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Owner.Card) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = Jk.Card) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 16.dp).navigationBarsPadding().imePadding(),
             verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AwardBadge(awardLook(a.emoji, title), 52.dp)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Change award", style = plex(17.sp, FontWeight.Bold), color = Owner.Ink)
-                    Text("For ${person?.name ?: "a former member"} · ${monthLabel(a.month)}", style = plex(13.sp), maxLines = 2, color = Owner.Muted)
+                    Text("Change award", style = plex(17.sp, FontWeight.Bold), color = Jk.Ink)
+                    Text("For ${person?.name ?: "a former member"} · ${monthLabel(a.month)}", style = plex(13.sp), maxLines = 2, color = Jk.Muted)
                 }
             }
             OutlinedTextField(title, { title = it.take(32) }, Modifier.fillMaxWidth(), label = { Text("Award name") }, singleLine = true,
@@ -173,7 +185,7 @@ private fun AwardSheet(a: GivenAward, person: Person?, onDismiss: () -> Unit, on
                 placeholder = { Text("e.g. Free PT session") }, singleLine = true,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences))
             RedButton("Save changes", { onSave(title, note) }, Modifier.fillMaxWidth(), enabled = title.isNotBlank() && changed)
-            PlainButton("Take back award", onRemove, Modifier.fillMaxWidth(), Icons.Outlined.Close, ink = Owner.RedText)
+            PlainButton("Take back award", onRemove, Modifier.fillMaxWidth(), Icons.Outlined.Close, ink = Jk.RedText)
             Spacer(Modifier.height(4.dp))
         }
     }

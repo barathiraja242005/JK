@@ -9,6 +9,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.DayOfWeek
 import java.time.LocalDate
+import com.barathiraja.jk.domain.PlannedExercise
 
 /** Owns the weekly split and daily plans: generation, editing, set logging and completion. */
 class TrainingRepo(private val db: JkDatabase, private val prefs: UserPrefs) {
@@ -80,7 +81,7 @@ class TrainingRepo(private val db: JkDatabase, private val prefs: UserPrefs) {
     private var historyCache: Map<String, List<SetLog>> = emptyMap()
     private fun history(id: String) = historyCache[id].orEmpty()
 
-    private suspend fun writeItems(day: Long, planned: List<com.barathiraja.jk.domain.PlannedExercise>, represcribe: Boolean = true) {
+    private suspend fun writeItems(day: Long, planned: List<PlannedExercise>, represcribe: Boolean = true) {
         if (!represcribe) {
             dao.insertPlanItems(planned.mapIndexed { i, pe ->
                 PlanItem(epochDay = day, bodyPart = pe.part, exerciseId = pe.exerciseId, position = i, sets = SetSpec.encode(pe.sets))
@@ -101,7 +102,6 @@ class TrainingRepo(private val db: JkDatabase, private val prefs: UserPrefs) {
     fun day(day: Long) = dao.planDayFlow(day)
     fun items(day: Long) = dao.planItems(day)
     fun week(from: Long, to: Long) = dao.planDaysBetween(from, to)
-    fun weekItems(from: Long, to: Long) = dao.planItemsBetween(from, to)
     fun completedDays() = dao.completedDays()
     fun setLogs(exerciseId: String) = dao.setLogsFlow(exerciseId)
 
@@ -185,10 +185,7 @@ class TrainingRepo(private val db: JkDatabase, private val prefs: UserPrefs) {
             val rest = prefs.training.value.restSec
             val sec = items.sumOf { TrainingEngine.estimateSec(it.setList, rest) }
             val kg = prefs.profile.value.weightKg
-            val kcal = items.sumOf { item ->
-                val met = ExerciseRepo.get(item.exerciseId)?.met ?: DEFAULT_MET
-                Health.caloriesBurned(met, kg, TrainingEngine.estimateSec(item.setList, rest))
-            }
+            val kcal = items.sumOf { Health.exerciseKcal(it.exerciseId, kg, TrainingEngine.estimateSec(it.setList, rest)) }
             dao.replaceSession(WorkoutSession(workoutId = planWorkoutId(day), title = TrainingEngine.title(BodyPart.parseList(pd.parts)),
                 finishedAt = now, epochDay = day, durationSec = sec, calories = kcal))
         } else if (!allDone && pd.completedAt != null) {
@@ -209,8 +206,6 @@ class TrainingRepo(private val db: JkDatabase, private val prefs: UserPrefs) {
     private companion object {
         /** Spread of random offsets used to reshuffle a regenerated day. */
         const val RESHUFFLE_SEEDS = 97
-        /** Calorie estimate fallback for exercises missing from the database. */
-        const val DEFAULT_MET = 5f
         const val WARM_UP_REST_SEC = 5
         const val WARM_UP_BLOCK_SEC = 40
 

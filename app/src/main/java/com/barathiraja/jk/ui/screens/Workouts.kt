@@ -44,11 +44,16 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryScrollableTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Dp
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,34 +90,67 @@ import com.barathiraja.jk.ui.components.openUrl
 import com.barathiraja.jk.ui.theme.Accent
 import com.barathiraja.jk.ui.theme.Good
 import com.barathiraja.jk.ui.theme.Watch
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.ReadOnlyComposable
+import com.barathiraja.jk.ui.GymViewModel
+import com.barathiraja.jk.ui.TrainingViewModel
+import com.barathiraja.jk.ui.components.LocalNavBarInset
+import com.barathiraja.jk.ui.gym.ExerciseFacts
+import com.barathiraja.jk.ui.gym.HowToSteps
+import com.barathiraja.jk.ui.member.MemberPlanTab
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.components.PlainButton
+import com.barathiraja.jk.ui.components.RedButton
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.ui.components.ProgressBar
 
-@Composable @androidx.compose.runtime.ReadOnlyComposable
+@Composable @ReadOnlyComposable
 fun Level.color(): Color = when (this) { Level.BEGINNER -> Good; Level.INTERMEDIATE -> Watch; Level.ADVANCED -> Accent }
-@Composable @androidx.compose.runtime.ReadOnlyComposable
-fun levelColor(level: String) = when (level) { "beginner" -> Good; "intermediate" -> Watch; else -> Accent }
 
-private val trainTabs = listOf("Today", "Programs", "Challenges", "Exercises", "My workouts")
+/** The member's coach plan comes first; the rest are extras they can do on their own. */
+private val memberTrainTabs = listOf("Plan", "Exercises", "Programs", "Challenges", "My workouts")
 
+/**
+ * Train for a gym member: the coach's plan first. While the coach hasn't sent any workout, JK's own plan stands in
+ * (and says so). Programs, challenges and custom workouts are extras: they count toward the streak, not gym points.
+ */
 @Composable
-fun WorkoutsScreen(vm: JkViewModel, tvm: com.barathiraja.jk.ui.TrainingViewModel, nav: NavHostController) {
+fun WorkoutsScreen(vm: JkViewModel, tvm: TrainingViewModel, nav: NavHostController,
+                   gvm: GymViewModel) {
+    val me by gvm.me.collectAsStateWithLifecycle()
+    val assignments by gvm.assignments.collectAsStateWithLifecycle()
+    val hasCoachPlan = assignments.any { it.memberUid == me?.uid }
     var tab by rememberSaveable { mutableStateOf(0) }
-    Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.statusBars)) {
-        Row(Modifier.padding(start = 16.dp, end = 4.dp, top = 20.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("MMMM yyyy")),
-                    style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Text(if (tab == 0) "Today's Workout" else "Train", style = MaterialTheme.typography.headlineMedium)
+    Column(Modifier.fillMaxSize().background(Jk.Paper).windowInsetsPadding(WindowInsets.statusBars)) {
+        Row(Modifier.padding(start = 20.dp, end = 4.dp, top = 20.dp, bottom = 8.dp).heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Train", Modifier.weight(1f), style = plex(24.sp, FontWeight.Bold, tracking = (-0.4).sp),
+                color = Jk.Ink)
+            if (tab == 0 && !hasCoachPlan) TrainingMenu(tvm, nav)
+        }
+        PrimaryScrollableTabRow(selectedTabIndex = tab, edgePadding = 16.dp, containerColor = Jk.Paper,
+            contentColor = Jk.Ink, divider = {},
+            indicator = { TabRowDefaults.PrimaryIndicator(Modifier.tabIndicatorOffset(tab, matchContentSize = true),
+                width = Dp.Unspecified, color = Jk.Ink) }) {
+            memberTrainTabs.forEachIndexed { i, t ->
+                Tab(selected = tab == i, onClick = { tab = i }, selectedContentColor = Jk.Ink,
+                    unselectedContentColor = Jk.Muted,
+                    text = { Text(t, style = plex(15.sp, if (tab == i) FontWeight.Bold else FontWeight.Medium)) })
             }
-            if (tab == 0) TrainingMenu(tvm, nav)
         }
-        PrimaryScrollableTabRow(selectedTabIndex = tab, edgePadding = 16.dp, containerColor = MaterialTheme.colorScheme.background) {
-            trainTabs.forEachIndexed { i, t -> Tab(selected = tab == i, onClick = { tab = i }, text = { Text(t) }) }
-        }
+        if (tab >= 2) Text("Extra training. It counts toward your streak, not your gym points.",
+            Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp), style = plex(14.sp, line = 19.sp),
+            color = Jk.Muted)
         when (tab) {
-            0 -> TodayWorkoutTab(vm, tvm, nav)
-            1 -> ProgramsTab(vm, nav)
-            2 -> ChallengesTab(vm, nav)
-            3 -> LibraryTab(vm, nav)
+            0 -> if (hasCoachPlan) MemberPlanTab(gvm, nav) else Column {
+                Text("Your coach hasn't sent a workout yet. Until they do, here's a plan JK made for you.",
+                    Modifier.padding(start = 20.dp, end = 20.dp, top = 12.dp), style = plex(14.sp, line = 19.sp),
+                    color = Jk.Muted)
+                TodayWorkoutTab(vm, tvm, nav)
+            }
+            1 -> LibraryTab(vm, nav)
+            2 -> ProgramsTab(vm, nav)
+            3 -> ChallengesTab(vm, nav)
             else -> MyWorkoutsTab(vm, nav)
         }
     }
@@ -124,7 +162,7 @@ private fun ProgramsTab(vm: JkViewModel, nav: NavHostController) {
     var place by rememberSaveable { mutableStateOf(profile.place) }
     var level by rememberSaveable { mutableStateOf<Level?>(null) }
     val list = Catalog.workouts.filter { it.place == place && (level == null || it.level == level) }
-    LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + LocalNavBarInset.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Choice(Place.entries, place, { it.label }) { place = it } }
         item { Choice(listOf<Level?>(null) + Level.entries, level, { it?.label ?: "All levels" }) { level = it } }
         items(list, key = { it.id }) { w -> WorkoutCard(w) { nav.navigate(Routes.workout(w.id)) } }
@@ -157,7 +195,7 @@ fun WorkoutCard(w: Workout, onClick: () -> Unit) {
 @Composable
 private fun ChallengesTab(vm: JkViewModel, nav: NavHostController) {
     val done by vm.challengeDays.collectAsStateWithLifecycle()
-    LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + LocalNavBarInset.current), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         items(Catalog.challenges, key = { it.id }) { c ->
             val count = done[c.id]?.size ?: 0
             val workDays = (1..c.days).count { c.plan(it) != null }
@@ -173,7 +211,7 @@ private fun ChallengesTab(vm: JkViewModel, nav: NavHostController) {
                         Text(c.title, style = MaterialTheme.typography.titleMedium)
                         Text(c.tagline, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(8.dp))
-                        LinearProgressIndicator(progress = { count / workDays.toFloat() }, modifier = Modifier.fillMaxWidth())
+                        ProgressBar(count / workDays.toFloat(), Jk.Well, Jk.Red, key = c.id, height = 6.dp)
                         Text(if (count == 0) "${c.days} days · ${c.level.label}" else "$count / $workDays workouts done",
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 4.dp))
@@ -280,11 +318,11 @@ private fun LibraryTab(vm: JkViewModel, nav: NavHostController) {
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + com.barathiraja.jk.ui.components.LocalNavBarInset.current),
+        contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 16.dp + LocalNavBarInset.current),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+        item(span = { GridItemSpan(2) }) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), singleLine = true,
                     placeholder = { Text("Search 870+ exercises") }, leadingIcon = { Icon(Icons.Outlined.Search, null) })
@@ -328,43 +366,15 @@ fun ExerciseDetailScreen(id: String, vm: JkViewModel, nav: NavHostController) {
     val context = LocalContext.current
     BackScreen(ex.name, onBack = { nav.popBackStack() }) {
         item { ExerciseDemo(ex, Modifier.fillMaxWidth().aspectRatio(1.3f).clip(RoundedCornerShape(20.dp))) }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Pill(ex.level.cap(), levelColor(ex.level))
-                Pill(ex.equipment.cap(), MaterialTheme.colorScheme.primary)
-                Pill(ex.category.cap(), MaterialTheme.colorScheme.primary)
-            }
-        }
+        item { ExerciseFacts(ex) }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { context.openUrl(ex.tutorialUrl) }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Filled.PlayArrow, null)
-                    Spacer(Modifier.width(4.dp))
-                    Text("Watch tutorial")
-                }
-                androidx.compose.material3.OutlinedButton(onClick = { vm.toggleSave(id) }) {
-                    Icon(if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder, null)
-                    Spacer(Modifier.width(4.dp))
-                    Text(if (saved) "Saved" else "Save")
-                }
+                RedButton("Watch video", { context.openUrl(ex.tutorialUrl) }, Modifier.weight(1f), Icons.Filled.PlayArrow)
+                PlainButton(if (saved) "Saved" else "Save", { vm.toggleSave(id) },
+                    icon = if (saved) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder)
             }
         }
-        item {
-            JkCard(Modifier.fillMaxWidth()) {
-                Text("Muscles", style = MaterialTheme.typography.titleMedium)
-                Text("Primary: ${ex.primary.joinToString { it.cap() }}")
-                if (ex.secondary.isNotEmpty()) {
-                    Text("Secondary: ${ex.secondary.joinToString { it.cap() }}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        item { SectionTitle("How to do it") }
-        items(ex.instructions.withIndex().toList()) { (i, step) ->
-            Row {
-                Text("${i + 1}", Modifier.width(28.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium)
-                Text(step, style = MaterialTheme.typography.bodyMedium)
-            }
-        }
+        item { HowToSteps(ex.instructions) }
         item {
             Text("Photos: free-exercise-db (public domain). Videos open on YouTube.",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -379,7 +389,8 @@ fun ExerciseDetailScreen(id: String, vm: JkViewModel, nav: NavHostController) {
 private fun MyWorkoutsTab(vm: JkViewModel, nav: NavHostController) {
     val list by vm.customWorkouts.collectAsStateWithLifecycle()
     Box(Modifier.fillMaxSize()) {
-        LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 96.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val inset = LocalNavBarInset.current
+        LazyColumn(contentPadding = PaddingValues(16.dp, 16.dp, 16.dp, 96.dp + inset), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (list.isEmpty()) {
                 item {
                     JkCard(Modifier.fillMaxWidth()) {
@@ -411,7 +422,8 @@ private fun MyWorkoutsTab(vm: JkViewModel, nav: NavHostController) {
         ExtendedFloatingActionButton(
             onClick = { nav.navigate(Routes.builder(0)) },
             icon = { Icon(Icons.Filled.Add, null) }, text = { Text("New workout") },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            // Above the floating bottom bar, which would otherwise cover it.
+            modifier = Modifier.align(Alignment.BottomEnd).padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 16.dp + inset),
         )
     }
 }
@@ -459,7 +471,7 @@ fun WorkoutDetailScreen(id: String, vm: JkViewModel, nav: NavHostController) {
                                 b.exercise.instructions.take(3).forEachIndexed { n, s ->
                                     Text("${n + 1}. $s", Modifier.padding(top = 6.dp), style = MaterialTheme.typography.bodyMedium)
                                 }
-                                androidx.compose.material3.TextButton(onClick = { nav.navigate(Routes.exercise(b.exerciseId)) }) {
+                                TextButton(onClick = { nav.navigate(Routes.exercise(b.exerciseId)) }) {
                                     Text("Full guide & video tutorial")
                                 }
                             }

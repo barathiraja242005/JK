@@ -5,6 +5,7 @@ import com.barathiraja.jk.steps.StepState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.DayOfWeek
 
 enum class Sex { MALE, FEMALE }
 enum class Goal(val label: String) { LOSE("Lose fat"), MAINTAIN("Stay fit"), GAIN("Build muscle") }
@@ -135,7 +136,7 @@ class UserPrefs(context: Context) {
         return TrainingPrefs(
             setupDone = sp.getBoolean("tSetup", false),
             level = enumOr(sp.getString("tLevel", null), d.level),
-            activeDays = sp.getString("tDays", null)?.split(',')?.mapNotNull { it.toIntOrNull()?.let(java.time.DayOfWeek::of) }?.toSet()
+            activeDays = sp.getString("tDays", null)?.split(',')?.mapNotNull { it.toIntOrNull()?.let(DayOfWeek::of) }?.toSet()
                 ?: d.activeDays,
             equipment = sp.getString("tEquip", null)?.split(',')?.mapNotNull { n -> Equipment.entries.firstOrNull { it.name == n } }?.toSet()
                 ?: d.equipment,
@@ -180,6 +181,17 @@ class UserPrefs(context: Context) {
     }
 
     private val deviceKeys get() = setOf("stepBaselineDay", "stepBaseline", "stepLastTotal", "avatarUri", "planDialogDay")
+
+    /** Puts the settings back exactly as in [backup] (keys missing from it are removed); phone-only keys stay. */
+    fun replaceWith(backup: Map<String, String>) {
+        sp.edit().clear().commit()
+        importBackup(backup)
+    }
+
+    /** The last month whose awards this phone has checked are saved, so the check runs once a month. */
+    var awardsCheckedMonth: String?
+        get() = device.getString("awardsCheckedMonth", null)
+        set(v) = device.edit().putString("awardsCheckedMonth", v).apply()
 
     /** Wipes everything stored on this phone (used when a gym account signs out). Reminders follow [settings] off. */
     fun clearAll() {

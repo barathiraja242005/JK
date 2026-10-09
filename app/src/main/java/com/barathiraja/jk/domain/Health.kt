@@ -1,5 +1,6 @@
 package com.barathiraja.jk.domain
 
+import com.barathiraja.jk.data.ExerciseRepo
 import com.barathiraja.jk.data.Goal
 import com.barathiraja.jk.data.Profile
 import com.barathiraja.jk.data.Sex
@@ -55,6 +56,16 @@ object Health {
     fun caloriesBurned(met: Float, weightKg: Float, seconds: Int): Int =
         (met * weightKg * seconds / 3600f).roundToInt()
 
+    /** MET for an exercise with none on record (moderate resistance training). */
+    const val DEFAULT_MET = 5f
+
+    /** Calories for [seconds] of one exercise, at its MET from the library. */
+    fun exerciseKcal(exerciseId: String, weightKg: Float, seconds: Int): Int =
+        caloriesBurned(ExerciseRepo.get(exerciseId)?.met ?: DEFAULT_MET, weightKg, seconds)
+
+    /** Seconds as whole minutes, rounded up (a 61-second workout is "2 min"). */
+    fun minutesUp(seconds: Int): Int = (seconds + 59) / 60
+
     fun stepCalories(steps: Int, weightKg: Float): Int = (steps * weightKg * 0.00057f).roundToInt()
 
     fun stepKm(steps: Int, heightCm: Float): Float = steps * heightCm * 0.415f / 100_000f
@@ -62,15 +73,4 @@ object Health {
     fun waterGoalGlasses(weightKg: Float): Int = ((weightKg * 35f) / 250f).roundToInt().coerceIn(6, 16)
 
     fun kgToLb(kg: Float) = kg * 2.20462f
-
-    /** Current streak of consecutive active days ending today or yesterday. */
-    fun streak(activeDaysDesc: List<Long>, today: Long): Int {
-        if (activeDaysDesc.isEmpty()) return 0
-        var expected = if (activeDaysDesc.first() == today) today else today - 1
-        var count = 0
-        for (d in activeDaysDesc) {
-            if (d == expected) { count++; expected-- } else if (d < expected) break
-        }
-        return count
-    }
 }

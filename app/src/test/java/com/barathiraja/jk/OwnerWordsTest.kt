@@ -5,13 +5,13 @@ import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.gym.PersonStatus
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.gym.Scoring
-import com.barathiraja.jk.ui.GymViewModel
-import com.barathiraja.jk.ui.gym.Tone
+import com.barathiraja.jk.ui.theme.Tone
 import com.barathiraja.jk.ui.gym.memberStatus
-import com.barathiraja.jk.ui.gym.plural
 import com.barathiraja.jk.ui.gym.trainerStatus
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import com.barathiraja.jk.gym.plural
+import com.barathiraja.jk.gym.tidyName
 
 /** The words the owner reads: names, plurals and the status chips on people. */
 class OwnerWordsTest {
@@ -20,10 +20,10 @@ class OwnerWordsTest {
     private fun trainer(rate: Float, due: Int) = OwnerStats.TrainerRow(person("T", Role.TRAINER), members = 3, rate = rate, due = due, idle = 0)
 
     @Test fun tidyNameCleansGoogleNames() {
-        assertEquals("S. Janarthanan", GymViewModel.tidyName("_S. Janarthanan_"))
-        assertEquals("Koundar Barathiraja", GymViewModel.tidyName("KOUNDAR BARATHIRAJA"))
-        assertEquals("Barathiraja K", GymViewModel.tidyName("Barathiraja K 2023-2027"))
-        assertEquals("Ravi Kumar", GymViewModel.tidyName("  Ravi   Kumar "))
+        assertEquals("S. Janarthanan", tidyName("_S. Janarthanan_"))
+        assertEquals("Koundar Barathiraja", tidyName("KOUNDAR BARATHIRAJA"))
+        assertEquals("Barathiraja K", tidyName("Barathiraja K 2023-2027"))
+        assertEquals("Ravi Kumar", tidyName("  Ravi   Kumar "))
     }
 
     @Test fun firstNameSkipsInitials() {

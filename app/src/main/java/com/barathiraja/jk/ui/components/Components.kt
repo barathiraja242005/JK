@@ -1,7 +1,7 @@
 package com.barathiraja.jk.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import com.barathiraja.jk.ui.theme.Jk
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -20,7 +19,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -35,7 +33,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.max
 
-/** Plain card on the page: white (dark grey in dark mode), large rounds. [onClick] makes the whole card a button. */
+/**
+ * A card holding a column of content: [CardBox] (the one card of the app) with [padding] inside. [onClick] makes the
+ * whole card a button.
+ */
 @Composable
 fun JkCard(
     modifier: Modifier = Modifier,
@@ -43,27 +44,16 @@ fun JkCard(
     padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(24.dp)
-    val color = MaterialTheme.colorScheme.surfaceContainer
-    val ink = MaterialTheme.colorScheme.onSurface
-    // The non-clickable overload, so a plain card isn't announced as a disabled button.
-    if (onClick != null) {
-        Surface(onClick = onClick, modifier = modifier, shape = shape, color = color, contentColor = ink) {
-            Column(Modifier.padding(padding), content = content)
-        }
-    } else {
-        Surface(modifier = modifier, shape = shape, color = color, contentColor = ink) {
-            Column(Modifier.padding(padding), content = content)
-        }
-    }
+    CardBox(modifier, onClick = onClick, padding = padding) { Column(content = content) }
 }
 
+/** A section heading inside a page; the same [Heading] the gym screens use. */
 @Composable
 fun SectionTitle(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = MaterialTheme.typography.titleMedium, modifier = modifier.padding(top = 10.dp, bottom = 4.dp))
+    Box(modifier) { Heading(text) }
 }
 
-/** Circular progress ring with centred content; [track] defaults to the theme's quiet grey. */
+/** Circular progress ring with centred content: the app's one [ProgressRing], drawn as given (no fill-in). */
 @Composable
 fun Ring(
     progress: Float,
@@ -74,31 +64,8 @@ fun Ring(
     track: Color = Color.Unspecified,
     content: @Composable () -> Unit = {},
 ) {
-    val animated by animateFloatAsState(progress.coerceIn(0f, 1f), tween(700), label = "ring")
-    val trackColor = track.takeOrElse { MaterialTheme.colorScheme.surfaceVariant }
-    Box(modifier.size(size), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val s = stroke.toPx()
-            val arcSize = Size(this.size.width - s, this.size.height - s)
-            val topLeft = Offset(s / 2, s / 2)
-            drawArc(trackColor, 0f, 360f, false, topLeft, arcSize, style = Stroke(s))
-            drawArc(color, -90f, 360f * animated, false, topLeft, arcSize, style = Stroke(s, cap = StrokeCap.Round))
-        }
-        content()
-    }
-}
-
-@Composable
-fun StatRing(label: String, value: String, sub: String, progress: Float, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Ring(progress, color, size = 92.dp, stroke = 9.dp) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(value, style = MaterialTheme.typography.titleMedium)
-                Text(sub, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Box(modifier) {
+        ProgressRing(progress, size, stroke, track.takeOrElse { Jk.Well }, color, key = Unit, animate = false, center = content)
     }
 }
 
@@ -190,7 +157,7 @@ fun Pill(text: String, color: Color, modifier: Modifier = Modifier) {
         contentColor = color,
         shape = RoundedCornerShape(50),
     ) {
-        Text(text, Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+        Text(text, Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false)
     }
 }
 

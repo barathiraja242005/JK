@@ -29,6 +29,7 @@ import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 import com.barathiraja.jk.ui.components.JkCard
 import com.barathiraja.jk.ui.theme.Calm
+import kotlinx.coroutines.delay
 
 /** A breathing pattern as (label, seconds, target scale) steps. */
 private data class Pattern(val name: String, val about: String, val steps: List<Triple<String, Int, Float>>)
@@ -60,7 +61,7 @@ fun BreathingScreen(nav: NavHostController) {
                 count = secs
                 // Animate the circle over the full step while counting down each second.
                 val anim = launch { scale.animateTo(target, tween(secs * 1000, easing = LinearEasing)) }
-                repeat(secs) { kotlinx.coroutines.delay(1000); count-- }
+                repeat(secs) { delay(1000); count-- }
                 anim.join()
             }
             cycles++

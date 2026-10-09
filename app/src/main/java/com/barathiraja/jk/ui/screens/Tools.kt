@@ -21,8 +21,6 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -48,6 +46,9 @@ import com.barathiraja.jk.ui.components.Ring
 import com.barathiraja.jk.ui.theme.Accent
 import com.barathiraja.jk.ui.theme.Good
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.PaddingValues
+import com.barathiraja.jk.ui.components.SegmentedTabs
+import com.barathiraja.jk.ui.components.SegmentTab
 
 @Composable
 fun ToolsScreen(nav: NavHostController) {
@@ -56,10 +57,8 @@ fun ToolsScreen(nav: NavHostController) {
     DisposableEffect(Unit) { view.keepScreenOn = true; onDispose { view.keepScreenOn = false } }
     Column(Modifier.fillMaxSize()) {
         BackScreenBar("Timers", onBack = { nav.popBackStack() })
-        PrimaryTabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.background) {
-            Tab(tab == 0, { tab = 0 }, text = { Text("Stopwatch") })
-            Tab(tab == 1, { tab = 1 }, text = { Text("Interval") })
-        }
+        SegmentedTabs(listOf(SegmentTab("Stopwatch"), SegmentTab("Interval")), tab, { tab = it },
+            Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
         if (tab == 0) Stopwatch() else IntervalTimer()
     }
 }
@@ -76,7 +75,7 @@ private fun Stopwatch() {
     LaunchedEffect(running) { while (running) { now = System.currentTimeMillis(); delay(30) } }
     val elapsed = base + if (running) now - startedAt else 0
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { Text(fmtMs(elapsed), fontSize = 64.sp, style = MaterialTheme.typography.displaySmall, modifier = Modifier.padding(vertical = 32.dp)) }
         item {

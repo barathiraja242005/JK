@@ -6,3 +6,10 @@ local.properties
 .DS_Store
 .kotlin/
 app/google-services.json
+
+# Signing keys and secrets never go in git.
+*.jks
+*.keystore
+*.p12
+.env
+keystore.properties

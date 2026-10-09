@@ -1,38 +1,41 @@
 package com.barathiraja.jk.data
 
 import androidx.room.Dao
+import com.barathiraja.jk.gym.SessionStore
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Transaction
 
 @Dao
-interface JkDao {
+interface JkDao : SessionStore {
     // Workouts
     @Insert
     suspend fun insertSession(session: WorkoutSession)
 
     /** Removes the sessions logged for one workout (e.g. "gym:{id}"), so re-finishing it never counts twice. */
     @Query("DELETE FROM workout_sessions WHERE workoutId = :workoutId")
-    suspend fun deleteSessionsFor(workoutId: String)
+    override suspend fun deleteSessionsFor(workoutId: String)
 
     /** Logs [session] as the only session for its workout. */
-    @androidx.room.Transaction
-    suspend fun replaceSession(session: WorkoutSession) {
+    @Transaction
+    override suspend fun replaceSession(session: WorkoutSession) {
         deleteSessionsFor(session.workoutId)
         insertSession(session)
     }
+
+    /** Sessions mirrored from the gym's workouts ("gym:{assignment id}"). */
+    @Query("SELECT * FROM workout_sessions WHERE workoutId LIKE 'gym:%'")
+    override suspend fun gymSessions(): List<WorkoutSession>
 
     @Query("SELECT * FROM workout_sessions ORDER BY finishedAt DESC")
     fun sessions(): Flow<List<WorkoutSession>>
 
     @Query("SELECT * FROM workout_sessions WHERE epochDay >= :fromDay ORDER BY finishedAt DESC")
     fun sessionsSince(fromDay: Long): Flow<List<WorkoutSession>>
-
-    @Query("SELECT DISTINCT epochDay FROM workout_sessions ORDER BY epochDay DESC")
-    fun activeDays(): Flow<List<Long>>
 
     // Water
     @Upsert
@@ -48,7 +51,7 @@ interface JkDao {
     suspend fun waterNow(day: Long): WaterDay?
 
     /** Adds [delta] glasses in one transaction, so quick taps never overwrite each other. */
-    @androidx.room.Transaction
+    @Transaction
     suspend fun addWater(day: Long, delta: Int, max: Int) {
         val current = waterNow(day)?.glasses ?: 0
         upsertWater(WaterDay(day, (current + delta).coerceIn(0, max)))
@@ -184,9 +187,6 @@ interface JkDao {
     @Query("SELECT * FROM plan_items WHERE epochDay = :day ORDER BY position")
     suspend fun planItemsNow(day: Long): List<PlanItem>
 
-    @Query("SELECT * FROM plan_items WHERE epochDay BETWEEN :from AND :to")
-    fun planItemsBetween(from: Long, to: Long): Flow<List<PlanItem>>
-
     @Insert
     suspend fun insertPlanItems(items: List<PlanItem>)
 
@@ -212,7 +212,7 @@ interface JkDao {
     suspend fun deleteSetLog(day: Long, exerciseId: String, setIndex: Int)
 
     /** Logs a set as the only row for its day, exercise and index, so a double tap never logs it twice. */
-    @androidx.room.Transaction
+    @Transaction
     suspend fun replaceSetLog(log: SetLog) {
         deleteSetLog(log.epochDay, log.exerciseId, log.setIndex)
         insertSetLog(log)

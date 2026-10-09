@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -7,6 +9,12 @@ plugins {
 // Firebase config is downloaded from the Firebase console and kept out of git.
 // Without it the app still builds; gym features show a "not set up" message.
 if (file("google-services.json").exists()) apply(plugin = "com.google.gms.google-services")
+
+// The release signing key's location and passwords live in keystore.properties (kept out of git, like the key).
+// Until that file exists, release builds are signed with the local debug key, which only suits your own phones.
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+}
 
 android {
     namespace = "com.barathiraja.jk"
@@ -22,6 +30,15 @@ android {
         versionName = "2.0.0"
     }
 
+    signingConfigs {
+        if (keystoreProps.isNotEmpty()) create("upload") {
+            storeFile = file(keystoreProps.getProperty("storeFile"))
+            storePassword = keystoreProps.getProperty("storePassword")
+            keyAlias = keystoreProps.getProperty("keyAlias")
+            keyPassword = keystoreProps.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         release {
             // R8 shrinks and optimises the app; keep rules for our own code are in proguard-rules.pro.
@@ -29,8 +46,7 @@ android {
                 enable = true
             }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Signed with the local debug key for testing on your phone. Use a real upload key for Play Store.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("upload") ?: signingConfigs.getByName("debug")
         }
     }
 
@@ -41,6 +57,14 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    lint {
+        // Problems that would break the app for someone fail the build; the rest are reported.
+        abortOnError = true
+        checkReleaseBuilds = true
+        error += listOf("NewApi", "MissingPermission", "UnusedResources")
+        warningsAsErrors = false
     }
 }
 
@@ -77,5 +101,6 @@ dependencies {
     implementation(libs.coroutines.play.services)
 
     testImplementation(libs.junit)
-    testImplementation("org.json:json:20240303")
+    // Android's org.json is a stub in unit tests; the real one parses the bundled exercise data there.
+    testImplementation(libs.org.json)
 }

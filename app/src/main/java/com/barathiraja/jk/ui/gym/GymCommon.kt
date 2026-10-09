@@ -53,6 +53,13 @@ import com.barathiraja.jk.ui.GymViewModel
 import com.barathiraja.jk.ui.components.formatDuration
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.barathiraja.jk.ui.components.CardBox
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.PlainButton
+import com.barathiraja.jk.ui.components.StatusChip
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.Tone
+import com.barathiraja.jk.ui.theme.plex
 
 private val dayFmt = DateTimeFormatter.ofPattern("EEE d MMM")
 
@@ -73,31 +80,21 @@ fun StatusPill(a: Assignment?, today: Long, modifier: Modifier = Modifier) {
         a.epochDay < today -> "Missed" to Tone.BAD
         else -> "Not started" to Tone.NONE
     }
-    OwnerChip(text, tone, modifier)
+    StatusChip(text, tone, modifier)
 }
 
 /** A person's photo and name in a row, with an optional line under the name and something on the right. */
 @Composable
 internal fun MemberLine(p: Person, modifier: Modifier = Modifier, size: Dp = 44.dp, trailing: @Composable () -> Unit = {}, sub: @Composable () -> Unit = {}) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        OwnerAvatar(p.photoUrl, p.name, size)
+        PersonAvatar(p.photoUrl, p.name, size)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(p.name, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(p.name, style = plex(16.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, overflow = TextOverflow.Ellipsis)
             sub()
         }
         trailing()
     }
-}
-
-/** The signed-in person's photo in a page header; tapping it opens their profile. */
-@Composable
-internal fun ProfileButton(p: Person, onClick: () -> Unit) {
-    Box(
-        Modifier.size(48.dp).clip(CircleShape)
-            .clickable(onClickLabel = "Open your profile", role = SemanticsRole.Button, onClick = onClick)
-            .semantics { contentDescription = "Your profile" },
-    ) { OwnerAvatar(p.photoUrl, p.name, 48.dp) }
 }
 
 /** Completion rate as a percentage string, or "–" when nothing was due. */
@@ -110,15 +107,16 @@ fun GymAccountCard(gvm: GymViewModel) {
     var confirmSignOut by remember { mutableStateOf(false) }
     var confirmLeave by remember { mutableStateOf(false) }
     when (val s = state) {
-        is GymState.Ready -> OwnerCardBox {
+        is GymState.Ready -> CardBox {
             Column {
-                Text(s.gym.name, style = plex(17.sp, FontWeight.SemiBold), color = Owner.Ink)
+                Text(s.gym.name, style = plex(17.sp, FontWeight.SemiBold), color = Jk.Ink)
                 val role = when (s.me.role) { Role.OWNER -> "Owner"; Role.TRAINER -> "Trainer"; Role.MEMBER -> "Member" }
-                Text(role + (gvm.trainerOf(s.me)?.let { " · Coach ${it.name}" } ?: ""), style = plex(15.sp), color = Owner.Muted)
+                Text(role + (gvm.trainerOf(s.me)?.let { " · Coach ${it.name}" } ?: ""), style = plex(15.sp), color = Jk.Muted)
                 Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (s.me.role != Role.OWNER) PlainButton("Leave gym", { confirmLeave = true }, ink = Owner.RedText)
+                    if (s.me.role != Role.OWNER) PlainButton("Leave gym", { confirmLeave = true }, ink = Jk.RedText)
                     PlainButton("Sign out", { confirmSignOut = true })
                 }
+                if (s.me.role != Role.OWNER) DeleteAccountButton(gvm, Modifier.padding(top = 4.dp))
             }
         }
         else -> {}
@@ -135,11 +133,31 @@ fun GymAccountCard(gvm: GymViewModel) {
         dismissButton = { TextButton(onClick = { confirmLeave = false }) { Text("Cancel") } })
 }
 
+/**
+ * "Delete my account", with a confirmation that says exactly what goes and what stays. Not for the owner, whose
+ * account runs the gym.
+ */
+@Composable
+internal fun DeleteAccountButton(gvm: GymViewModel, modifier: Modifier = Modifier) {
+    var asking by remember { mutableStateOf(false) }
+    TextButton(onClick = { asking = true }, modifier = modifier) {
+        Text("Delete my account", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText)
+    }
+    if (asking) AlertDialog(onDismissRequest = { asking = false },
+        title = { Text("Delete your account?") },
+        text = { Text("Your name and photo are removed from the gym, your saved settings are deleted from the cloud, and " +
+            "everything on this phone is cleared. Past workouts stay in the gym's records without your name. This can't be undone.",
+            style = plex(15.sp, line = 21.sp)) },
+        confirmButton = { TextButton(onClick = { asking = false; gvm.deleteAccount() }) {
+            Text("Delete", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText) } },
+        dismissButton = { TextButton(onClick = { asking = false }) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } })
+}
+
 /** One set as "reps × kg" (or seconds) with small steppers; fits inside a card. */
 @Composable
 fun SetEditorRow(index: Int, s: SetSpec, exerciseId: String, step: Float, onChange: (SetSpec) -> Unit, onDelete: (() -> Unit)?) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("${index + 1}", Modifier.width(22.dp), style = plex(15.sp, FontWeight.SemiBold), color = Owner.RedText)
+        Text("${index + 1}", Modifier.width(22.dp), style = plex(15.sp, FontWeight.SemiBold), color = Jk.RedText)
         if (s.timed) {
             MiniStepper(formatDuration(s.seconds.toLong()), "time", Modifier.weight(1f),
                 { onChange(s.copy(seconds = (s.seconds - 15).coerceAtLeast(10))) }, { onChange(s.copy(seconds = s.seconds + 15)) })
@@ -151,7 +169,7 @@ fun SetEditorRow(index: Int, s: SetSpec, exerciseId: String, step: Float, onChan
         }
         // IconButton keeps a 48dp target around its smaller icon.
         if (onDelete != null) IconButton(onClick = onDelete) {
-            Icon(Icons.Filled.Close, "Delete set ${index + 1}", Modifier.size(18.dp), tint = Owner.Muted)
+            Icon(Icons.Filled.Close, "Delete set ${index + 1}", Modifier.size(18.dp), tint = Jk.Muted)
         } else Spacer(Modifier.width(48.dp))
     }
 }
@@ -161,8 +179,8 @@ private fun MiniStepper(value: String, unit: String, modifier: Modifier, minus: 
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
         StepButton(Icons.Filled.Remove, "Less $unit", minus)
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(value, style = plex(16.sp, FontWeight.SemiBold), color = Owner.Ink, maxLines = 1, softWrap = false)
-            Text(unit, style = plex(13.sp), color = Owner.Muted)
+            Text(value, style = plex(16.sp, FontWeight.SemiBold), color = Jk.Ink, maxLines = 1, softWrap = false)
+            Text(unit, style = plex(13.sp), color = Jk.Muted)
         }
         StepButton(Icons.Filled.Add, "More $unit", plus)
     }
@@ -181,10 +199,9 @@ private fun StepButton(icon: ImageVector, label: String, onClick: () -> Unit) {
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(30.dp).clip(CircleShape).background(Owner.Well), contentAlignment = Alignment.Center) {
-            Icon(icon, null, Modifier.size(16.dp), tint = Owner.Ink)
+        Box(Modifier.size(30.dp).clip(CircleShape).background(Jk.Well), contentAlignment = Alignment.Center) {
+            Icon(icon, null, Modifier.size(16.dp), tint = Jk.Ink)
         }
     }
 }
 
-fun plural(n: Int, word: String) = "$n $word${if (n == 1) "" else "s"}"

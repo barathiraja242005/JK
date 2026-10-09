@@ -35,7 +35,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -63,6 +62,8 @@ import kotlinx.coroutines.delay
 import java.time.DayOfWeek
 import java.time.format.TextStyle
 import java.util.Locale
+import com.barathiraja.jk.ui.components.ProgressBar
+import com.barathiraja.jk.ui.theme.Jk
 
 private const val STEPS = 7
 
@@ -107,7 +108,7 @@ fun TrainingSetupScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
                 }
             }
-            LinearProgressIndicator(progress = { (step + 1) / STEPS.toFloat() }, Modifier.weight(1f).padding(horizontal = 8.dp))
+            Box(Modifier.weight(1f).padding(horizontal = 8.dp)) { ProgressBar((step + 1) / STEPS.toFloat(), Jk.Well, Jk.Red, key = step, height = 6.dp) }
             Text("${step + 1}/$STEPS", style = MaterialTheme.typography.labelLarge)
         }
         Spacer(Modifier.height(16.dp))

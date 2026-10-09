@@ -50,6 +50,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.barathiraja.jk.gym.Person
 import com.barathiraja.jk.gym.Role
 import com.barathiraja.jk.ui.GymViewModel
+import com.barathiraja.jk.ui.components.PersonAvatar
+import com.barathiraja.jk.ui.components.PlainButton
+import com.barathiraja.jk.ui.components.RedButton
+import com.barathiraja.jk.ui.theme.Jk
+import com.barathiraja.jk.ui.theme.plex
+import com.barathiraja.jk.gym.plural
 
 /*
  * The owner's people tools, at the bottom of a trainer's or member's page: move a member to another trainer,
@@ -68,14 +74,14 @@ private fun TrainerOption(p: Person, note: String, selected: Boolean, onClick: (
             .heightIn(min = 50.dp).padding(horizontal = 8.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OwnerAvatar(p.photoUrl, p.name, 40.dp)
+        PersonAvatar(p.photoUrl, p.name, 40.dp)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(p.name, style = plex(15.sp, FontWeight.SemiBold), color = cs.onSurface, maxLines = 1)
             Text(note, style = plex(13.sp), color = cs.onSurfaceVariant, maxLines = 1)
         }
-        Box(Modifier.size(24.dp).clip(CircleShape).background(if (selected) Owner.Red else Color.Transparent)
-            .border(1.5.dp, if (selected) Owner.Red else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(24.dp).clip(CircleShape).background(if (selected) Jk.Red else Color.Transparent)
+            .border(1.5.dp, if (selected) Jk.Red else cs.outline, CircleShape), contentAlignment = Alignment.Center) {
             if (selected) Icon(Icons.Outlined.Check, null, Modifier.size(16.dp), tint = Color.White)
         }
     }
@@ -107,7 +113,7 @@ internal fun ChangeTrainerDialog(member: Person, gvm: GymViewModel, onDismiss: (
                 Text(chosen?.let { "Move to ${it.firstName}" } ?: "Move", style = plex(14.sp, FontWeight.SemiBold))
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } },
     )
 }
 
@@ -146,10 +152,10 @@ internal fun RemovePersonDialog(p: Person, gvm: GymViewModel, onDismiss: () -> U
         },
         confirmButton = {
             TextButton(onClick = { onDismiss(); gvm.removeFromGym(p, moveTo); onRemoved() }) {
-                Text("Remove ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.RedText)
+                Text("Remove ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Jk.RedText)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Keep ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Owner.Ink) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Keep ${p.firstName}", style = plex(14.sp, FontWeight.SemiBold), color = Jk.Ink) } },
     )
 }
 
@@ -167,8 +173,8 @@ internal fun OwnerPersonActions(p: Person, gvm: GymViewModel, onRemoved: () -> U
         RedButton("Message", { context.whatsApp("Hi ${p.firstName}, ") }, Modifier.weight(1f),
             Icons.AutoMirrored.Outlined.Send)
         if (member) PlainButton("Trainer", { changing = true }, Modifier.weight(1f), Icons.Outlined.SwapHoriz)
-        Surface(onClick = { removing = true }, shape = CircleShape, color = Owner.Card, contentColor = Owner.RedText,
-            border = BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
+        Surface(onClick = { removing = true }, shape = CircleShape, color = Jk.Card, contentColor = Jk.RedText,
+            border = BorderStroke(1.5.dp, Jk.Line), modifier = Modifier.size(48.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PersonRemove, "Remove ${p.firstName} from the gym", Modifier.size(20.dp)) }
         }
     }
@@ -183,8 +189,8 @@ internal fun TrainerPersonActions(member: Person, onAssign: () -> Unit, onRemove
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         RedButton("Assign", onAssign, Modifier.weight(1f), Icons.Outlined.Add)
         PlainButton("Message", { context.whatsApp("Hi ${member.firstName}, ") }, Modifier.weight(1f), Icons.AutoMirrored.Outlined.Send)
-        Surface(onClick = onRemove, shape = CircleShape, color = Owner.Card, contentColor = Owner.RedText,
-            border = BorderStroke(1.5.dp, Owner.Line), modifier = Modifier.size(48.dp)) {
+        Surface(onClick = onRemove, shape = CircleShape, color = Jk.Card, contentColor = Jk.RedText,
+            border = BorderStroke(1.5.dp, Jk.Line), modifier = Modifier.size(48.dp)) {
             Box(contentAlignment = Alignment.Center) { Icon(Icons.Outlined.PersonRemove, "Remove ${member.firstName} from your members", Modifier.size(20.dp)) }
         }
     }
